@@ -350,7 +350,6 @@ class HealpixSphere(object):
         if True:
             hp.orthview(self.pixels, rot=rot, xsize=1000, cbar=True, half_sky=True, hold=True)
             hp.graticule(verbose=False)
-            plt.tight_layout()
         else:
             hp.mollview(self.pixels, rot=rot, xsize=1000, cbar=True)
             hp.graticule(verbose=True)

@@ -53,13 +53,13 @@ if __name__ == '__main__':
     parser.add_argument('--vis', required=False, default=None, help="Use a local JSON file containing the visibilities to create the image.")
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
     parser.add_argument('--rotation', type=float, default=0.0, help="Apply rotation (in degrees) to the antenna positions.")
-    parser.add_argument('--nside', type=int, default=8, help="Healpix nside parameter for display purposes only.")
+    parser.add_argument('--nside', type=int, default=16, help="Healpix nside parameter for display purposes only.")
 
     parser.add_argument('--beam', action="store_true", help="Generate a beam.")
 
     parser.add_argument('--elevation', type=float, default=20.0, help="Elevation limit for displaying sources (degrees)")
     parser.add_argument('--display', action="store_true", help="Display Image to the user")
-    parser.add_argument('--fits', action="store_true", help="Generate a FITS format image")
+    #parser.add_argument('--fits', action="store_true", help="Generate a FITS format image")
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image")
@@ -150,27 +150,46 @@ if __name__ == '__main__':
     
     if should_make_images:
         nside = ARGS.nside
+        
         sphere = HealpixSphere(nside)
+        #sphere = HealpixSubSphere(resolution=1 * 60.0, theta=0.0, phi=0.0, radius=np.radians(85))
         
-        
+        if ARGS.lasso:
+            logger.info("L1 regularization")
+            sky = grid.image_lasso(grid.vis_arr, sphere, alpha=0.02, scale=False)
+        else:
+            sky = grid.solve_vis(grid.vis_arr, sphere)
+  
+        image_title = '{}_{}'.format('disko', time_repr)
         if ARGS.SVG:
-            fname = 'lasso_{}.svg'.format(time_repr)
+            fname = '{}.svg'.format(image_title)
             fpath = os.path.join(ARGS.dir, fname)
 
-            sphere = HealpixSubSphere(resolution=1 * 60.0, theta=0.0, phi=0.0, radius=np.radians(85))
-            sky = grid.image_lasso(grid.vis_arr, sphere, alpha=0.02, scale=False)
+            #sky = grid.image_lasso(grid.vis_arr, sphere, alpha=0.02, scale=False)
             sphere.to_svg(fname=fpath, show_grid=True, src_list=src_list)
-        else:
-            if ARGS.lasso:
-                logger.info("L1 regularization")
-                sky = grid.image_lasso(grid.vis_arr, sphere, alpha=0.1, scale=False)
-                sphere.plot(plt, src_list)
-                handle_image(ARGS, None, "lasso" + ARGS.title, time_repr, src_list)
-            else:
-                sky = grid.solve_vis(grid.vis_arr, sphere)
-                sphere.plot(plt, src_list)
-                handle_image(ARGS, None, "disko" + ARGS.title, time_repr, src_list)
-
-    if ARGS.beam:
-        grid.beam(plt, nside)
-        handle_image(ARGS, None, "dirty", "beam", src_list)
+            logger.info("Generating {}".format(fname))
+        #if ARGS.fits:
+            #fname = '{}.fits'.format(image_title)
+            #fpath = os.path.join(ARGS.dir, fname)
+            #api_imaging.save_fits_image(sky, fname=fname, out_dir=ARGS.dir, timestamp=time_repr)
+            #logger.info("Generating {}".format(fname))
+        if ARGS.PNG:
+            sphere.plot(plt, src_list)
+            plt.title(image_title)
+            fname = '{}.png'.format(image_title)
+            fpath = os.path.join(ARGS.dir, fname)
+            plt.savefig(fpath, dpi=300)
+            plt.close()
+            logger.info("Generating {}".format(fname))
+        if ARGS.PDF:
+            sphere.plot(plt, src_list)
+            plt.title(image_title)
+            fname = '{}.pdf'.format(image_title)
+            fpath = os.path.join(ARGS.dir, fname)
+            plt.savefig(fpath, dpi=600)
+            plt.close()
+            logger.info("Generating {}".format(fname))
+        if ARGS.display:
+            sphere.plot(plt, src_list)
+            plt.title(image_title)
+            plt.show()
