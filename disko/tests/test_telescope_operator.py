@@ -27,7 +27,7 @@ class TestTelescopeOperator(unittest.TestCase):
     def setUpClass(cls):
         # Load data from a JSON file
         np.seterr(all='raise')
-        fname = 'test_data.json'
+        fname = 'test_data/test_data.json'
         logger.info("Getting Data from file: {}".format(fname))
         with open(fname, 'r') as json_file:
             calib_info = json.load(json_file)
