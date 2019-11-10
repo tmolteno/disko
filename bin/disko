@@ -59,11 +59,13 @@ if __name__ == '__main__':
 
     parser.add_argument('--elevation', type=float, default=20.0, help="Elevation limit for displaying sources (degrees)")
     parser.add_argument('--display', action="store_true", help="Display Image to the user")
-    #parser.add_argument('--fits', action="store_true", help="Generate a FITS format image")
+
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image")
+
     parser.add_argument('--lasso', action="store_true", help="Use L1 regularization")
+    parser.add_argument('--tikhonov', action="store_true", help="Use L2 regularization")
     parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG).")
 
     parser.add_argument('--title', required=False, default="", help="Prefix the title.")
@@ -143,7 +145,7 @@ if __name__ == '__main__':
     # Processing
     should_make_images = ARGS.display or ARGS.PNG or ARGS.fits or ARGS.PDF or ARGS.SVG
     
-    grid = DiSkO.from_cal_vis(cv)
+    disko = DiSkO.from_cal_vis(cv)
     
     if ARGS.show_sources:
         src_list = get_source_list(source_json, el_limit=ARGS.elevation, jy_limit=1e4)
@@ -151,28 +153,28 @@ if __name__ == '__main__':
     if should_make_images:
         nside = ARGS.nside
         
-        sphere = HealpixSphere(nside)
         #sphere = HealpixSubSphere(resolution=1 * 60.0, theta=0.0, phi=0.0, radius=np.radians(85))
         
         if ARGS.lasso:
             logger.info("L1 regularization")
-            sky = grid.image_lasso(grid.vis_arr, sphere, alpha=0.02, scale=False)
+            sphere = HealpixSubSphere(resolution=1 * 60.0, theta=0.0, phi=0.0, radius=np.radians(85))
+            sky = disko.image_lasso(disko.vis_arr, sphere, alpha=0.02, scale=False)
+        if ARGS.tikhonov:
+            logger.info("L2 regularization")
+            sphere = HealpixSubSphere(resolution=1 * 60.0, theta=0.0, phi=0.0, radius=np.radians(85))
+            sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=0.02, scale=False)
         else:
-            sky = grid.solve_vis(grid.vis_arr, sphere)
+            sphere = HealpixSphere(nside)
+            sky = disko.solve_vis(disko.vis_arr, sphere)
   
         image_title = '{}_{}'.format('disko', time_repr)
         if ARGS.SVG:
             fname = '{}.svg'.format(image_title)
             fpath = os.path.join(ARGS.dir, fname)
 
-            #sky = grid.image_lasso(grid.vis_arr, sphere, alpha=0.02, scale=False)
+            #sky = disko.image_lasso(disko.vis_arr, sphere, alpha=0.02, scale=False)
             sphere.to_svg(fname=fpath, show_grid=True, src_list=src_list)
             logger.info("Generating {}".format(fname))
-        #if ARGS.fits:
-            #fname = '{}.fits'.format(image_title)
-            #fpath = os.path.join(ARGS.dir, fname)
-            #api_imaging.save_fits_image(sky, fname=fname, out_dir=ARGS.dir, timestamp=time_repr)
-            #logger.info("Generating {}".format(fname))
         if ARGS.PNG:
             sphere.plot(plt, src_list)
             plt.title(image_title)

@@ -206,6 +206,27 @@ class DiSkO(object):
         sphere.set_visible_pixels(sky, scale)
         return sky.reshape(-1,1)
 
+    def image_tikhonov(self, vis_arr, sphere, alpha, scale=True):
+        from sklearn import linear_model
+        # Problems with complex arrays. This doesn't work.
+        gamma = self.make_gamma(sphere)
+        
+        proj_operator_real = np.real(gamma)
+        proj_operator_imag = np.imag(gamma)
+        proj_operator = np.block([[proj_operator_real], [proj_operator_imag]])
+        
+        vis_aux = np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
+        
+        n_s = sphere.pixels.shape[0]
+        
+        reg = linear_model.ElasticNet(alpha=alpha/n_s, l1_ratio=0.0, max_iter=10000, positive=True)
+        reg.fit(proj_operator, vis_aux)
+        sky = reg.coef_
+        logger.info("sky = {}".format(sky.shape))
+
+        sphere.set_visible_pixels(sky, scale)
+        return sky.reshape(-1,1)
+
 
     @classmethod
     def plot(self, plt, sphere, src_list):

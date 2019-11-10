@@ -2,6 +2,7 @@
 # Copyright Tim Molteno 2017-2019 tim@elec.ac.nz
 #
 
+import os
 import unittest
 
 import numpy as np
@@ -34,3 +35,11 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(phi, 0)
 
 
+    def test_svg(self):
+        res_deg = 10
+        fname='test.svg'
+        sph = sphere.HealpixSphere(nside=8)
+
+        sph.to_svg(fname=fname, pixels_only=True)
+        self.assertTrue(os.path.isfile(fname))
+        os.remove(fname)

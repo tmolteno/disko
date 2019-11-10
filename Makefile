@@ -9,7 +9,7 @@ install:
 	sudo apt install python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite
 
 lint:
-	pylint --extension-pkg-whitelist=numpy --ignored-modules=numpy --extension-pkg-whitelist=astropy gridless
+	pylint --extension-pkg-whitelist=numpy --ignored-modules=numpy --extension-pkg-whitelist=astropy disko
 
 test2:
 	#python3 -m unittest  disko.tests.test_gridless.TestGridless.test_from_pos
