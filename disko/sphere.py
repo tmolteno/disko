@@ -411,9 +411,7 @@ class HealpixSubSphere(HealpixSphere):
         # https://healpy.readthedocs.io/en/latest/generated/healpy.query_polygon.html
         self.pixel_indices = hp.query_disc(nside, x0, radius, inclusive=False, nest=False)
         #self.pixel_indices = my_query_disk(nside, x0, radius)
-        
-        print(self.pixel_indices)
-        
+                
         self.npix = self.pixel_indices.shape[0]
         
         logger.info("New SubSphere, nside={}. npix={}".format(self.nside, self.npix))
@@ -429,6 +427,29 @@ class HealpixSubSphere(HealpixSphere):
         self.az_r = az_r
 
         self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
+
+    def plot(self, plt, src_list):
+        '''
+            Modified plot to deal with the reduced number of pixels
+        '''
+        all_npix = hp.nside2npix(self.nside)
+        all_pixels = np.zeros(all_npix) + hp.UNSEEN
+        all_pixels[self.pixel_indices] = self.pixels
+
+        rot = (0, 90, 0)
+        plt.figure() # (figsize=(6,6))
+        logger.info('self.pixels: {}'.format(self.pixels.shape))
+        if True:
+            hp.orthview(all_pixels, rot=rot, xsize=1000, cbar=True, half_sky=True, hold=True)
+            hp.graticule(verbose=False)
+        else:
+            hp.mollview(all_pixels, rot=rot, xsize=1000, cbar=True)
+            hp.graticule(verbose=True)
+        
+        if src_list is not None:
+            for s in src_list:
+                self.plot_x(s.el_r, s.az_r)
+
 
 if __name__=="__main__":
         sph = HealpixSphere(2)

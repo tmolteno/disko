@@ -13,5 +13,6 @@ Its so cool its gridless. Image by using the telescope operator keeping track of
     
 ## Changelog
 
+0.5.0b4 Override plot in HPSubSphere to allow for non-normal pixels.
 0.5.0b3 Added elliptical source circle projections in SVG.
 0.5.0 Getting imaging logic better. Added L2 regularization, and cross-validation
