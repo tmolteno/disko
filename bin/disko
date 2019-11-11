@@ -154,11 +154,11 @@ if __name__ == '__main__':
     
     if ARGS.lasso:
         logger.info("L1 regularization alpha=%f" %ARGS.alpha)
-        sphere = HealpixSubSphere(resolution=3 * 60.0, theta=0.0, phi=0.0, radius=np.radians(85))
+        sphere = HealpixSubSphere(nside=nside, theta=0.0, phi=0.0, radius=np.radians(85))
         sky = disko.image_lasso(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, use_cv=ARGS.cv)
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
-        sphere = HealpixSubSphere(resolution=3 * 60.0, theta=0.0, phi=0.0, radius=np.radians(85))
+        sphere = HealpixSubSphere(nside=nside, theta=0.0, phi=0.0, radius=np.radians(85))
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True)
     else:
         sphere = HealpixSphere(nside)

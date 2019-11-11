@@ -378,20 +378,23 @@ class HealpixSubSphere(HealpixSphere):
     ''' 
         A healpix subset of a sphere bounded by a range in theta and phi
     '''
-    def __init__(self, resolution, theta, phi, radius):
+    def __init__(self, resolution=None, nside=None, theta=0.0, phi=0.0, radius=0.0):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
 
-        # Calculate nside to the appropriate resolution
-        nside = 1
-        while True:
-            nside = nside * 2
-            res = hp.nside2resol(nside, arcmin = True)
-            logger.info("nside={} res={} arcmin".format(nside, res))
-            if res < resolution:
-                break
-            
-        self.nside = nside
+        if nside is None: # Calculate nside to the appropriate resolution
+            nside = 1
+            while True:
+                nside = nside * 2
+                res = hp.nside2resol(nside, arcmin = True)
+                logger.info("nside={} res={} arcmin".format(nside, res))
+                if res < resolution:
+                    break
+                
+            self.nside = nside
+        else:
+            self.nside = nside
+    
         logger.info("New SubSphere, nside={}".format(self.nside))
         
         x0 = hp.ang2vec(theta, phi)
