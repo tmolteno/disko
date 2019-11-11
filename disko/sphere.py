@@ -310,7 +310,7 @@ class HealpixSphere(object):
         grid_color = 'black'
         if not pixels_only:
             dwg.add(svg_pixels)
-            grid_color = 'white'
+            grid_color = 'grey'
             
         if show_grid:
             grid_lines = dwg.g(fill='none', stroke=grid_color, stroke_width="{}".format(line_size), stroke_linejoin="round", stroke_dasharray="{},{}".format(5*line_size, 10*line_size))
@@ -331,12 +331,20 @@ class HealpixSphere(object):
             angular_size = np.radians(2.0)
             source_circles = dwg.g(fill='none', stroke='red', stroke_width="{}".format(line_size))
             for s in src_list:
-                if s.el_r > np.radians(20.0):
+                if s.el_r > np.radians(10.0):
                     elaz = ElAz(s.el_r, s.az_r)
                     (x,y) = pc.from_elaz(elaz)
-                    radius = pc.from_d(angular_size)
-
-                    source_circles.add(dwg.circle(center=(x,y), r=radius))
+                    
+                    radial_size = angular_size*np.sin(s.el_r)
+                    
+                    radiusx = pc.from_d(angular_size)
+                    radiusy = pc.from_d(radial_size)
+                    
+                    circ = dwg.ellipse(center=(x,y),
+                                      r=(radiusx, radiusy))
+                    circ.rotate(-np.degrees(s.az_r), center=(x,y))
+                    
+                    source_circles.add(circ)
             dwg.add(source_circles)
         
         dwg.save()
