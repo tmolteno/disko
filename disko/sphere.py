@@ -273,8 +273,8 @@ class HealpixSphere(object):
                 max_lat = max(max_lat, lat)
                 min_lat = min(min_lat,  lat)
                 
-                if theta > np.pi / 2:
-                    logger.info("colatitude {} > PI_OVER_2 ll={}".format(theta, p))
+                #if theta > np.pi / 2:
+                    #logger.info("colatitude {} > PI_OVER_2 ll={}".format(theta, p))
                 
                 hpang = HpAngle(theta, np.pi + phi)
                 (x,y) = hpang.proj()

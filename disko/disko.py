@@ -18,6 +18,7 @@ import healpy as hp
 
 from copy import deepcopy
 from scipy.optimize import minimize
+from sklearn import linear_model
 
 from tart.imaging import elaz
 from tart.util import constants
@@ -41,7 +42,6 @@ def get_all_uvw(ant_pos, wavelength):
     bl_pos = ant_p[np.array(baselines).astype(int)]
     uu_a, vv_a, ww_a = (bl_pos[:,0] - bl_pos[:,1]).T/wavelength
     return baselines, uu_a, vv_a, ww_a
-
 
 
 def to_column(x):
@@ -176,9 +176,7 @@ class DiSkO(object):
         
         return gamma
 
-    def image_lasso(self, vis_arr, sphere, alpha, scale=True):
-        from sklearn import linear_model
-        # Problems with complex arrays. This doesn't work.
+    def image_lasso(self, vis_arr, sphere, alpha, scale=True, use_cv=False):
         gamma = self.make_gamma(sphere)
         
         proj_operator_real = np.real(gamma)
@@ -198,8 +196,14 @@ class DiSkO(object):
         
         n_s = sphere.pixels.shape[0]
         
-        reg = linear_model.ElasticNet(alpha=alpha/n_s, l1_ratio=0.75, max_iter=10000, positive=True)
-        reg.fit(proj_operator, vis_aux)
+        if not use_cv:
+            reg = linear_model.ElasticNet(alpha=alpha/n_s, l1_ratio=1.0, max_iter=10000, positive=True)
+            reg.fit(proj_operator, vis_aux)
+        else:
+            reg = linear_model.ElasticNetCV(l1_ratio=1.0, cv=5, max_iter=10000, positive=True)
+            reg.fit(proj_operator, vis_aux)
+            logger.info("Cross Validation = {}".format(reg.alpha_))
+
         sky = reg.coef_
         logger.info("sky = {}".format(sky.shape))
 
@@ -207,8 +211,6 @@ class DiSkO(object):
         return sky.reshape(-1,1)
 
     def image_tikhonov(self, vis_arr, sphere, alpha, scale=True):
-        from sklearn import linear_model
-        # Problems with complex arrays. This doesn't work.
         gamma = self.make_gamma(sphere)
         
         proj_operator_real = np.real(gamma)
@@ -218,9 +220,10 @@ class DiSkO(object):
         vis_aux = np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
         
         n_s = sphere.pixels.shape[0]
-        
+
         reg = linear_model.ElasticNet(alpha=alpha/n_s, l1_ratio=0.0, max_iter=10000, positive=True)
         reg.fit(proj_operator, vis_aux)
+
         sky = reg.coef_
         logger.info("sky = {}".format(sky.shape))
 

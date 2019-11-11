@@ -9,3 +9,8 @@ Its so cool its gridless. Image by using the telescope operator keeping track of
 ## Howto
 
     disko --display --show-sources
+
+    
+## Changelog
+
+0.5.0 'Getting imaging logic better. Added L2 regularization, and cross-validation'
