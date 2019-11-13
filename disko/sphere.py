@@ -144,6 +144,14 @@ def elaz2hp(el, az):
     phi = -az
     return theta, phi
 
+def lonlat(theta, phi):
+    """Converts theta and phi to longitude and latitude
+    From colatitude to latitude and from astro longitude to geo longitude"""
+
+    longitude = -1 * np.asarray(phi)
+    latitude = np.pi / 2 - np.asarray(theta)
+    return longitude, latitude
+
 def image_stats(sky):
     rsky = np.real(sky)
     
@@ -199,9 +207,9 @@ class HealpixSphere(object):
         theta, phi = elaz2hp(el, az)
         hp.projplot(theta, phi, 'k.', rot=(0,90,0))  #
 
-    def plot_x(self, el, az):
+    def plot_x(self, plt, el, az):
         theta, phi = elaz2hp(el, az)
-        hp.projplot(theta, phi, 'rx', rot=(0,90,180))  #
+        hp.projplot(theta, phi, 'ro', rot=(0,90,180))  #
 
     def set_visible_pixels(self, pix, scale=True):
         # This discards the imaginary part.
@@ -334,21 +342,21 @@ class HealpixSphere(object):
                 if s.el_r > np.radians(10.0):
                     elaz = ElAz(s.el_r, s.az_r)
                     (x,y) = pc.from_elaz(elaz)
-                    
+
                     radial_size = angular_size*np.sin(s.el_r)
-                    
+
                     radiusx = pc.from_d(angular_size)
                     radiusy = pc.from_d(radial_size)
-                    
+                    # Project the source circle onto an ellipse.
                     circ = dwg.ellipse(center=(x,y),
                                       r=(radiusx, radiusy))
                     circ.rotate(-np.degrees(s.az_r), center=(x,y))
-                    
+
                     source_circles.add(circ)
             dwg.add(source_circles)
-        
+
         dwg.save()
-        
+
 
 
     def plot(self, plt, src_list):
@@ -364,7 +372,7 @@ class HealpixSphere(object):
         
         if src_list is not None:
             for s in src_list:
-                self.plot_x(s.el_r, s.az_r)
+                self.plot_x(plt, s.el_r, s.az_r)
 
 
 def my_query_disk(nside, x0, radius):
@@ -448,7 +456,7 @@ class HealpixSubSphere(HealpixSphere):
         
         if src_list is not None:
             for s in src_list:
-                self.plot_x(s.el_r, s.az_r)
+                self.plot_x(plt, s.el_r, s.az_r)
 
 
 if __name__=="__main__":

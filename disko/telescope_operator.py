@@ -21,7 +21,7 @@ logger.setLevel(logging.INFO)
 
 
 def plot_spectrum(s, n_s, n_v, rank, name):
-    plt.figure(num=None, figsize=(3, 2), dpi=300, facecolor='w', edgecolor='k')
+    plt.figure(num=None, figsize=(6, 4), dpi=300, facecolor='w', edgecolor='k')
     plt.plot(s)
     plt.grid(True)
     plt.title('Singular Value Spectrum $N_s={}$,  $N_v={}$, $r={}$'.format(n_s, n_v, rank))
