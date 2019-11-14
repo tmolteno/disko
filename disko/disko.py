@@ -197,7 +197,7 @@ class DiSkO(object):
         n_s = sphere.pixels.shape[0]
         
         if not use_cv:
-            reg = linear_model.ElasticNet(alpha=alpha/n_s, l1_ratio=1.0, max_iter=10000, positive=True)
+            reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=1.0, max_iter=10000, positive=True)
             reg.fit(proj_operator, vis_aux)
         else:
             reg = linear_model.ElasticNetCV(l1_ratio=1.0, cv=5, max_iter=10000, positive=True)
@@ -221,7 +221,7 @@ class DiSkO(object):
         
         n_s = sphere.pixels.shape[0]
 
-        reg = linear_model.ElasticNet(alpha=alpha/n_s, l1_ratio=0.0, max_iter=10000, positive=True)
+        reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=0.0, max_iter=10000, positive=True)
         reg.fit(proj_operator, vis_aux)
 
         sky = reg.coef_

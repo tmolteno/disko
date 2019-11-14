@@ -164,10 +164,10 @@ def image_stats(sky):
     deviation = np.abs(med_p - rsky)
     mad_p = np.median(deviation)
     
-    if (mad_p < 1e-3):
+    if (mad_p < 1e-9):
         mad_p = sdev_p
         
-    logger.info("'N_s':{}, 'S/N': {}, 'min': {}, 'max': {}, 'mean': {}, 'sdev': {}, 'R_mad': {}, 'MAD': {}, 'median': {}".format(npix, (max_p/sdev_p), min_p, max_p, mean_p, sdev_p, (max_p/mad_p), mad_p, med_p))
+    logger.info("{{'N_s':{}, 'S/N': {}, 'min': {}, 'max': {}, 'mean': {}, 'sdev': {}, 'R_mad': {}, 'MAD': {}, 'median': {}}}".format(npix, (max_p/sdev_p), min_p, max_p, mean_p, sdev_p, (max_p/mad_p), mad_p, med_p))
     
     return max_p, min_p, mad_p
 
