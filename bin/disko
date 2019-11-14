@@ -52,7 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
     parser.add_argument('--vis', required=False, default=None, help="Use a local JSON file containing the visibilities to create the image.")
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
-    parser.add_argument('--alpha', type=float, default=0.02, help="Regularization parameter.")
+    parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter. (this is divided by the sqrt of the number of pixels.")
     parser.add_argument('--nside', type=int, default=16, help="Healpix nside parameter for display purposes only.")
 
     parser.add_argument('--elevation', type=float, default=20.0, help="Elevation limit for displaying sources (degrees)")
