@@ -33,7 +33,7 @@ def plot_spectrum(s, n_s, n_v, rank, name):
 def plot_uv(to, name):
     uv = []
     
-    plt.figure(num=None, figsize=(3, 2), dpi=300, facecolor='w', edgecolor='k')
+    plt.figure(num=None, figsize=(4, 4), dpi=300, facecolor='w', edgecolor='k')
     for u, v, w in zip(to.grid.u_arr, to.grid.v_arr, to.grid.w_arr):
         plt.plot(u,v, '.', color='black')
     
