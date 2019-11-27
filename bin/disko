@@ -113,8 +113,6 @@ if __name__ == '__main__':
             vis_json, source_json = d
             cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains, phase_offsets, flag_list)
             src_list = elaz.from_json(source_json, 0.0)
-        if not ARGS.show_sources:
-            src_list = None
     else:
         logger.info("Getting Data from API: {}".format(ARGS.api))
 
@@ -137,6 +135,8 @@ if __name__ == '__main__':
 
         cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains['gain'], gains['phase_offset'], flag_list=[])
 
+    if not ARGS.show_sources:
+        src_list = None
     #api_imaging.rotate_vis(ARGS.rotation, cv, reference_positions = deepcopy(config.get_antenna_positions()))
     
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
