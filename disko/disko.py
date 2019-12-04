@@ -36,7 +36,7 @@ def get_all_uvw(ant_pos, wavelength):
     ant_p = np.array(ant_pos)
     for i in range(num_ant):
         for j in range(num_ant):
-            if (i != j):
+            if (i < j):
                 baselines.append([i,j])
                 
     bl_pos = ant_p[np.array(baselines).astype(int)]
@@ -86,7 +86,7 @@ class DiSkO(object):
             logger.info("vis={}, bl={}".format(v, bl))
         ret.vis_arr = np.array(ret.vis_arr, dtype=DATATYPE)
         return ret
-                  
+
     def get_harmonics(self, in_sphere):
         ''' Create the harmonics for this arrangement of sphere pixels
         '''

@@ -6,6 +6,7 @@ if os.name == 'posix' and "DISPLAY" not in os.environ:
 import matplotlib.pyplot as plt
 
 import argparse
+import datetime
 import json
 import logging
 from copy import deepcopy
@@ -18,7 +19,7 @@ from tart_tools import api_handler
 from tart_tools import api_imaging
 from tart.imaging import elaz
 
-from disko import DiSkO, get_source_list, HealpixSphere, HealpixSubSphere
+from disko import DiSkO, get_source_list, HealpixSphere, HealpixSubSphere, disko_from_ms
 
 
 def handle_image(args, img, title, time_repr, src_list=None):
@@ -50,6 +51,7 @@ if __name__ == '__main__':
     parser.add_argument('--catalog', required=False, default='https://tart.elec.ac.nz/catalog', help="Catalog API URL.")
 
     parser.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
+    parser.add_argument('--ms', required=False, default=None, help="visibility file")
     parser.add_argument('--vis', required=False, default=None, help="Use a local JSON file containing the visibilities to create the image.")
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
     parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter. (this is divided by the sqrt of the number of pixels.")
@@ -113,6 +115,15 @@ if __name__ == '__main__':
             vis_json, source_json = d
             cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains, phase_offsets, flag_list)
             src_list = elaz.from_json(source_json, 0.0)
+
+        disko = DiSkO.from_cal_vis(cv)
+    elif ARGS.ms:
+        logger.info("Getting Data from MS file: {}".format(ARGS.ms))
+        disko = disko_from_ms(ARGS.ms)
+        
+        # Convert from reduced Julian Date to timestamp.
+        timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0) +            datetime.timedelta(seconds=disko.timestamp)
+        
     else:
         logger.info("Getting Data from API: {}".format(ARGS.api))
 
@@ -134,6 +145,7 @@ if __name__ == '__main__':
         logger.info("Data Download Complete")
 
         cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains['gain'], gains['phase_offset'], flag_list=[])
+        disko = DiSkO.from_cal_vis(cv)
 
     if not ARGS.show_sources:
         src_list = None
@@ -143,7 +155,6 @@ if __name__ == '__main__':
 
     # Processing
     
-    disko = DiSkO.from_cal_vis(cv)
     
     if ARGS.show_sources:
         src_list = get_source_list(source_json, el_limit=ARGS.elevation, jy_limit=1e4)
