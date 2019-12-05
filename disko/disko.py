@@ -61,12 +61,20 @@ def get_source_list(source_json, el_limit, jy_limit):
 DATATYPE=np.complex128
 
 class DiSkO(object):
-        
-    def __init__(self, ant_pos, wavelength):
-        ## Get u, v, w from the antenna positions
-        self.baselines, self.u_arr, self.v_arr, self.w_arr = get_all_uvw(ant_pos, wavelength)
+    
+    def __init__(self, u_arr, v_arr, w_arr):
         self.harmonics = {} # Temporary store for harmonics
+        self.u_arr = u_arr
+        self.v_arr = v_arr
+        self.w_arr = w_arr
         self.n_v = len(self.u_arr)
+        
+    @classmethod
+    def from_ant_pos(cls, ant_pos, wavelength):
+        ## Get u, v, w from the antenna positions
+        baselines, u_arr, v_arr, w_arr = get_all_uvw(ant_pos, wavelength)
+        ret = cls(u_arr, v_arr, w_arr)
+        return ret
 
     @classmethod
     def from_cal_vis(cls, cal_vis):
@@ -77,10 +85,11 @@ class DiSkO(object):
         # We need to get the vis array to be correct for the full set of u,v,w points (baselines), 
         # including the -u,-v, -w points.
 
+        baselines, u_arr, v_arr, w_arr = get_all_uvw(ant_p, wavelength=constants.L1_WAVELENGTH)
 
-        ret = cls(ant_p, wavelength=constants.L1_WAVELENGTH)
+        ret = cls(u_arr, v_arr, w_arr)
         ret.vis_arr = []
-        for bl in ret.baselines:
+        for bl in baselines:
             v = cal_vis.get_visibility(bl[0], bl[1])  # Handles the conjugate bit
             ret.vis_arr.append(v)
             logger.info("vis={}, bl={}".format(v, bl))

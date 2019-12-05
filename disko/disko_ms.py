@@ -47,12 +47,17 @@ def disko_from_ms(ms, chunks=1000):
             #print(spw_ds.CHAN_FREQ.values)
             frequency=dask.compute(spw_ds.CHAN_FREQ.values)[0]
             logger.info("Frequency = %f" % frequency)
+            logger.info("NUM_CHAN = %f" % np.array(spw_ds.NUM_CHAN.values)[0])
 
         # Create datasets from a partioning of the MS
         datasets = list(xds_from_ms(ms, chunks={'row': chunks}))
 
         for ds in datasets:
-            #print(ds)
+            logger.info("DATA shape: {}".format(ds.DATA.data.shape))
+            logger.info("UVW shape: {}".format(ds.UVW.data.shape))
+            uvw = np.array(ds.UVW.data)
+            ant1 = np.array(ds.ANTENNA1.data)
+            ant2 = np.array(ds.ANTENNA2.data)
             cv_vis = np.array(ds.DATA.data)[:,0,0]
             timestamp = np.array(ds.TIME.data)[0]
             
@@ -65,19 +70,18 @@ def disko_from_ms(ms, chunks=1000):
             #prof.visualize(file_path="chunked.html")
         c = 2.99793e8
         n_ant = len(ant_p)
-        ret = DiSkO(ant_p, wavelength=c/frequency)
-        vis_arr = []
-        logger.info("B baselines %d" % len(ret.baselines))
-        logger.info("N ant %d" % n_ant)
         
-        for bl in ret.baselines:
-            i, j = bl
-            
-            v = get_visibility(cv_vis, ret.baselines, i,j)
-            vis_arr.append(v)
-            logger.info("vis={}, bl={}".format(v, bl))
-
-        ret.vis_arr = np.array(vis_arr, dtype=np.complex128)
+        
+        limit = min(5000, len(cv_vis))
+        
+        u_arr = uvw[0:limit,0]
+        v_arr = uvw[0:limit,1]
+        w_arr = uvw[0:limit,2]
+        
+        cv_vis = cv_vis[0:limit]
+        
+        ret = DiSkO(u_arr, v_arr, w_arr)
+        ret.vis_arr = np.array(cv_vis, dtype=np.complex128)
         ret.timestamp = timestamp
         return ret
 

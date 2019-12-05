@@ -16,8 +16,9 @@ test2:
 #	python3 -m unittest  disko.tests.test_subsphere
 	python3 setup.py test -s disko.tests.test_disko_ms
 
-batman:
-	python3 disko/draw_sky.py --mask batman.jpeg
+cygnus:
+	disko --fov 0.3 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.2 --tikhonov
+	mv disko_2015_11_15_20_35_44_.svg cygnus_pointless.svg
 
 test_upload:
 	rm -rf tart2ms.egg-info dist

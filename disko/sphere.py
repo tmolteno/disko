@@ -182,6 +182,9 @@ class HealpixSphere(object):
     def __init__(self, nside):
         self.nside = nside
         self.npix = hp.nside2npix(self.nside)
+        res = hp.nside2resol(nside, arcmin = True)
+        self.res_arcmin = res
+
         logger.info("New Sphere, nside={}. npix={}".format(self.nside, self.npix))
         
         self.pixel_indices = np.arange(self.npix)

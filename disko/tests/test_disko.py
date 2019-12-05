@@ -105,7 +105,7 @@ class TestDiSkO(unittest.TestCase):
         ''' Check that the DiSkO calculated from ant_pos only agrees with that from the 
             calibrated vis
         '''
-        dut = DiSkO(self.ant_pos, wavelength=constants.L1_WAVELENGTH)
+        dut = DiSkO.from_ant_pos(self.ant_pos, wavelength=constants.L1_WAVELENGTH)
         self.assertTrue(dut.n_v == self.disko.n_v)
         self.assertTrue(np.allclose(dut.u_arr, self.disko.u_arr))
 
@@ -121,7 +121,7 @@ class TestDiSkO(unittest.TestCase):
         self.assertEqual(sky2.shape[0], 1504)
 
     def test_gamma_size(self):
-        dut = DiSkO(self.ant_pos, wavelength=constants.L1_WAVELENGTH)
+        dut = DiSkO.from_ant_pos(self.ant_pos, wavelength=constants.L1_WAVELENGTH)
         gamma = dut.make_gamma(self.sphere)
         gamma_sub = dut.make_gamma(self.subsphere)
         self.assertEqual(gamma.shape[1], self.sphere.npix)
