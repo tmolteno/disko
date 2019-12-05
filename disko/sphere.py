@@ -108,8 +108,11 @@ def cmap(fract):
 
 class PlotCoords(object):
 
-    def __init__(self, w):
-        self.scale = float(w)/2.1
+    def __init__(self, w, fov):
+        # w is width in pixels
+        fov_rad = np.radians(fov/2)
+        angular_scale = 1.0 / np.sin(fov_rad)
+        self.scale = float(w)*angular_scale/2.1
         self.center = int(round(float(w)/2.0))
         self.line_size = int(float(w) / 400)
     
@@ -232,7 +235,7 @@ class HealpixSphere(object):
         
     
         
-    def to_svg(self, fname, pixels_only=False, show_grid=False, src_list=None):
+    def to_svg(self, fname, pixels_only=False, show_grid=False, src_list=None, fov=180.0, title=None):
 
         w = 4000
         dwg = svgwrite.Drawing(filename=fname, size=(w,w), profile='tiny')
@@ -240,11 +243,36 @@ class HealpixSphere(object):
         #dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
         #dwg.add(dwg.text('Test', insert=(0, 0.2), fill='red'))
         
-        pc = PlotCoords(w)
+        pc = PlotCoords(w, fov)
         line_size = pc.line_size
         
         #dwg.desc("Gridless imaging from visibilities.")
-        
+        if True: #info is not None:
+            rad = np.radians(fov/2)
+            width = np.sin(rad)
+            font_size = pc.from_d(0.05*width)
+
+            fov_arcmin = fov * 60.0
+            
+            x = pc.from_x(-width)
+            
+            if title is not None:
+                y = font_size
+                dwg.add(dwg.text(title, 
+                             (x, y), text_anchor='start', font_size="{}px".format(font_size)))
+
+            y = font_size*2
+            dwg.add(dwg.text("Res: {:.5f} '".format(self.res_arcmin), 
+                             (x, y), text_anchor='start', font_size="{}px".format(font_size)))
+
+            y = font_size*3
+            dwg.add(dwg.text("FOV: {:.4f} '".format(fov_arcmin), 
+                             (x, y), text_anchor='start', font_size="{}px".format(font_size)))
+
+            y = font_size*4
+            dwg.add(dwg.text("N_s: {}".format(self.pixels.shape[0]), 
+                             (x, y), text_anchor='start', font_size="{}px".format(font_size)))
+
         max_p = np.max(self.pixels)
         min_p = np.min(self.pixels)
         mean_p = np.mean(self.pixels)
@@ -322,15 +350,17 @@ class HealpixSphere(object):
             
         if show_grid:
             grid_lines = dwg.g(fill='none', stroke=grid_color, stroke_width="{}".format(line_size), stroke_linejoin="round", stroke_dasharray="{},{}".format(5*line_size, 10*line_size))
-            for angle in [30, 60, 90]:
+            
+            for angle in np.linspace(0, fov/2, 4): #[30, 60, 90]:
                 rad = np.radians(angle)
                 radius = pc.from_d(np.sin(rad))
                 grid_lines.add(dwg.circle(center=(pc.from_x(0.0), pc.from_y(0.0)), r=radius ))
 
             for angle in range(0, 360, 30):
                 rad = np.radians(angle)
-                x = np.sin(rad)
-                y = np.cos(rad)
+                radius = np.sin(np.radians(fov/2))
+                x = radius*np.sin(rad)
+                y = radius*np.cos(rad)
                 grid_lines.add(dwg.line(start=(pc.from_x(0.0), pc.from_y(0.0)), end=(pc.from_x(x), pc.from_y(y))))
                 
             dwg.add(grid_lines)
@@ -406,9 +436,11 @@ class HealpixSubSphere(HealpixSphere):
                 logger.info("nside={} res={} arcmin".format(nside, res))
                 if res < resolution:
                     break
-                
+            self.res_arcmin = res
             self.nside = nside
         else:
+            res = hp.nside2resol(nside, arcmin = True)
+            self.res_arcmin = res
             self.nside = nside
     
         logger.info("New SubSphere, nside={}".format(self.nside))

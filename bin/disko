@@ -55,7 +55,9 @@ if __name__ == '__main__':
     parser.add_argument('--vis', required=False, default=None, help="Use a local JSON file containing the visibilities to create the image.")
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
     parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter. (this is divided by the sqrt of the number of pixels.")
-    parser.add_argument('--nside', type=int, default=16, help="Healpix nside parameter for display purposes only.")
+    parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
+    parser.add_argument('--arcmin', type=float, default=None, help="Resolution of the sky in arc minutes.")
+    parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
 
     parser.add_argument('--elevation', type=float, default=20.0, help="Elevation limit for displaying sources (degrees)")
     parser.add_argument('--display', action="store_true", help="Display Image to the user")
@@ -160,19 +162,19 @@ if __name__ == '__main__':
         src_list = get_source_list(source_json, el_limit=ARGS.elevation, jy_limit=1e4)
     
     nside = ARGS.nside
-    
-    #sphere = HealpixSubSphere(resolution=1 * 60.0, theta=0.0, phi=0.0, radius=np.radians(85))
+    radius = np.radians(ARGS.fov / 2.0)
+    if nside is None:
+        sphere = HealpixSubSphere(resolution=ARGS.arcmin, theta=0.0, phi=0.0, radius=radius)
+    else:
+        sphere = HealpixSubSphere(nside=nside, theta=0.0, phi=0.0, radius=radius)
     
     if ARGS.lasso:
         logger.info("L1 regularization alpha=%f" %ARGS.alpha)
-        sphere = HealpixSubSphere(nside=nside, theta=0.0, phi=0.0, radius=np.radians(85))
         sky = disko.image_lasso(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, use_cv=ARGS.cv)
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
-        sphere = HealpixSubSphere(nside=nside, theta=0.0, phi=0.0, radius=np.radians(85))
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True)
     else:
-        sphere = HealpixSphere(nside)
         sky = disko.solve_vis(disko.vis_arr, sphere)
 
     image_title = '{}_{}'.format('disko', time_repr)
@@ -181,7 +183,7 @@ if __name__ == '__main__':
         fpath = os.path.join(ARGS.dir, fname)
 
         #sky = disko.image_lasso(disko.vis_arr, sphere, alpha=0.02, scale=False)
-        sphere.to_svg(fname=fpath, show_grid=True, src_list=src_list)
+        sphere.to_svg(fname=fpath, show_grid=True, src_list=src_list, fov=ARGS.fov, title=image_title)
         logger.info("Generating {}".format(fname))
     if ARGS.PNG:
         sphere.plot(plt, src_list)

@@ -13,7 +13,15 @@ Its so cool its gridless. Image by using the telescope operator keeping track of
 To load a data from a measurement set 
 
     disko --ms test_data/test.ms --tikhonov --nside 32 --PDF
-    
+
+## VLA imaging with DiSkO
+
+Download the VLA 5GHZ continuum survey measurement set. AG733_A061209.xp1 from the NRAO site.
+
+Calibrate and then split the measurement set, following the CASA tutorial [https://casaguides.nrao.edu/index.php/ATCA_CABB_Continuum_Tutorial#Calibration]
+
+    disko --fov 0.01 --ms NGC1194.split.ms --SVG --arcmin 0.0025 --tikhonov
+
 ## Changelog
 
 0.6.0  Get data from Measurement Sets!

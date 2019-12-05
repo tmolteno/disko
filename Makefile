@@ -16,6 +16,9 @@ test2:
 #	python3 -m unittest  disko.tests.test_subsphere
 	python3 setup.py test -s disko.tests.test_disko_ms
 
+batman:
+	python3 disko/draw_sky.py --mask batman.jpeg
+
 test_upload:
 	rm -rf tart2ms.egg-info dist
 	python3 setup.py sdist
