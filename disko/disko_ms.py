@@ -71,14 +71,17 @@ def disko_from_ms(ms, chunks=1000):
         c = 2.99793e8
         n_ant = len(ant_p)
         
+        n = 2000
+        n_max = len(cv_vis)
         
-        limit = min(5000, len(cv_vis))
+        step = n_max // n
         
-        u_arr = uvw[0:limit,0]
-        v_arr = uvw[0:limit,1]
-        w_arr = uvw[0:limit,2]
         
-        cv_vis = cv_vis[0:limit]
+        u_arr = uvw[0:n_max:step,0]
+        v_arr = uvw[0:n_max:step,1]
+        w_arr = uvw[0:n_max:step,2]
+        
+        cv_vis = cv_vis[0:n_max:step]
         
         ret = DiSkO(u_arr, v_arr, w_arr)
         ret.vis_arr = np.array(cv_vis, dtype=np.complex128)
