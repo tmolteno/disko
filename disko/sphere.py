@@ -9,7 +9,6 @@ import svgwrite
 import numpy as np
 import healpy as hp
 
-from skimage import exposure
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
@@ -261,8 +260,10 @@ class HealpixSphere(object):
         points = (l, m)
         values = self.pixels
 
-        x = np.linspace(-1,1,1000)
-        y = np.linspace(-1,1,1000)
+        l0 = np.sin(np.radians(fov/2))
+        
+        x = np.linspace(-l0,l0,1000)
+        y = np.linspace(-l0,l0,1000)
         xx, yy = np.meshgrid(x, y)
          
         grid = scipy.interpolate.griddata(points, values, 
@@ -271,6 +272,8 @@ class HealpixSphere(object):
         hdr = fits.Header()
         hdr['OBSERVER'] = 'Tim Molteno'
         hdr['COMMENT'] = "POINTLESS: {}".format(title)
+        hdr['FOV'] = "{:5.2g} arcmin".format(fov*60.0)
+        # https://archive.stsci.edu/fuse/DH_Final/FITS_File_Headers.html
 
         hdu = fits.PrimaryHDU(grid, header=hdr)
         hdu.writeto(fname, overwrite=True)

@@ -16,6 +16,7 @@ test2:
 #	python3 -m unittest  disko.tests.test_subsphere
 	python3 setup.py test -s disko.tests.test_disko_ms
 
+
 ngc1194:
 	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
 
