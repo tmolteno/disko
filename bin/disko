@@ -72,7 +72,7 @@ if __name__ == '__main__':
     parser.add_argument('--tikhonov', action="store_true", help="Use L2 regularization")
     parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG).")
 
-    parser.add_argument('--title', required=False, default="", help="Prefix the title.")
+    parser.add_argument('--title', required=False, default="disko", help="Prefix the title.")
 
     source_json = None
 
@@ -125,7 +125,8 @@ if __name__ == '__main__':
         disko = disko_from_ms(ARGS.ms, ARGS.nvis)
         
         # Convert from reduced Julian Date to timestamp.
-        timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0) +            datetime.timedelta(seconds=disko.timestamp)
+        timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,
+                                      tzinfo=datetime.timezone.utc) +            datetime.timedelta(seconds=disko.timestamp)
         
     else:
         logger.info("Getting Data from API: {}".format(ARGS.api))
@@ -179,7 +180,7 @@ if __name__ == '__main__':
     else:
         sky = disko.solve_vis(disko.vis_arr, sphere)
 
-    image_title = '{}_{}'.format('disko', time_repr)
+    image_title = '{}_{}'.format(ARGS.title, time_repr)
 
     # Save as a FITS file
     fname = '{}.fits'.format(image_title)

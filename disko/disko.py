@@ -267,9 +267,9 @@ class DiSkO(object):
         else:
             from dask_ml.linear_model import LogisticRegression, LinearRegression
 
-            dT = da.from_array(proj_operator, chunks=(proj_operator.shape[0], proj_operator.shape[1]))
+            dT = da.from_array(proj_operator, chunks=(10, proj_operator.shape[1]))
             #dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
-            dv = da.from_array(vis_aux, chunks=(proj_operator.shape[0]))
+            dv = da.from_array(vis_aux, chunks=(10))
             reg = LinearRegression(penalty='l2', C=alpha/np.sqrt(n_s))
             sky = reg.fit(dT, vis_aux)
             sky = reg.coef_

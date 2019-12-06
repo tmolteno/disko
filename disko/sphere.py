@@ -255,7 +255,7 @@ class HealpixSphere(object):
         # Make a grid on the plane, at the width of the narrowest pixel
         #f = scipy.interpolate.interp2d(self.el_r, self.az_r, self.pixels, fill_value=-1)
         l = np.sin(self.az_r)*np.cos(self.el_r)
-        m = np.cos(self.az_r)*np.cos(self.el_r)
+        m = -np.cos(self.az_r)*np.cos(self.el_r)
 
         points = (l, m)
         values = self.pixels
