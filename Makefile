@@ -28,7 +28,7 @@ cygnus_center:
 	disko --fov 0.02 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.012 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
 	
 tart:
-	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=180 --alpha=0.01
+	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=180 --alpha=0.1 --tikhonov
 	
 test_upload:
 	rm -rf tart2ms.egg-info dist

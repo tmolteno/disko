@@ -118,15 +118,15 @@ if __name__ == '__main__':
             vis_json, source_json = d
             cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains, phase_offsets, flag_list)
             src_list = elaz.from_json(source_json, 0.0)
-
+        info = {}
         disko = DiSkO.from_cal_vis(cv)
     elif ARGS.ms:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
-        disko = disko_from_ms(ARGS.ms, ARGS.nvis)
+        disko, info = disko_from_ms(ARGS.ms, ARGS.nvis)
         
         # Convert from reduced Julian Date to timestamp.
         timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,
-                                      tzinfo=datetime.timezone.utc) +            datetime.timedelta(seconds=disko.timestamp)
+                                      tzinfo=datetime.timezone.utc) + datetime.timedelta(seconds=disko.timestamp)
         
     else:
         logger.info("Getting Data from API: {}".format(ARGS.api))
@@ -150,6 +150,7 @@ if __name__ == '__main__':
 
         cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains['gain'], gains['phase_offset'], flag_list=[])
         disko = DiSkO.from_cal_vis(cv)
+        info = {}
 
     if not ARGS.show_sources:
         src_list = None
@@ -185,7 +186,7 @@ if __name__ == '__main__':
     # Save as a FITS file
     fname = '{}.fits'.format(image_title)
     fpath = os.path.join(ARGS.dir, fname)
-    sphere.to_fits(fname=fpath, fov=ARGS.fov)
+    sphere.to_fits(fname=fpath, fov=ARGS.fov, info=info)
     
     if ARGS.SVG:
         fname = '{}.svg'.format(image_title)

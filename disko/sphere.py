@@ -249,7 +249,7 @@ class HealpixSphere(object):
         #return ret
         
     
-    def to_fits(self, fname, fov, title=None):
+    def to_fits(self, fname, fov, title=None, info={}):
         from astropy.io import fits
         import scipy
         # Make a grid on the plane, at the width of the narrowest pixel
@@ -262,20 +262,27 @@ class HealpixSphere(object):
 
         l0 = np.sin(np.radians(fov/2))
         
-        x = np.linspace(-l0,l0,1000)
-        y = np.linspace(-l0,l0,1000)
+        width = 1000
+        height = 1000
+        x = np.linspace(-l0, l0, width)
+        y = np.linspace(-l0, l0, height)
         xx, yy = np.meshgrid(x, y)
          
         grid = scipy.interpolate.griddata(points, values, 
                                           (xx, yy), method='cubic')
 
         hdr = fits.Header()
-        hdr['OBSERVER'] = 'Tim Molteno'
         hdr['COMMENT'] = "POINTLESS: {}".format(title)
-        hdr['FOV'] = "{:5.2g} arcmin".format(fov*60.0)
+        hdr['ORIGIN'] = "'POINTLESS '           / L-2 Regularizing imager written by Tim Molteno"   
+
+        hdr['CRPIX1']  =                width//2 + 1.                                                  
+        hdr['CDELT1']  = self.res_arcmin/60.0                                                 
+        hdr['CRPIX2']  =                height//2 + 1.                                                  
+        hdr['CDELT2']  = self.res_arcmin/60.0                                                  
+        hdr.update(info)
         # https://archive.stsci.edu/fuse/DH_Final/FITS_File_Headers.html
 
-        hdu = fits.PrimaryHDU(grid, header=hdr)
+        hdu = fits.PrimaryHDU(np.array(grid, dtype=np.float32), header=hdr)
         hdu.writeto(fname, overwrite=True)
         
         
