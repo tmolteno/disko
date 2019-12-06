@@ -20,7 +20,7 @@ def get_visibility(vis_arr, baselines, i,j):
     return vis_arr[baselines.index([i,j])]
 
 
-def disko_from_ms(ms, chunks=1000):
+def disko_from_ms(ms, num_vis, chunks=1000):
     '''
         Use dask-ms to load the necessary data to create a telescope operator
         (will use uvw positions, and antenna positions)
@@ -71,10 +71,9 @@ def disko_from_ms(ms, chunks=1000):
         c = 2.99793e8
         n_ant = len(ant_p)
         
-        n = 2000
         n_max = len(cv_vis)
         
-        step = n_max // n
+        step = max(1, n_max // num_vis)
         
         
         u_arr = uvw[0:n_max:step,0]

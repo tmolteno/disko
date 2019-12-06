@@ -354,17 +354,21 @@ class HealpixSphere(object):
         if show_grid:
             grid_lines = dwg.g(fill='none', stroke=grid_color, stroke_width="{}".format(line_size), stroke_linejoin="round", stroke_dasharray="{},{}".format(5*line_size, 10*line_size))
             
-            for angle in np.linspace(0, fov/2, 4): #[30, 60, 90]:
+            for angle in np.linspace(0, fov/2, 4)[1:]: # three circles
                 rad = np.radians(angle)
                 radius = pc.from_d(np.sin(rad))
                 grid_lines.add(dwg.circle(center=(pc.from_x(0.0), pc.from_y(0.0)), r=radius ))
 
             for angle in range(0, 360, 30):
                 rad = np.radians(angle)
+                radius = np.sin(np.radians(fov/6))
+                x0 = radius*np.sin(rad)
+                y0 = radius*np.cos(rad)
+                
                 radius = np.sin(np.radians(fov/2))
                 x = radius*np.sin(rad)
                 y = radius*np.cos(rad)
-                grid_lines.add(dwg.line(start=(pc.from_x(0.0), pc.from_y(0.0)), end=(pc.from_x(x), pc.from_y(y))))
+                grid_lines.add(dwg.line(start=(pc.from_x(x0), pc.from_y(y0)), end=(pc.from_x(x), pc.from_y(y))))
                 
             dwg.add(grid_lines)
         
@@ -427,7 +431,14 @@ class HealpixSubSphere(HealpixSphere):
     ''' 
         A healpix subset of a sphere bounded by a range in theta and phi
     '''
-    def __init__(self, resolution=None, nside=None, theta=0.0, phi=0.0, radius=0.0):
+    def __init__(self, nside):
+        res = hp.nside2resol(nside, arcmin = True)
+        self.nside = nside
+        self.res_arcmin = res
+        logger.info("New SubSphere, nside={}".format(self.nside))
+
+    @classmethod
+    def from_resolution(cls, resolution=None, nside=None, theta=0.0, phi=0.0, radius=0.0):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
 
@@ -439,37 +450,50 @@ class HealpixSubSphere(HealpixSphere):
                 logger.info("nside={} res={} arcmin".format(nside, res))
                 if res < resolution:
                     break
-            self.res_arcmin = res
-            self.nside = nside
-        else:
-            res = hp.nside2resol(nside, arcmin = True)
-            self.res_arcmin = res
-            self.nside = nside
     
-        logger.info("New SubSphere, nside={}".format(self.nside))
+        ret = cls(nside)
         
         x0 = hp.ang2vec(theta, phi)
         
-        
         # https://healpy.readthedocs.io/en/latest/generated/healpy.query_polygon.html
-        self.pixel_indices = hp.query_disc(nside, x0, radius, inclusive=False, nest=False)
+        ret.pixel_indices = hp.query_disc(nside, x0, radius, inclusive=False, nest=False)
         #self.pixel_indices = my_query_disk(nside, x0, radius)
                 
-        self.npix = self.pixel_indices.shape[0]
+        ret.npix = ret.pixel_indices.shape[0]
         
-        logger.info("New SubSphere, nside={}. npix={}".format(self.nside, self.npix))
+        logger.info("New SubSphere, nside={}. npix={}".format(ret.nside, ret.npix))
 
-        theta, phi = hp.pix2ang(nside, self.pixel_indices)
+        theta, phi = hp.pix2ang(nside, ret.pixel_indices)
         
 
-        self.pixels = np.zeros(self.npix) # + hp.UNSEEN
+        ret.pixels = np.zeros(ret.npix) # + hp.UNSEEN
         
         el_r, az_r = hp2elaz(theta, phi)
         
-        self.el_r = el_r
-        self.az_r = az_r
+        ret.el_r = el_r
+        ret.az_r = az_r
 
-        self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
+        ret.l, ret.m, ret.n = elaz2lmn(ret.el_r, ret.az_r)
+        return ret
+
+    def split(self, n):
+        ret = []
+        pixel_list = np.array_split(self.pixels, n)
+        pixel_indices = np.array(range(self.npix))
+        pixel_indices_list = np.array_split(pixel_indices, n)
+        el_list = np.array_split(self.el_r, n)
+        az_list = np.array_split(self.az_r, n)
+        
+        for pix, idx, el, az in zip(pixel_list, pixel_indices_list, el_list, az_list):
+            subs = HealpixSubSphere(self.nside)
+            subs.pixels = np.zeros_like(pix)
+            subs.parent_indices = idx
+            subs.npix = pix.shape[0]
+            subs.el_r = el
+            subs.az_r = az
+            subs.l, subs.m, subs.n = elaz2lmn(subs.el_r, subs.az_r)
+            ret.append(subs)
+        return ret
 
     def plot(self, plt, src_list):
         '''

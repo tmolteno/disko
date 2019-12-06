@@ -15,6 +15,7 @@ import time
 
 import numpy as np
 import healpy as hp
+import dask.array as da
 
 from copy import deepcopy
 from scipy.optimize import minimize
@@ -22,6 +23,7 @@ from sklearn import linear_model
 
 from tart.imaging import elaz
 from tart.util import constants
+
 
 from .sphere import HealpixSphere
 
@@ -166,9 +168,6 @@ class DiSkO(object):
 
         n_s = len(harmonic_list[0])
         n_v = len(harmonic_list)
-        
-        print(harmonic_list[0].shape)
-        assert(harmonic_list[0].shape[0] == sphere.npix)
 
         if False:
             gamma = np.zeros((n_v, n_s), dtype=DATATYPE)
@@ -219,6 +218,37 @@ class DiSkO(object):
         sphere.set_visible_pixels(sky, scale)
         return sky.reshape(-1,1)
 
+    #def sub_image(self, vis_arr, sphere, alpha, scale=True, n=4):
+        #'''
+            #Split an image up and image the bits separately
+        #'''
+        #subspheres = sphere.split(n)
+        #full_soln = np.zeros_like(sphere.pixels)
+        
+        #results = []
+        #for sph in subspheres:
+            #gamma = self.make_gamma(sph)
+            #proj_operator_real = np.real(gamma)
+            #proj_operator_imag = np.imag(gamma)
+            #proj_operator = np.block([[proj_operator_real], [proj_operator_imag]])
+            
+            #vis_aux = np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
+            
+            #n_s = sph.pixels.shape[0]
+
+            #if True:
+                #reg = linear_model.ElasticNet(alpha=alpha, l1_ratio=0.0, max_iter=10000, positive=True)
+                #reg.fit(proj_operator, vis_aux)
+                #subsky = reg.coef_
+            #else:
+                #subsky = dask.linalg.linear.lstsqr()
+            #results.append(subsky)
+            #logger.info("subsky = {}".format(subsky.shape))
+        #full_soln = np.stack(results)
+            
+        #sphere.set_visible_pixels(full_soln, scale)
+        #return full_soln.reshape(-1,1)
+        
     def image_tikhonov(self, vis_arr, sphere, alpha, scale=True):
         gamma = self.make_gamma(sphere)
         
@@ -230,10 +260,20 @@ class DiSkO(object):
         
         n_s = sphere.pixels.shape[0]
 
-        reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=0.0, max_iter=10000, positive=True)
-        reg.fit(proj_operator, vis_aux)
+        if True:
+            reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=0.0, max_iter=10000, positive=True)
+            reg.fit(proj_operator, vis_aux)
+            sky = reg.coef_
+        else:
+            from dask_ml.linear_model import LogisticRegression, LinearRegression
 
-        sky = reg.coef_
+            dT = da.from_array(proj_operator, chunks=(proj_operator.shape[0], proj_operator.shape[1]))
+            #dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
+            dv = da.from_array(vis_aux, chunks=(proj_operator.shape[0]))
+            reg = LinearRegression(penalty='l2', C=alpha/np.sqrt(n_s))
+            sky = reg.fit(dT, vis_aux)
+            sky = reg.coef_
+            
         logger.info("sky = {}".format(sky.shape))
 
         sphere.set_visible_pixels(sky, scale)

@@ -16,8 +16,11 @@ test2:
 #	python3 -m unittest  disko.tests.test_subsphere
 	python3 setup.py test -s disko.tests.test_disko_ms
 
+ngc1194:
+	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.2 --tikhonov --nvis 3000
+
 cygnus:
-	disko --fov 0.3 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.2 --tikhonov
+	disko --fov 0.3 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.2 --tikhonov --nvis 3000
 	mv disko_2015_11_15_20_35_44_.svg cygnus_pointless.svg
 
 test_upload:

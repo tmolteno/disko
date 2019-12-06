@@ -56,6 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
     parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter. (this is divided by the sqrt of the number of pixels.")
     parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
+    parser.add_argument('--nvis', type=int, default=1000, help="Number of visibilities to use.")
     parser.add_argument('--arcmin', type=float, default=None, help="Resolution of the sky in arc minutes.")
     parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
 
@@ -121,7 +122,7 @@ if __name__ == '__main__':
         disko = DiSkO.from_cal_vis(cv)
     elif ARGS.ms:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
-        disko = disko_from_ms(ARGS.ms)
+        disko = disko_from_ms(ARGS.ms, ARGS.nvis)
         
         # Convert from reduced Julian Date to timestamp.
         timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0) +            datetime.timedelta(seconds=disko.timestamp)
@@ -164,15 +165,16 @@ if __name__ == '__main__':
     nside = ARGS.nside
     radius = np.radians(ARGS.fov / 2.0)
     if nside is None:
-        sphere = HealpixSubSphere(resolution=ARGS.arcmin, theta=0.0, phi=0.0, radius=radius)
+        sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=0.0, phi=0.0, radius=radius)
     else:
-        sphere = HealpixSubSphere(nside=nside, theta=0.0, phi=0.0, radius=radius)
+        sphere = HealpixSubSphere.from_resolution(nside=nside, theta=0.0, phi=0.0, radius=radius)
     
     if ARGS.lasso:
         logger.info("L1 regularization alpha=%f" %ARGS.alpha)
         sky = disko.image_lasso(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, use_cv=ARGS.cv)
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
+        #sky = disko.sub_image(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, n=ARGS.n)
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True)
     else:
         sky = disko.solve_vis(disko.vis_arr, sphere)

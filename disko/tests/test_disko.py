@@ -98,6 +98,9 @@ class TestDiSkO(unittest.TestCase):
         sky, harmonics = self.get_harmonic_sky(10)
         vis = [h @ sky.conj() for h in harmonics]
         vis2 = self.gamma @ sky
+        
+        self.assertEqual(harmonics[0].shape[0], self.sphere.npix)
+
         for a, b in zip(vis, vis2):
             self.assertAlmostEqual(a[0], b[0])
 
