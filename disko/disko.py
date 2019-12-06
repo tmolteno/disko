@@ -60,7 +60,7 @@ def get_source_list(source_json, el_limit, jy_limit):
         src_list = elaz.from_json(source_json, el_limit=el_limit, jy_limit=jy_limit)
     return src_list
 
-DATATYPE=np.complex128
+DATATYPE=np.complex64
 
 class DiSkO(object):
     
