@@ -252,11 +252,11 @@ class DiSkO(object):
     def image_tikhonov(self, vis_arr, sphere, alpha, scale=True):
         gamma = self.make_gamma(sphere)
         
-        proj_operator_real = np.real(gamma)
-        proj_operator_imag = np.imag(gamma)
+        proj_operator_real = np.real(gamma).astype(np.float32)
+        proj_operator_imag = np.imag(gamma).astype(np.float32)
         proj_operator = np.block([[proj_operator_real], [proj_operator_imag]])
         
-        vis_aux = np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
+        vis_aux = np.array(np.concatenate((np.real(vis_arr), np.imag(vis_arr))), dtype=np.float32)
         
         n_s = sphere.pixels.shape[0]
 
