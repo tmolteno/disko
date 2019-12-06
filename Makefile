@@ -25,7 +25,7 @@ cygnus:
 	mv disko_2015_11_15_20_35_44_.svg cygnus_pointless.svg
 	
 cygnus_center:
-	disko --fov 0.1 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.06 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
+	disko --fov 0.02 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.012 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
 	
 tart:
 	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=180 --alpha=0.01
