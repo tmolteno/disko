@@ -279,7 +279,8 @@ class HealpixSphere(object):
         hdr['CDELT1']  = self.res_arcmin/60.0                                                 
         hdr['CRPIX2']  =                height//2 + 1.                                                  
         hdr['CDELT2']  = self.res_arcmin/60.0                                                  
-        hdr.update(info)
+        for key in info:
+            hdr[key] = info[key]
         # https://archive.stsci.edu/fuse/DH_Final/FITS_File_Headers.html
 
         hdu = fits.PrimaryHDU(np.array(grid, dtype=np.float32), header=hdr)
