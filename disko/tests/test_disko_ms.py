@@ -28,11 +28,11 @@ class TestDiSkOMS(unittest.TestCase):
         fname = 'test_data/test.ms'
         logger.info("Getting Data from MS file: {}".format(fname))
 
-        cls.disko = disko_from_ms(fname)
+        cls.disko = disko_from_ms(fname, num_vis=500)
         cls.nside = 16
         cls.sphere = HealpixSphere(cls.nside)
         res_deg = 4.0
-        cls.subsphere = HealpixSubSphere(resolution=res_deg*60.0, 
+        cls.subsphere = HealpixSubSphere.from_resolution(resolution=res_deg*60.0, 
                                       theta = np.radians(0.0), phi=0.0, radius=np.radians(89))
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
