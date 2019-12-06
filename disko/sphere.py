@@ -9,6 +9,7 @@ import svgwrite
 import numpy as np
 import healpy as hp
 
+from skimage import exposure
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
@@ -174,6 +175,15 @@ def image_stats(sky):
     
     return max_p, min_p, mad_p
 
+def factors(n):    
+    result = set()
+    for i in range(1, int(n ** 0.5) + 1):
+        div, mod = divmod(n, i)
+        if mod == 0:
+            result |= {i, div}
+    ret = sorted(list(result))
+    return ret[len(ret)//2]
+
 class HealpixSphere(object):
     ''' 
         A healpix Sphere 
@@ -222,7 +232,10 @@ class HealpixSphere(object):
         rpix = np.real(pix)
         if scale:
             max_p, min_p, mad_p = image_stats(rpix)
-            rpix = (rpix - min_p) / mad_p
+            rpix = (rpix - min_p) / max_p
+            n_s = rpix.shape[0]
+            fact = factors(n_s)
+            rpix = exposure.equalize_adapthist(rpix.reshape((n_s//fact, -1)), clip_limit=0.03)
         self.pixels = rpix.reshape((len(self.pixels),))
         
     def corners(self, pixel):
@@ -237,6 +250,10 @@ class HealpixSphere(object):
         #return ret
         
     
+    def to_fits(self, fname, fov, title=None):
+        # Make a grid on the plane, at the width of the narrowest pixel
+        
+        hp.fitsfunc.write_map(fname, self.pixels, nest=False, partial=True)
         
     def to_svg(self, fname, pixels_only=False, show_grid=False, src_list=None, fov=180.0, title=None):
 
