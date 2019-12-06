@@ -232,10 +232,10 @@ class HealpixSphere(object):
         rpix = np.real(pix)
         if scale:
             max_p, min_p, mad_p = image_stats(rpix)
-            rpix = (rpix - min_p) / max_p
-            n_s = rpix.shape[0]
-            fact = factors(n_s)
-            rpix = exposure.equalize_adapthist(rpix.reshape((n_s//fact, -1)), clip_limit=0.03)
+            rpix = (rpix - min_p) / mad_p
+            #n_s = rpix.shape[0]
+            #fact = factors(n_s)
+            #rpix = exposure.equalize_adapthist(rpix.reshape((n_s//fact, -1)), clip_limit=0.03)
         self.pixels = rpix.reshape((len(self.pixels),))
         
     def corners(self, pixel):
@@ -251,9 +251,30 @@ class HealpixSphere(object):
         
     
     def to_fits(self, fname, fov, title=None):
+        from astropy.io import fits
+        import scipy
         # Make a grid on the plane, at the width of the narrowest pixel
+        #f = scipy.interpolate.interp2d(self.el_r, self.az_r, self.pixels, fill_value=-1)
+        l = np.sin(self.az_r)*np.cos(self.el_r)
+        m = np.cos(self.az_r)*np.cos(self.el_r)
+
+        points = (l, m)
+        values = self.pixels
+
+        x = np.linspace(-1,1,1000)
+        y = np.linspace(-1,1,1000)
+        xx, yy = np.meshgrid(x, y)
+         
+        grid = scipy.interpolate.griddata(points, values, 
+                                          (xx, yy), method='cubic')
+
+        hdr = fits.Header()
+        hdr['OBSERVER'] = 'Tim Molteno'
+        hdr['COMMENT'] = "POINTLESS: {}".format(title)
+
+        hdu = fits.PrimaryHDU(grid, header=hdr)
+        hdu.writeto(fname, overwrite=True)
         
-        hp.fitsfunc.write_map(fname, self.pixels, nest=False, partial=True)
         
     def to_svg(self, fname, pixels_only=False, show_grid=False, src_list=None, fov=180.0, title=None):
 

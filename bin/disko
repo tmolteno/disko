@@ -180,6 +180,12 @@ if __name__ == '__main__':
         sky = disko.solve_vis(disko.vis_arr, sphere)
 
     image_title = '{}_{}'.format('disko', time_repr)
+
+    # Save as a FITS file
+    fname = '{}.fits'.format(image_title)
+    fpath = os.path.join(ARGS.dir, fname)
+    sphere.to_fits(fname=fpath, fov=ARGS.fov)
+    
     if ARGS.SVG:
         fname = '{}.svg'.format(image_title)
         fpath = os.path.join(ARGS.dir, fname)

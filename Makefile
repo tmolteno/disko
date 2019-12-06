@@ -17,12 +17,15 @@ test2:
 	python3 setup.py test -s disko.tests.test_disko_ms
 
 ngc1194:
-	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.2 --tikhonov --nvis 3000
+	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
 
 cygnus:
-	disko --fov 0.3 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.2 --tikhonov --nvis 3000
+	disko --fov 0.3 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.2 --tikhonov --nvis 1000 --alpha 0.01
 	mv disko_2015_11_15_20_35_44_.svg cygnus_pointless.svg
-
+	
+tart:
+	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=180 --alpha=0.01
+	
 test_upload:
 	rm -rf tart2ms.egg-info dist
 	python3 setup.py sdist
