@@ -20,10 +20,19 @@ def get_visibility(vis_arr, baselines, i,j):
     return vis_arr[baselines.index([i,j])]
 
 
-def disko_from_ms(ms, num_vis, chunks=1000):
+def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000):
     '''
         Use dask-ms to load the necessary data to create a telescope operator
         (will use uvw positions, and antenna positions)
+        
+        -- res_arcmin: Used to calculate the maximum baselines to consider.
+                       We want two pixels per smallest fringe
+                       pix_res > fringe / 2
+                       
+                       u sin(theta) = n (for nth fringe)
+                       at small angles: theta = 1/u, or u_max = 1 / theta
+                       
+                       
     '''
     with scheduler_context():
         # Create a dataset representing the entire antenna table
@@ -45,13 +54,14 @@ def disko_from_ms(ms, num_vis, chunks=1000):
             #print(spw_ds)
             #print(spw_ds.NUM_CHAN.values)
             #print(spw_ds.CHAN_FREQ.values)
-            frequency=dask.compute(spw_ds.CHAN_FREQ.values)[0][0]
+            frequency=dask.compute(spw_ds.CHAN_FREQ.values)[0].flatten()[0]
             logger.info("Frequency = {}".format(frequency))
             logger.info("NUM_CHAN = %f" % np.array(spw_ds.NUM_CHAN.values)[0])
 
         # Create datasets from a partioning of the MS
         datasets = list(xds_from_ms(ms, chunks={'row': chunks}))
 
+        
         for ds in datasets:
             logger.info("DATA shape: {}".format(ds.DATA.data.shape))
             logger.info("UVW shape: {}".format(ds.UVW.data.shape))
@@ -71,7 +81,13 @@ def disko_from_ms(ms, num_vis, chunks=1000):
             #prof.visualize(file_path="chunked.html")
         c = 2.99793e8
         
-        good_data = np.array(np.where(flags[:,0,0] == 0)).T.reshape((-1,))
+        u_max = 1.0 / np.radians(res_arcmin / 60.0)
+        logger.info("Maximum UVW: {}".format(u_max))
+
+        if False:
+            good_data = np.array(np.where(flags[:,0,0] == 0)).T.reshape((-1,))
+        else:
+            good_data = np.array(np.where((flags[:,0,0] == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
         logger.info("Good Data {}".format(good_data.shape))
 
         n_ant = len(ant_p)
@@ -83,20 +99,27 @@ def disko_from_ms(ms, num_vis, chunks=1000):
         indices = np.random.choice(good_data, min(num_vis, n_max))
              
         hdr = {
-            'ORIGIN': "'POINTLESS '           / L-2 Regularizing imager written by Tim Molteno",
-            'CTYPE1': "'RA---SIN'           / Right ascension angle cosine",
+            'CTYPE1': ('RA---SIN', "Right ascension angle cosine"),
             'CRVAL1': -117.41075,
             'CUNIT1': 'deg     ',
-            'CTYPE2': "'DEC--SIN'           / Declination angle cosine  ",
+            'CTYPE2': ('DEC--SIN', "Declination angle cosine "),
             'CRVAL2': -52.0891666666667,
             'CUNIT2': 'deg     ',
-            'CTYPE3': "'FREQ    '           / Central frequency  ",
+            'CTYPE3': 'FREQ    ', #           / Central frequency  ",
             'CRPIX3': 1.,
             'CRVAL3': "{}".format(frequency),
             'CDELT3': 10026896.158854,
-            'CUNIT3': 'Hz      '
+            'CUNIT3': 'Hz      ',
+            'EQUINOX':  '2000.',
+            'DATE-OBS': "{}".format(timestamp),
+            'BTYPE':   'Intensity'                                                           
         }
-
+        
+#from astropy.wcs.utils import celestial_frame_to_wcs
+#from astropy.coordinates import FK5
+#frame = FK5(equinox='J2010')
+#wcs = celestial_frame_to_wcs(frame)
+#wcs.to_header()
 
         u_arr = uvw[indices,0]
         v_arr = uvw[indices,1]

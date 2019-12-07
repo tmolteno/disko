@@ -262,8 +262,8 @@ class HealpixSphere(object):
 
         l0 = np.sin(np.radians(fov/2))
         
-        width = 1000
-        height = 1000
+        width = 2000
+        height = 2000
         x = np.linspace(-l0, l0, width)
         y = np.linspace(-l0, l0, height)
         xx, yy = np.meshgrid(x, y)
@@ -273,11 +273,13 @@ class HealpixSphere(object):
 
         hdr = fits.Header()
         hdr['COMMENT'] = "POINTLESS: {}".format(title)
-        hdr['ORIGIN'] = "'POINTLESS '           / L-2 Regularizing imager written by Tim Molteno"   
+        
+        hdr['ORIGIN'] = 'POINTLESS ',
+        hdr.comments['ORIGIN'] = 'L-2 Regularizing imager written by Tim Molteno' 
 
-        hdr['CRPIX1']  =                width//2 + 1.                                                  
+        hdr['CRPIX1']  = width//2 + 1.                                                  
         hdr['CDELT1']  = self.res_arcmin/60.0                                                 
-        hdr['CRPIX2']  =                height//2 + 1.                                                  
+        hdr['CRPIX2']  = height//2 + 1.                                                  
         hdr['CDELT2']  = self.res_arcmin/60.0                                                  
         for key in info:
             hdr[key] = info[key]

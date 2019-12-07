@@ -122,7 +122,7 @@ if __name__ == '__main__':
         disko = DiSkO.from_cal_vis(cv)
     elif ARGS.ms:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
-        disko, info = disko_from_ms(ARGS.ms, ARGS.nvis)
+        disko, info = disko_from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin)
         
         # Convert from reduced Julian Date to timestamp.
         timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,

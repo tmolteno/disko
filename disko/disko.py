@@ -260,17 +260,17 @@ class DiSkO(object):
         
         n_s = sphere.pixels.shape[0]
 
-        if True:
+        if False:
             reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=0.0, max_iter=10000, positive=True)
             reg.fit(proj_operator, vis_aux)
             sky = reg.coef_
         else:
             from dask_ml.linear_model import LogisticRegression, LinearRegression
 
-            dT = da.from_array(proj_operator)
+            dT = da.from_array(proj_operator, chunks=(-1, -1))
             #dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
             dv = da.from_array(vis_aux)
-            reg = LinearRegression(penalty='l2', C=alpha/np.sqrt(n_s),  solver='lbfgs')
+            reg = LinearRegression(penalty='l2', C=alpha/np.sqrt(n_s),  solver='lbfgs', max_iter=10000 )
             sky = reg.fit(dT, vis_aux)
             sky = reg.coef_
             
