@@ -261,7 +261,7 @@ class DiSkO(object):
         n_s = sphere.pixels.shape[0]
 
         if True:
-            reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=0.0, max_iter=10000, positive=True)
+            reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=0.001, max_iter=10000, positive=True)
             reg.fit(proj_operator, vis_aux)
             sky = reg.coef_
         else:
