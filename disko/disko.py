@@ -260,7 +260,7 @@ class DiSkO(object):
         
         n_s = sphere.pixels.shape[0]
 
-        if False:
+        if True:
             reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=0.0, max_iter=10000, positive=True)
             reg.fit(proj_operator, vis_aux)
             sky = reg.coef_
@@ -270,7 +270,7 @@ class DiSkO(object):
             dT = da.from_array(proj_operator, chunks=(-1, -1))
             #dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
             dv = da.from_array(vis_aux)
-            reg = LinearRegression(penalty='l2', C=alpha/np.sqrt(n_s),  solver='lbfgs', max_iter=10000 )
+            reg = LinearRegression(penalty='l2', C=alpha,  solver='lbfgs', max_iter=10000 )
             sky = reg.fit(dT, vis_aux)
             sky = reg.coef_
             
