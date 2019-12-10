@@ -291,24 +291,26 @@ class DiSkO(object):
             harmonic_list = []
             p2j = 2*np.pi*1.0j
             
-            dl = da.from_array(sphere.l)
-            dm = da.from_array(sphere.m)
-            dn = da.from_array(sphere.n)
+            dl = da.from_array(sphere.l, chunks=(n_s, ))
+            dm = da.from_array(sphere.m, chunks=(n_s, ))
+            dn = da.from_array(sphere.n, chunks=(n_s, ))
         
             n_arr_minus_1 = dn - 1
 
-            du = da.from_array(self.u_arr)
-            dv = da.from_array(self.v_arr)
-            dw = da.from_array(self.w_arr)
+            du = da.from_array(self.u_arr, chunks=(n_v, ))
+            dv = da.from_array(self.v_arr, chunks=(n_v, ))
+            dw = da.from_array(self.w_arr, chunks=(n_v, ))
         
             for u, v, w in zip(du, dv, dw):
                 harmonic = da.exp(p2j*(u*dl + v*dm + w*n_arr_minus_1)) / np.sqrt(sphere.npix)
+                harminc = client.persist(harmonic)
                 harmonic_list.append(harmonic)
 
             gamma = da.stack(harmonic_list)
             gamma = gamma.reshape((n_v, n_s))
             gamma = gamma.conj()
-                
+            gamma = client.persist(gamma)
+            
             logger.info('Gamma Shape: {}'.format(gamma.shape))
             
             logger.info("Building Augmented Operator...")
@@ -316,12 +318,12 @@ class DiSkO(object):
             proj_operator_imag = da.imag(gamma)
             proj_operator = da.block([[proj_operator_real], [proj_operator_imag]])
             
+            proj_operator = client.persist(proj_operator)
             
             logger.info("Proj Operator shape {}".format(proj_operator.shape))
             vis_aux = da.from_array(np.array(np.concatenate((np.real(vis_arr), np.imag(vis_arr))), dtype=np.float32))
             
-            n_s = sphere.pixels.shape[0]
-            logger.info("Solving...")
+            #logger.info("Solving...")
 
             
             en = dask_glm.regularizers.ElasticNet(weight=0.01)
@@ -333,7 +335,9 @@ class DiSkO(object):
 
             dask.config.set({'array.chunk-size': '1024MiB'})
             A = da.rechunk(proj_operator, chunks=('auto', n_s))
+            A = client.persist(A)
             y = da.rechunk(vis_aux, chunks=('auto', n_s))
+            y = client.persist(y)
             #sky = dask_glm.algorithms.proximal_grad(A, y, regularizer=en, lambduh=alpha, max_iter=10000)
 
             logger.info("Rechunking completed.. A= {}.".format(A.shape))
