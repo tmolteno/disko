@@ -250,7 +250,6 @@ class DiSkO(object):
         #return full_soln.reshape(-1,1)
         
     def image_tikhonov(self, vis_arr, sphere, alpha, scale=True, usedask=False):
-        gamma = self.make_gamma(sphere)
         
         if not usedask:
             gamma = self.make_gamma(sphere)
