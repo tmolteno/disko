@@ -284,6 +284,7 @@ class HealpixSphere(object):
         for key in info:
             hdr[key] = info[key]
         # https://archive.stsci.edu/fuse/DH_Final/FITS_File_Headers.html
+        logger.info("Writing FITS image: {}".format(fname))
 
         hdu = fits.PrimaryHDU(np.array(grid, dtype=np.float32), header=hdr)
         hdu.writeto(fname, overwrite=True)

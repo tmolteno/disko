@@ -68,6 +68,7 @@ if __name__ == '__main__':
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image")
 
     parser.add_argument('--cv', action="store_true", help="Use Cross Validation")
+    parser.add_argument('--dask', action="store_true", help="Use dask")
     parser.add_argument('--lasso', action="store_true", help="Use L1 regularization")
     parser.add_argument('--tikhonov', action="store_true", help="Use L2 regularization")
     parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG).")
@@ -177,7 +178,7 @@ if __name__ == '__main__':
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
         #sky = disko.sub_image(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, n=ARGS.n)
-        sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True)
+        sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, usedask=ARGS.dask)
     else:
         sky = disko.solve_vis(disko.vis_arr, sphere)
 

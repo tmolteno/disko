@@ -40,7 +40,8 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
-0.6.0  Get data from Measurement Sets!
+0.6.0b2  Use dask for very large jobs
+0.6.0b1  Get data from Measurement Sets!
 0.5.0b5 Allow sources not to be shown.
 0.5.0b4 Override plot in HPSubSphere to allow for non-normal pixels.
 0.5.0b3 Added elliptical source circle projections in SVG.

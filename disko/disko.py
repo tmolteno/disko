@@ -249,34 +249,104 @@ class DiSkO(object):
         #sphere.set_visible_pixels(full_soln, scale)
         #return full_soln.reshape(-1,1)
         
-    def image_tikhonov(self, vis_arr, sphere, alpha, scale=True):
+    def image_tikhonov(self, vis_arr, sphere, alpha, scale=True, usedask=False):
         gamma = self.make_gamma(sphere)
         
-        proj_operator_real = np.real(gamma).astype(np.float32)
-        proj_operator_imag = np.imag(gamma).astype(np.float32)
-        proj_operator = np.block([[proj_operator_real], [proj_operator_imag]])
-        
-        vis_aux = np.array(np.concatenate((np.real(vis_arr), np.imag(vis_arr))), dtype=np.float32)
-        
-        n_s = sphere.pixels.shape[0]
+        if not usedask:
+            gamma = self.make_gamma(sphere)
+            logger.info("Building Augmented Operator...")
+            proj_operator_real = np.real(gamma).astype(np.float32)
+            proj_operator_imag = np.imag(gamma).astype(np.float32)
+            proj_operator = np.block([[proj_operator_real], [proj_operator_imag]])
+            
+            vis_aux = np.array(np.concatenate((np.real(vis_arr), np.imag(vis_arr))), dtype=np.float32)
+            
+            n_s = sphere.pixels.shape[0]
+            logger.info("Solving...")
 
-        if True:
             reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=0.001, max_iter=10000, positive=True)
             reg.fit(proj_operator, vis_aux)
             sky = reg.coef_
         else:
-            from dask_ml.linear_model import LogisticRegression, LinearRegression
+            from dask_ml.linear_model import LinearRegression
+            import dask_glm
+            import dask.array as da
+            from dask.distributed import Client, LocalCluster
+            from dask.diagnostics import ProgressBar
+            import dask
 
-            dT = da.from_array(proj_operator, chunks=(-1, -1))
+            n_s = sphere.pixels.shape[0]
+            n_v = self.u_arr.shape[0]
+            
+            logger.info('Starting Dask Client')
+            
+            if True:
+                cluster = LocalCluster(dashboard_address=':8231', processes=False)
+                client = Client(cluster)
+            else:
+                client = Client('tcp://localhost:8786')
+                
+            logger.info("Client = {}".format(client))
+            
+            harmonic_list = []
+            p2j = 2*np.pi*1.0j
+            
+            dl = da.from_array(sphere.l)
+            dm = da.from_array(sphere.m)
+            dn = da.from_array(sphere.n)
+        
+            n_arr_minus_1 = dn - 1
+
+            du = da.from_array(self.u_arr)
+            dv = da.from_array(self.v_arr)
+            dw = da.from_array(self.w_arr)
+        
+            for u, v, w in zip(du, dv, dw):
+                harmonic = da.exp(p2j*(u*dl + v*dm + w*n_arr_minus_1)) / np.sqrt(sphere.npix)
+                harmonic_list.append(harmonic)
+
+            gamma = da.stack(harmonic_list)
+            gamma = gamma.reshape((n_v, n_s))
+            gamma = gamma.conj()
+                
+            logger.info('Gamma Shape: {}'.format(gamma.shape))
+            
+            logger.info("Building Augmented Operator...")
+            proj_operator_real = da.real(gamma)
+            proj_operator_imag = da.imag(gamma)
+            proj_operator = da.block([[proj_operator_real], [proj_operator_imag]])
+            
+            
+            logger.info("Proj Operator shape {}".format(proj_operator.shape))
+            vis_aux = da.from_array(np.array(np.concatenate((np.real(vis_arr), np.imag(vis_arr))), dtype=np.float32))
+            
+            n_s = sphere.pixels.shape[0]
+            logger.info("Solving...")
+
+            
+            en = dask_glm.regularizers.ElasticNet(weight=0.01)
+            
             #dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
-            dv = da.from_array(vis_aux)
-            reg = LinearRegression(penalty='l2', C=alpha,  solver='lbfgs', max_iter=10000 )
-            sky = reg.fit(dT, vis_aux)
+            ##dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
+            #dv = da.from_array(vis_aux)
+            
+
+            dask.config.set({'array.chunk-size': '1024MiB'})
+            A = da.rechunk(proj_operator, chunks=('auto', n_s))
+            y = da.rechunk(vis_aux, chunks=('auto', n_s))
+            #sky = dask_glm.algorithms.proximal_grad(A, y, regularizer=en, lambduh=alpha, max_iter=10000)
+
+            logger.info("Rechunking completed.. A= {}.".format(A.shape))
+            reg =  LinearRegression(penalty=en, C=1.0/alpha,  
+                                    fit_intercept=False, 
+                                    solver='proximal_grad', 
+                                    max_iter=10000, tol=1e-8 )
+            sky = reg.fit(A, y)
             sky = reg.coef_
             
-        logger.info("sky = {}".format(sky.shape))
+        logger.info("Solving Complete: sky = {}".format(sky.shape))
 
-        sphere.set_visible_pixels(sky, scale)
+        sphere.set_visible_pixels(sky, scale=False)
         return sky.reshape(-1,1)
 
 
