@@ -290,23 +290,24 @@ class DiSkO(object):
             harmonic_list = []
             p2j = 2*np.pi*1.0j
             
-            dl = da.from_array(sphere.l, chunks=(n_s, ))
-            dm = da.from_array(sphere.m, chunks=(n_s, ))
-            dn = da.from_array(sphere.n, chunks=(n_s, ))
+            dl = sphere.l
+            dm = sphere.m
+            dn = sphere.n
         
             n_arr_minus_1 = dn - 1
 
-            du = da.from_array(self.u_arr, chunks=(n_v, ))
-            dv = da.from_array(self.v_arr, chunks=(n_v, ))
-            dw = da.from_array(self.w_arr, chunks=(n_v, ))
+            du = self.u_arr
+            dv = self.v_arr
+            dw = self.w_arr
         
             for u, v, w in zip(du, dv, dw):
-                harmonic = da.exp(p2j*(u*dl + v*dm + w*n_arr_minus_1)) / np.sqrt(sphere.npix)
+                harmonic = da.from_array(np.exp(p2j*(u*dl + v*dm + w*n_arr_minus_1)) / np.sqrt(sphere.npix), chunks=(n_s,))
                 harminc = client.persist(harmonic)
                 harmonic_list.append(harmonic)
 
             gamma = da.stack(harmonic_list)
-            gamma = gamma.reshape((n_v, n_s))
+            logger.info('Gamma Shape: {}'.format(gamma.shape))
+            #gamma = gamma.reshape((n_v, n_s))
             gamma = gamma.conj()
             gamma = client.persist(gamma)
             
@@ -325,7 +326,7 @@ class DiSkO(object):
             #logger.info("Solving...")
 
             
-            en = dask_glm.regularizers.ElasticNet(weight=0.01)
+            en = dask_glm.regularizers.ElasticNet(weight=0.001)
             
             #dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
             ##dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
