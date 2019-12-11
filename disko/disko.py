@@ -326,8 +326,8 @@ class DiSkO(object):
             #logger.info("Solving...")
 
             
-            en = dask_glm.regularizers.ElasticNet(weight=0.001)
-            
+            en = dask_glm.regularizers.ElasticNet(weight=0.01)
+            # en =  dask_glm.regularizers.L2()
             #dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
             ##dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
             #dv = da.from_array(vis_aux)
@@ -343,7 +343,7 @@ class DiSkO(object):
             logger.info("Rechunking completed.. A= {}.".format(A.shape))
             reg =  LinearRegression(penalty=en, C=1.0/alpha,  
                                     fit_intercept=False, 
-                                    solver='proximal_grad', 
+                                    solver='admm', 
                                     max_iter=10000, tol=1e-8 )
             sky = reg.fit(A, y)
             sky = reg.coef_
