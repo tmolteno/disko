@@ -32,6 +32,10 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000):
                        u sin(theta) = n (for nth fringe)
                        at small angles: theta = 1/u, or u_max = 1 / theta
                        
+                       d sin(theta) = lambda / 2
+                       d / lambda = 1 / (2 sin(theta))
+                       u_max = 1 / 2sin(theta)
+                       
                        
     '''
     with scheduler_context():
@@ -81,14 +85,20 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000):
             #prof.visualize(file_path="chunked.html")
         c = 2.99793e8
         
-        u_max = 1.0 / np.radians(res_arcmin / 60.0)
-        logger.info("Maximum UVW: {}".format(u_max))
+        # d sin(theta) = \lambda / 2
+        theta = np.radians(res_arcmin / 60.0)
+        
+        u_max = 1.0 / (2 * np.sin(theta))
+        logger.info("Resolution Max UVW: {:g}".format(u_max))
 
         if False:
             good_data = np.array(np.where(flags[:,0,0] == 0)).T.reshape((-1,))
         else:
             good_data = np.array(np.where((flags[:,0,0] == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
         logger.info("Good Data {}".format(good_data.shape))
+
+        logger.info("Maximum UVW: {}".format(np.max(np.abs(uvw), 0)))
+        logger.info("Minimum UVW: {}".format(np.min(np.abs(uvw), 0)))
 
         n_ant = len(ant_p)
         

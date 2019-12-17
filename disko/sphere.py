@@ -317,11 +317,19 @@ class HealpixSphere(object):
                              (x, y), text_anchor='start', font_size="{}px".format(font_size)))
 
             y = font_size*2
-            dwg.add(dwg.text("Res: {:.5f} '".format(self.res_arcmin), 
+            if (self.res_arcmin < 1.0):
+                dwg.add(dwg.text("Res: {:.5f} mas".format(self.res_arcmin*60*1000), 
+                             (x, y), text_anchor='start', font_size="{}px".format(font_size)))
+            else:
+                dwg.add(dwg.text("Res: {:.5f} '".format(self.res_arcmin), 
                              (x, y), text_anchor='start', font_size="{}px".format(font_size)))
 
             y = font_size*3
-            dwg.add(dwg.text("FOV: {:.4f} '".format(fov_arcmin), 
+            if (fov_arcmin < 1.0):
+                dwg.add(dwg.text("FOV: {:.4f} mas".format(fov_arcmin*60*1000), 
+                             (x, y), text_anchor='start', font_size="{}px".format(font_size)))
+            else:
+                dwg.add(dwg.text("FOV: {:.4f} '".format(fov_arcmin), 
                              (x, y), text_anchor='start', font_size="{}px".format(font_size)))
 
             y = font_size*4
