@@ -250,22 +250,27 @@ class DiSkO(object):
         #return full_soln.reshape(-1,1)
         
     def image_tikhonov(self, vis_arr, sphere, alpha, scale=True, usedask=False):
+        n_s = sphere.pixels.shape[0]
+        n_v = self.u_arr.shape[0]
         
+        lambduh = alpha/np.sqrt(n_s)
         if not usedask:
             gamma = self.make_gamma(sphere)
             logger.info("Building Augmented Operator...")
             proj_operator_real = np.real(gamma).astype(np.float32)
             proj_operator_imag = np.imag(gamma).astype(np.float32)
             proj_operator = np.block([[proj_operator_real], [proj_operator_imag]])
-            
+            logger.info('augmented: {}'.format(proj_operator.shape))
             vis_aux = np.array(np.concatenate((np.real(vis_arr), np.imag(vis_arr))), dtype=np.float32)
             
-            n_s = sphere.pixels.shape[0]
             logger.info("Solving...")
-
-            reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=0.01, max_iter=10000, positive=True)
+            reg = linear_model.ElasticNet(alpha=lambduh, l1_ratio=0.01, max_iter=10000, positive=True)
             reg.fit(proj_operator, vis_aux)
             sky = reg.coef_
+            
+            score = reg.score(proj_operator, vis_aux)
+            logger.info('Loss function: {}'.format(score))
+            
         else:
             from dask_ml.linear_model import LinearRegression
             import dask_glm
@@ -273,9 +278,6 @@ class DiSkO(object):
             from dask.distributed import Client, LocalCluster
             from dask.diagnostics import ProgressBar
             import dask
-
-            n_s = sphere.pixels.shape[0]
-            n_v = self.u_arr.shape[0]
             
             logger.info('Starting Dask Client')
             
@@ -327,7 +329,7 @@ class DiSkO(object):
 
             
             en = dask_glm.regularizers.ElasticNet(weight=0.01)
-            # en =  dask_glm.regularizers.L2()
+            en =  dask_glm.regularizers.L2()
             #dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
             ##dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
             #dv = da.from_array(vis_aux)
@@ -336,18 +338,20 @@ class DiSkO(object):
             dask.config.set({'array.chunk-size': '1024MiB'})
             A = da.rechunk(proj_operator, chunks=('auto', n_s))
             A = client.persist(A)
-            y = da.rechunk(vis_aux, chunks=('auto', n_s))
+            y = vis_aux # da.rechunk(vis_aux, chunks=('auto', n_s))
             y = client.persist(y)
             #sky = dask_glm.algorithms.proximal_grad(A, y, regularizer=en, lambduh=alpha, max_iter=10000)
 
             logger.info("Rechunking completed.. A= {}.".format(A.shape))
-            reg =  LinearRegression(penalty=en, C=1.0/alpha,  
+            reg =  LinearRegression(penalty=en, C=1.0/lambduh,  
                                     fit_intercept=False, 
-                                    solver='admm', 
-                                    max_iter=10000, tol=1e-8 )
+                                    solver='lbfgs', 
+                                    max_iter=1000, tol=1e-8 )
             sky = reg.fit(A, y)
             sky = reg.coef_
-            
+            score = reg.score(proj_operator, vis_aux)
+            logger.info('Loss function: {}'.format(score.compute()))
+
         logger.info("Solving Complete: sky = {}".format(sky.shape))
 
         sphere.set_visible_pixels(sky, scale=False)

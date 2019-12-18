@@ -21,15 +21,20 @@ ngc1194:
 	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
 
 cygnus:
-	disko --fov 0.3 --ms /freenas/home/tim/astro/cyg2052.ms --SVG --arcmin 0.2 --tikhonov --nvis 30000 --alpha 0.1 --title 'cygnus' --dask
-	mv disko_2015_11_15_20_35_44_.svg cygnus_pointless.svg
-	
+	/usr/bin/time -v disko --fov 0.3 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.2 --tikhonov --nvis 3000 --alpha 0.1 --title 'cygnus'
+#Mem 4G for 22260 x 3000
+#Mem 16G 90000 x 3000
+#Mem 160G 90000 x 30000
+#Mem 1600G 90000 x 300000
+
 cygnus_center:
 	disko --fov 0.02 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.012 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
 	
 tart:
-	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=180 --alpha=0.1 --tikhonov --dask
-	
+	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=90 --alpha=0.1 --tikhonov
+
+# Memory 4800x276 456212 
+#	 19328x276 640932 ->  458364 for 
 test_upload:
 	rm -rf tart2ms.egg-info dist
 	python3 setup.py sdist
