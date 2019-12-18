@@ -513,10 +513,14 @@ class HealpixSubSphere(HealpixSphere):
     
         ret = cls(nside)
         
+        # The coordinates of the unit vector defining the center
         x0 = hp.ang2vec(theta, phi)
         
         # https://healpy.readthedocs.io/en/latest/generated/healpy.query_polygon.html
-        ret.pixel_indices = hp.query_disc(nside, x0, radius, inclusive=False, nest=False)
+        ret.pixel_indices = hp.query_disc(nside=nside, 
+                                          vec=x0, radius=radius, 
+                                          inclusive=False, 
+                                          nest=False)
         #self.pixel_indices = my_query_disk(nside, x0, radius)
                 
         ret.npix = ret.pixel_indices.shape[0]

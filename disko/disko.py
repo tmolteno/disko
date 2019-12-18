@@ -259,7 +259,10 @@ class DiSkO(object):
             logger.info("Building Augmented Operator...")
             proj_operator_real = np.real(gamma).astype(np.float32)
             proj_operator_imag = np.imag(gamma).astype(np.float32)
+            gamma = None
             proj_operator = np.block([[proj_operator_real], [proj_operator_imag]])
+            proj_operator_real = None
+            proj_operator_imag = None 
             logger.info('augmented: {}'.format(proj_operator.shape))
             vis_aux = np.array(np.concatenate((np.real(vis_arr), np.imag(vis_arr))), dtype=np.float32)
             
