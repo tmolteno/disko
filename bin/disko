@@ -82,6 +82,9 @@ if __name__ == '__main__':
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
+    fh = logging.FileHandler('disko.log')
+    fh.setLevel(logging.INFO)
+    
     # create console handler and set level to debug
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
@@ -91,9 +94,11 @@ if __name__ == '__main__':
 
     # add formatter to ch
     ch.setFormatter(formatter)
+    fh.setFormatter(formatter)
 
     # add ch to logger
     logger.addHandler(ch)
+    logger.addHandler(fh)
     
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
