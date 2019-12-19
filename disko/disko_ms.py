@@ -51,6 +51,16 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000):
             ant_p = np.array(ant_ds.POSITION.data)
         logger.info("Antenna Positions {}".format(ant_p.shape))
         
+        # Create a dataset representing the field
+        field_table = '::'.join((ms, 'FIELD'))
+        for field_ds in xds_from_table(field_table):
+            #print(ant_ds)
+            #print(dask.compute(ant_ds.NAME.data,
+                                #ant_ds.POSITION.data, 
+                                #ant_ds.DISH_DIAMETER.data))
+            phase_dir = np.array(field_ds.PHASE_DIR.data)[0].flatten()
+        logger.info("Phase Dir {}".format(np.degrees(phase_dir)))
+        
         # Create datasets representing each row of the spw table
         spw_table = '::'.join((ms, 'SPECTRAL_WINDOW'))
 
@@ -110,10 +120,10 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000):
              
         hdr = {
             'CTYPE1': ('RA---SIN', "Right ascension angle cosine"),
-            'CRVAL1': -117.41075,
+            'CRVAL1': np.degrees(phase_dir)[0],
             'CUNIT1': 'deg     ',
             'CTYPE2': ('DEC--SIN', "Declination angle cosine "),
-            'CRVAL2': -52.0891666666667,
+            'CRVAL2': np.degrees(phase_dir)[1],
             'CUNIT2': 'deg     ',
             'CTYPE3': 'FREQ    ', #           / Central frequency  ",
             'CRPIX3': 1.,

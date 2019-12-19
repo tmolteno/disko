@@ -278,9 +278,9 @@ class HealpixSphere(object):
         hdr.comments['ORIGIN'] = 'L-2 Regularizing imager written by Tim Molteno' 
 
         hdr['CRPIX1']  = width//2 + 1.                                                  
-        hdr['CDELT1']  = self.res_arcmin/60.0                                                 
+        hdr['CDELT1']  = self.fov/width                                                 
         hdr['CRPIX2']  = height//2 + 1.                                                  
-        hdr['CDELT2']  = self.res_arcmin/60.0                                                  
+        hdr['CDELT2']  = self.fov/height                                                  
         for key in info:
             hdr[key] = info[key]
         # https://archive.stsci.edu/fuse/DH_Final/FITS_File_Headers.html
@@ -529,7 +529,7 @@ class HealpixSubSphere(HealpixSphere):
 
         theta, phi = hp.pix2ang(nside, ret.pixel_indices)
         
-
+        ret.fov = np.degrees(radius*2)
         ret.pixels = np.zeros(ret.npix) # + hp.UNSEEN
         
         el_r, az_r = hp2elaz(theta, phi)

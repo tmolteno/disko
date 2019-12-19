@@ -40,6 +40,7 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
+0.6.0b6 Correct field pointing from measurement sets.
 0.6.0b5 Reduce memory requirements by around 25%.
 0.6.0b4 Report the r^2 value.
 0.6.0b2  Use dask for very large jobs (use the --dask switch)
