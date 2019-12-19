@@ -146,7 +146,7 @@ class TestTelescopeOperator(unittest.TestCase):
         
         for v1, v2, v3 in zip(vis[:,0], vis2[:,0], vis3[:,0]):
             logger.info("{},{},{}".format(v1, v2, v3))
-            self.assertAlmostEqual(v1, v2)
+            self.assertAlmostEqual(v1, v2, 6)
             
         self.assertTrue(np.allclose(vis[:,0], vis2[:,0]))
         self.assertTrue(np.allclose(vis2[:,0], vis3[:,0]))
