@@ -32,6 +32,25 @@ def plsqr(A, v, alpha, eps=1e-4):
         So can use a block matrix pseudoinverse with a preconditioned conjugate gradient
         to solve the problem
         
+        The preconditioner should be A^H which is almost like an inverse (this is equivalent
+        to the IFFT based image).
+        
+           x = A^H v
+        
+        The preconditioned system is
+        
+           A^H A x = A^H v
+           
+        Where A^H A is symmetric and positive semi-definite.
+        
+        Then can use LSQR to do a preconditioned matrix-free method like the Lanctzos algorithm to find
+        the singular values, or just solve the lsqr.
+        
+        Links: 
+            Power Iteration (https://en.wikipedia.org/wiki/Power_iteration). Find the largest eigenvalue
+            Matrix Free Methods (https://en.wikipedia.org/wiki/Matrix-free_methods)
+            
+        
     '''
     
     print("A = {}".format(A.shape))
