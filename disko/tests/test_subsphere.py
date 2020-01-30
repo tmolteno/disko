@@ -58,3 +58,14 @@ class TestSubsphere(unittest.TestCase):
         big.to_svg(fname=fname, pixels_only=True)
         self.assertTrue(os.path.isfile(fname))
         os.remove(fname)
+
+    def test_fits(self):
+        res_deg = 10
+        fname='test.fits'
+        big = sphere.HealpixSubSphere.from_resolution(resolution=res_deg*60.0, 
+                                      theta=np.radians(0.0), phi=0.0, 
+                                      radius=np.radians(45))
+
+        big.to_fits(fname=fname, fov=90)
+        self.assertTrue(os.path.isfile(fname))
+        os.remove(fname)

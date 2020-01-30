@@ -14,14 +14,16 @@ lint:
 test2:
 	#python3 -m unittest  disko.tests.test_gridless.TestGridless.test_from_pos
 #	python3 -m unittest  disko.tests.test_subsphere
-	python3 setup.py test -s disko.tests.test_disko_ms
+	python3 setup.py test -s disko.tests.test_meshsphere
 
 
 ngc1194:
 	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
 
+adaptive:
+	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.1 --tikhonov --nvis 3000 --alpha 0.0025 --title 'acygnus' --adaptive
 cygnus:
-	/usr/bin/time -v disko --fov 0.3 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.2 --tikhonov --nvis 3000 --alpha 0.0025 --title 'cygnus'
+	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.1 --tikhonov --nvis 3000 --alpha 0.0025 --title 'cygnus'
 #Mem 4G for 22260 x 3000
 #Mem 16G 90000 x 3000
 #Mem 160G 90000 x 30000
@@ -40,7 +42,7 @@ cygnus_center:
 	disko --fov 0.02 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.012 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
 	
 tart:
-	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=90 --alpha=0.0025 --tikhonov
+	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=90 --alpha=0.0025 --tikhonov --adaptive
 
 # Memory 4800x276 456212 
 #	 19328x276 640932 ->  458364 for 

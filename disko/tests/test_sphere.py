@@ -43,3 +43,4 @@ class TestUtil(unittest.TestCase):
         sph.to_svg(fname=fname, pixels_only=True)
         self.assertTrue(os.path.isfile(fname))
         os.remove(fname)
+

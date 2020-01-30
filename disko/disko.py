@@ -101,7 +101,7 @@ class DiSkO(object):
     def get_harmonics(self, in_sphere):
         ''' Create the harmonics for this arrangement of sphere pixels
         '''
-        cache_key = "{}:{}".format(in_sphere.nside, in_sphere.npix)
+        cache_key = "{}:".format(in_sphere.npix)
         if (cache_key in self.harmonics):
             return self.harmonics[cache_key]
 
@@ -110,7 +110,7 @@ class DiSkO(object):
         p2j = 2*np.pi*1.0j
         
         for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
-            harmonic = np.exp(p2j*(u*in_sphere.l + v*in_sphere.m + w*n_arr_minus_1)) / np.sqrt(in_sphere.npix)
+            harmonic = np.exp(p2j*(u*in_sphere.l + v*in_sphere.m + w*n_arr_minus_1)) * in_sphere.pixel_areas
             assert(harmonic.shape[0] == in_sphere.npix)
             harmonic_list.append(harmonic)
         self.harmonics[cache_key] = harmonic_list
@@ -161,7 +161,7 @@ class DiSkO(object):
 
     def make_gamma(self, sphere):
 
-        logger.info("Making Gamma Matrix nside={} npix={}".format(sphere.nside, sphere.npix))
+        logger.info("Making Gamma Matrix npix={}".format(sphere.npix))
         t0 = time.time()
 
         harmonic_list = self.get_harmonics(sphere)

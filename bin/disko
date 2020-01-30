@@ -19,7 +19,7 @@ from tart_tools import api_handler
 from tart_tools import api_imaging
 from tart.imaging import elaz
 
-from disko import DiSkO, get_source_list, HealpixSphere, HealpixSubSphere, disko_from_ms
+from disko import DiSkO, get_source_list, HealpixSphere, HealpixSubSphere, disko_from_ms, AdaptiveMeshSphere
 
 
 def handle_image(args, img, title, time_repr, src_list=None):
@@ -62,6 +62,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--elevation', type=float, default=20.0, help="Elevation limit for displaying sources (degrees)")
     parser.add_argument('--display', action="store_true", help="Display Image to the user")
+    parser.add_argument('--adaptive', action="store_true", help="Use adaptive mesh")
 
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image")
@@ -172,8 +173,10 @@ if __name__ == '__main__':
     
     nside = ARGS.nside
     radius = np.radians(ARGS.fov / 2.0)
-    if nside is None:
-        sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=0.0, phi=0.0, radius=radius)
+    if ARGS.adaptive:
+        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.arcmin, res_arcmax=ARGS.arcmin*10, theta=np.radians(0.0), phi=0.0, radius=radius)
+    elif nside is None:
+        sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
     else:
         sphere = HealpixSubSphere.from_resolution(nside=nside, theta=0.0, phi=0.0, radius=radius)
     

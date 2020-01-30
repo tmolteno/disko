@@ -203,6 +203,7 @@ class HealpixSphere(object):
         #healpy.query_polygon
 
         self.pixels = np.zeros(self.npix) # + hp.UNSEEN
+        self.pixel_areas = 1.0 / np.sqrt(self.npix)
         
         el_r, az_r = hp2elaz(theta, phi)
         
@@ -251,7 +252,7 @@ class HealpixSphere(object):
     
     def to_fits(self, fname, fov, title=None, info={}):
         from astropy.io import fits
-        import scipy
+        from scipy.interpolate import griddata
         # Make a grid on the plane, at the width of the narrowest pixel
         #f = scipy.interpolate.interp2d(self.el_r, self.az_r, self.pixels, fill_value=-1)
         l = np.sin(self.az_r)*np.cos(self.el_r)
@@ -268,8 +269,8 @@ class HealpixSphere(object):
         y = np.linspace(-l0, l0, height)
         xx, yy = np.meshgrid(x, y)
          
-        grid = scipy.interpolate.griddata(points, values, 
-                                          (xx, yy), method='cubic')
+        grid = griddata(points, values, 
+                        (xx, yy), method='cubic')
 
         hdr = fits.Header()
         hdr['COMMENT'] = "POINTLESS: {}".format(title)
@@ -524,7 +525,8 @@ class HealpixSubSphere(HealpixSphere):
         #self.pixel_indices = my_query_disk(nside, x0, radius)
                 
         ret.npix = ret.pixel_indices.shape[0]
-        
+        ret.pixel_areas = 1.0 / np.sqrt(ret.npix)
+
         logger.info("New SubSphere, nside={}. npix={}".format(ret.nside, ret.npix))
 
         theta, phi = hp.pix2ang(nside, ret.pixel_indices)
@@ -538,6 +540,12 @@ class HealpixSubSphere(HealpixSphere):
         ret.az_r = az_r
 
         ret.l, ret.m, ret.n = elaz2lmn(ret.el_r, ret.az_r)
+
+        if False:
+            import matplotlib.pyplot as plt
+            #plt.plot(ret.l, ret.m, 'x')
+            plt.plot(el_r, az_r, 'x')
+            plt.show()
         return ret
 
     def split(self, n):
