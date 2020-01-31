@@ -56,26 +56,26 @@ class AdaptiveMeshSphere(HealpixSphere):
         res_max = np.radians(res_arcmax/60)
         
         # An edge_size function
-        #sources = 1.5*radius*(np.random.random((5,2))-0.5)+[theta, phi]
+        sources = 1.5*radius*(np.random.random((5,2))-0.5)+[theta, phi]
         #p1 = dmsh.Path(sources)
         
-        k = 40
-        x0 = 1.0 / k
-        #x = np.linspace(-1,1,100)
-        #y = logistic(x, 1.0, k, x0)
-        #plt.plot(x,y,'.')
-        #plt.show()
+        k = 30
+        x0 = 0.1 # 2.0 / k
+        x = np.linspace(0,1,100)
+        y = logistic(x, 1.0, k, x0)
+        plt.plot(x,y,'.')
+        plt.show()
 
-        #def edge_size(x):
-            #d = np.array([np.linalg.norm(x.T - s, axis=1) for s in sources])
-            #dmin = np.min(d.T, axis=1) # Distance to closest source (in diameters)
-            #dmin = dmin/np.max(dmin) # Normalized to 0..1
-            #return res_min + (res_max - res_min) * logistic(dmin, L=1.0, k=k, x0=x0)
+        def edge_size(x):
+            d = np.array([np.linalg.norm(x.T - s, axis=1) for s in sources])
+            dmin = np.min(d.T, axis=1) # Distance to closest source (in diameters)
+            dmin = dmin/np.max(dmin) # Normalized to 0..1
+            return res_min + (res_max - res_min) * logistic(dmin, L=1.0, k=k, x0=x0)
 
         geo = dmsh.Circle([theta, phi], radius)
 
         logger.info("Generating Mesh")
-        X, cells = dmsh.generate(geo, res_min, tol=res_min/20)
+        X, cells = dmsh.generate(geo, edge_size, tol=res_min/20)
         logger.info(" Mesh generated {}".format(cells.shape))
 
         # optionally optimize the mesh
@@ -113,7 +113,7 @@ class AdaptiveMeshSphere(HealpixSphere):
         ret.az_r = az_r
 
         ret.l, ret.m, ret.n = elaz2lmn(ret.el_r, ret.az_r)
-        if False:
+        if True:
             plt.plot(ret.l, ret.m, 'x')
             #plt.plot(el_r, az_r, 'x')
             plt.show()
@@ -146,5 +146,5 @@ if __name__=="__main__":
     logger.addHandler(ch)
     logger.addHandler(fh)
 
-    sph = AdaptiveMeshSphere.from_resolution(res_arcmin=20, res_arcmax=180, theta=np.radians(20.0), phi=0.0, radius=np.radians(10))
+    sph = AdaptiveMeshSphere.from_resolution(res_arcmin=10, res_arcmax=180, theta=np.radians(20.0), phi=0.0, radius=np.radians(20))
     sph.to_fits('test.fits', fov=20)

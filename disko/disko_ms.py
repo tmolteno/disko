@@ -102,13 +102,19 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000):
         u_max = 1.0 / (2 * np.sin(theta))
         logger.info("Resolution Max UVW: {:g}".format(u_max))
 
+        # Now report the recommended resolution from the data.
+        # 1.0 / 2*np.sin(theta) = limit_u
+        limit_uvw = np.max(np.abs(uvw), 0)
+        res_limit = np.arcsin(1.0 / (2*limit_uvw[0]))
+        logger.info("Nyquist resolution: {:g} arcmin".format(np.degrees(res_limit)*60.0))
+
         if False:
             good_data = np.array(np.where(flags[:,0,0] == 0)).T.reshape((-1,))
         else:
             good_data = np.array(np.where((flags[:,0,0] == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
         logger.info("Good Data {}".format(good_data.shape))
 
-        logger.info("Maximum UVW: {}".format(np.max(np.abs(uvw), 0)))
+        logger.info("Maximum UVW: {}".format(limit_uvw))
         logger.info("Minimum UVW: {}".format(np.min(np.abs(uvw), 0)))
 
         n_ant = len(ant_p)
