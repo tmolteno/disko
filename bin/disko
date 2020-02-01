@@ -174,7 +174,7 @@ if __name__ == '__main__':
     nside = ARGS.nside
     radius = np.radians(ARGS.fov / 2.0)
     if ARGS.adaptive:
-        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.arcmin, res_arcmax=ARGS.arcmin*10, theta=np.radians(0.0), phi=0.0, radius=radius)
+        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.arcmin, res_arcmax=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
     elif nside is None:
         sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
     else:
@@ -187,12 +187,24 @@ if __name__ == '__main__':
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
         #sky = disko.sub_image(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, n=ARGS.n)
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, usedask=ARGS.dask)
+        if ARGS.adaptive:
+            for i in range(3):
+                sphere.pixels = sphere.pixels / sphere.pixel_areas
+                sphere.write_mesh("round_{}.vtk".format(i))
+
+                sphere.refine()
+                sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, usedask=ARGS.dask)
+                sphere.pixels = sphere.pixels / sphere.pixel_areas
+            
+
     else:
         sky = disko.solve_vis(disko.vis_arr, sphere)
 
     image_title = '{}_{}'.format(ARGS.title, time_repr)
 
     # Save as a FITS file
+    if ARGS.adaptive:
+        sphere.write_mesh("{}.vtk".format(image_title))
     fname = '{}.fits'.format(image_title)
     fpath = os.path.join(ARGS.dir, fname)
     sphere.to_fits(fname=fpath, fov=ARGS.fov, info=info)

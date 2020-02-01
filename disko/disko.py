@@ -101,19 +101,20 @@ class DiSkO(object):
     def get_harmonics(self, in_sphere):
         ''' Create the harmonics for this arrangement of sphere pixels
         '''
-        cache_key = "{}:".format(in_sphere.npix)
-        if (cache_key in self.harmonics):
-            return self.harmonics[cache_key]
+        #cache_key = "{}:".format(in_sphere.npix)
+        #if (cache_key in self.harmonics):
+            #return self.harmonics[cache_key]
 
         n_arr_minus_1 = in_sphere.n - 1
         harmonic_list = []
         p2j = 2*np.pi*1.0j
         
+        logger.info("pixel areas:  {}".format(in_sphere.pixel_areas))
         for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
             harmonic = np.exp(p2j*(u*in_sphere.l + v*in_sphere.m + w*n_arr_minus_1)) * in_sphere.pixel_areas
             assert(harmonic.shape[0] == in_sphere.npix)
             harmonic_list.append(harmonic)
-        self.harmonics[cache_key] = harmonic_list
+        #self.harmonics[cache_key] = harmonic_list
 
         assert(harmonic_list[0].shape[0] == in_sphere.npix)
         return harmonic_list
@@ -264,8 +265,11 @@ class DiSkO(object):
             proj_operator_real = None
             proj_operator_imag = None 
             logger.info('augmented: {}'.format(proj_operator.shape))
-            vis_aux = np.array(np.concatenate((np.real(vis_arr), np.imag(vis_arr))), dtype=np.float32)
+            logger.info('operator: {}'.format(proj_operator))
             
+            vis_aux = np.array(np.concatenate((np.real(vis_arr), np.imag(vis_arr))), dtype=np.float32)
+            logger.info('vis mean: {} shape: {}'.format(np.mean(vis_aux), vis_aux.shape))
+
             logger.info("Solving...")
             reg = linear_model.ElasticNet(alpha=lambduh, l1_ratio=0.01, max_iter=10000, positive=True)
             reg.fit(proj_operator, vis_aux)
@@ -357,7 +361,7 @@ class DiSkO(object):
 
         logger.info("Solving Complete: sky = {}".format(sky.shape))
 
-        sphere.set_visible_pixels(sky, scale=False)
+        sphere.set_visible_pixels(sky, scale=True)
         return sky.reshape(-1,1)
 
 

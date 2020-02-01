@@ -8,7 +8,7 @@ import os
 
 import numpy as np
 
-from disko import AdaptiveMeshSphere, area
+from disko import AdaptiveMeshSphere, area, HealpixSubSphere
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler()) # Add a null handler so logs can go somewhere
@@ -19,7 +19,9 @@ class TestMeshsphere(unittest.TestCase):
     def setUp(self):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
-        self.sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=20, res_arcmax=180, theta=np.radians(20.0), phi=0.0, radius=np.radians(10))
+        self.sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=20, res_arcmax=60, 
+                                                         theta=np.radians(0.0), 
+                                                         phi=0.0, radius=np.radians(10))
 
     
     def test_sizes(self):
@@ -34,7 +36,25 @@ class TestMeshsphere(unittest.TestCase):
         self.assertAlmostEqual(area(cells[0], points), 0.5)
         for a in self.sphere.pixel_areas:
             self.assertTrue(a > 0.0)
-                        
+             
+    def test_lms(self):
+        hp_sphere = HealpixSubSphere.from_resolution(resolution=60.0, 
+                                              theta=np.radians(0.0), 
+                                              phi=0.0, radius=np.radians(10))
+        
+        self.assertAlmostEqual(self.sphere.fov, hp_sphere.fov)
+
+        print(np.max(self.sphere.l), np.max(self.sphere.m), np.max(self.sphere.n))
+        print(np.max(hp_sphere.l), np.max(hp_sphere.m), np.max(hp_sphere.n))
+        
+        print("el_r {} {}".format(np.max(self.sphere.el_r), np.max(hp_sphere.el_r)))
+        self.assertAlmostEqual(np.max(self.sphere.el_r), np.max(hp_sphere.el_r), 1)
+
+        self.assertAlmostEqual(np.max(self.sphere.m), np.max(hp_sphere.m), 2)
+        self.assertAlmostEqual(np.max(self.sphere.l), np.max(hp_sphere.l), 3)
+        self.assertAlmostEqual(np.min(self.sphere.n), np.min(hp_sphere.n), 3)
+
+
     def test_svg(self):
         res_deg = 10
         fname='test.svg'

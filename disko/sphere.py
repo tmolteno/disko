@@ -236,7 +236,8 @@ class HealpixSphere(object):
             #n_s = rpix.shape[0]
             #fact = factors(n_s)
             #rpix = exposure.equalize_adapthist(rpix.reshape((n_s//fact, -1)), clip_limit=0.03)
-        self.pixels = rpix.reshape((len(self.pixels),))
+        self.pixels = rpix.reshape((len(pix),))
+        logger.info("Pixels Set {}".format(self.pixels.shape))
         
     def corners(self, pixel):
         bounds = hp.boundaries(self.nside, pixel, step=1)
