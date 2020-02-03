@@ -6,6 +6,8 @@ import optimesh
 import meshio
 import scipy
 
+from scipy.spatial import Delaunay, delaunay_plot_2d
+
 from .sphere import HealpixSphere, hp2elaz, elaz2lmn
 
 import numpy as np
@@ -25,17 +27,164 @@ def area(cell, points):
     p, q, r = points[cell]
     return np.abs(0.5*(p[0]*(q[1]-r[1])+q[0]*(r[1]-p[1])+r[0]*(p[1]-q[1])))
     
-def logistic(x, L, k, x0):
-    return L / (1.0 + np.exp(-k*(x - x0)))
+#def logistic(x, L, k, x0):
+    #return L / (1.0 + np.exp(-k*(x - x0)))
 
-class Sphere:
-    def f(self, x):
-        return 1.0 - (x[0] ** 2 + x[1] ** 2 + x[2] ** 2)
+#class Sphere:
+    #def f(self, x):
+        #return 1.0 - (x[0] ** 2 + x[1] ** 2 + x[2] ** 2)
 
-    def grad(self, x):
-        return -2 * x
+    #def grad(self, x):
+        #return -2 * x
 
 class AdaptiveMeshSphere(HealpixSphere):
+    ''' 
+        An adaptive mesh sphere.
+    '''
+    def __init__(self, res_min, res_max, radius):
+        
+        geo = dmsh.Circle([0.0, 0.0], 1.0)
+
+        N = 2*np.pi*radius*radius / (res_max*res_max)
+        
+        logger.info("Generating Mesh: r: {}, res: {},  N = {}".format(radius, (res_min, res_max), N))
+        X, cells = dmsh.generate(geo, res_max/radius, tol=res_min/100)
+        logger.info(" Mesh generated {}".format(cells.shape))
+        
+        logger.info("Optimizing Mesh")
+        X, cells = optimesh.odt.fixed_point_uniform(X, cells, res_min/100, 10, verbose=True)
+
+        pts = X
+        self.tri = Delaunay(pts, incremental=True)
+        self.mesh()
+
+        self.res_max = res_max
+        self.res_min = res_min
+        self.res_arcmin = np.degrees(res_min*60)
+
+        logger.info("New AdaptiveMeshSphere, resolution_min={}".format(self.res_arcmin))
+
+        self.radius = radius
+        self.fov = np.degrees(radius*2)
+        
+
+
+    @classmethod
+    def from_resolution(cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius=0.0):
+        # Theta is co-latitude measured southward from the north pole
+        # Phi is [0..2pi]
+        
+        res_max = np.radians(res_arcmax / 60)
+        res_min = np.radians(res_arcmin / 60)
+        ret = cls(res_min, res_max, radius)        
+        logger.info("AdaptiveMeshSphere from_res, npix={}".format(ret.npix))
+
+        return ret
+
+    def mesh(self):
+        self.npix = self.tri.simplices.shape[0]
+        logger.info("New Mesh {}".format(self.npix))
+        self.pixels = np.zeros(self.npix)
+        self.points = self.radius*np.sum(self.tri.points[self.tri.simplices], axis=1)/3
+        pixel_areas = self.radius*self.radius*np.array([area(cell=c, points=self.tri.points) for c in self.tri.simplices])
+        total_area = np.sum(pixel_areas)
+        self.pixel_areas = pixel_areas / total_area
+
+        self.set_lmn()
+
+    def gradient(self):
+        # Return a gradient between every pair of cells
+        ret = []
+        cell_pairs = []
+        for p1, nlist in enumerate(self.tri.neighbors):
+            y1 = self.pixels[p1]
+            #print(p1, nlist)
+            for p2 in nlist:
+                if p2 != -1:
+                    dx, dy = self.points[p2] - self.points[p1]
+                    r = np.sqrt(dx*dx + dy*dy)
+                    grad = (y1 - self.pixels[p2])/r
+                    ret.append(grad)
+                    cell_pairs.append([p1, p2])
+        return np.array(ret), cell_pairs
+    
+    
+    def refine(self):
+        grad, pairs = self.gradient()
+
+        self.refine_adding(grad, pairs)
+        
+    def refine_adding(self, grad, pairs):
+        
+        p05, p50, p95 = np.percentile(np.abs(grad), [5, 50, 90])
+        print("Data {} {} {}".format(p05, p50, p95))
+
+        new_pts = []
+        for g, p in zip(grad, pairs):
+            #print(g, p)
+            if (g > p95):
+                pt = (self.points[p[0]] + self.points[p[1]])/ 2
+                new_pts.append(pt)
+                print("adding point {}".format(pt))
+
+        self.tri.add_points(new_pts)
+        #self.optimize()
+        self.mesh()
+        
+    def refine_removing(self, grad, pairs):
+
+        grad, pairs = self.gradient()
+        p05, p50, p95 = np.percentile(np.abs(grad), [5, 50, 95])
+        print("Data {} {} {}".format(p05, p50, p95))
+
+        # Go through points and find the max gradient between all cells that contain that point.
+        # If below a threshold, remove the point
+        indices, indptr = self.tri.vertex_neighbor_vertices()
+        # The indices of neighboring vertices of vertex k are indptr[indices[k]:indices[k+1]].
+        
+        
+
+    def plot(self):
+        import matplotlib.pyplot as plt
+        #plt.plot(pts[:,0], pts[:,1], '.')
+        plt.clf()
+        plt.plot(self.tri.points[:,0], self.tri.points[:,1], 'o')
+        plt.plot(self.points[:,0], self.points[:,1], '.')
+        plt.triplot(self.tri.points[:,0], self.tri.points[:,1], self.tri.simplices.copy())
+        plt.show()
+
+        
+    def write_mesh(self, fname='output.vtk'):
+        #import matplotlib.pyplot as plt
+        
+        #plt.plot(self.l, self.m, 'x')
+        ###plt.plot(el_r, az_r, 'x')
+        #plt.show()
+
+        # and write it to a file
+        meshio.write_points_cells(fname, self.tri.points, {"triangle": self.tri.simplices}, 
+                                  cell_data={'triangle': {'flux': self.pixels}})
+
+        
+    def set_lmn(self):
+        x = self.points[:, 0]
+        y = self.points[:, 1]
+        r = np.sqrt(x*x + y*y)
+        
+        # Convert the x,y to theta and phi
+        
+        theta = np.arcsin(r)
+        phi = np.arctan2(x,y)
+        
+        el_r, az_r = hp2elaz(theta, phi)
+
+        self.el_r = el_r
+        self.az_r = az_r
+
+        self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
+
+
+class AdaptiveMeshSphereOld(HealpixSphere):
     ''' 
         An adaptive mesh sphere.
     '''
@@ -76,8 +225,7 @@ class AdaptiveMeshSphere(HealpixSphere):
         return ret
 
     def refresh(self):
-        self.compute_points()
-        self.compute_areas()
+        self.compute_points_and_areas()
         self.set_lmn()
 
     def write_mesh(self, fname='output.vtk'):
@@ -91,12 +239,9 @@ class AdaptiveMeshSphere(HealpixSphere):
         meshio.write_points_cells(fname, self.X, {"triangle": self.cells}, 
                                   cell_data={'triangle': {'flux': self.pixels}})
 
-    def compute_points(self):
-        logger.info("Computing Centroids")
+    def compute_points_and_areas(self):
+        logger.info("Computing Cell Details")
         self.points = np.array([centroid(cell=c, points=self.X) for c in self.cells])
-
-    def compute_areas(self):
-        logger.info("Computing areas")
         pixel_areas = np.array([area(cell=c, points=self.X) for c in self.cells])
         total_area = np.sum(pixel_areas)
         self.pixel_areas = pixel_areas / total_area
@@ -112,6 +257,9 @@ class AdaptiveMeshSphere(HealpixSphere):
         p05, p50, p95 = np.percentile(self.pixels, [5, 50, 95])
         logging.info("Data {} {} {}".format(p05, p50, p95))
         
+        # Compute cell gradient
+        
+        # Refine based on the gradient
         refined_points = []
         refined_cells = []
         refined_pixels = []
@@ -201,8 +349,10 @@ if __name__=="__main__":
     logger.addHandler(ch)
     logger.addHandler(fh)
 
-    sph = AdaptiveMeshSphere.from_resolution(res_arcmin=10, res_arcmax=180, theta=np.radians(00.0), phi=0.0, radius=np.radians(20))
+    sph = AdaptiveMeshSphere.from_resolution(res_arcmin=10, res_arcmax=180, theta=np.radians(0.0), phi=0.0, radius=np.radians(20))
     sph.pixels = np.random.random(sph.npix)
+    sph.plot()
     sph.refine()
+    sph.plot()
     sph.write_mesh()
     sph.to_fits('test.fits', fov=20)

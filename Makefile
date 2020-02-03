@@ -21,7 +21,7 @@ ngc1194:
 	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
 
 adaptive:
-	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.1 --tikhonov --nvis 3000 --alpha 0.025 --title 'acygnus' --adaptive
+	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.2 --tikhonov --nvis 3000 --alpha 0.01 --title 'acygnus' --adaptive 3
 cygnus:
 	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.1 --tikhonov --nvis 3000 --alpha 0.0025 --title 'cygnus'
 #Mem 4G for 22260 x 3000
@@ -42,7 +42,7 @@ cygnus_center:
 	disko --fov 0.02 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.012 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
 	
 tart:
-	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=90 --alpha=0.0025 --tikhonov --adaptive
+	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=280 --alpha=0.0025 --tikhonov --adaptive 3
 
 # Memory 4800x276 456212 
 #	 19328x276 640932 ->  458364 for 

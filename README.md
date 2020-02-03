@@ -40,6 +40,8 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
+0.7.0b2 New adaptive meshing on gradient
+0.7.0b1 Add adaptive meshing and --adaptive option
 0.6.0b9 Report Nyquist resolution
 0.6.0b7 MS were being read incorrectly - the UVW are measured in meters, not wavelengths!
 0.6.0b6 Correct field pointing from measurement sets.

@@ -109,7 +109,7 @@ class DiSkO(object):
         harmonic_list = []
         p2j = 2*np.pi*1.0j
         
-        logger.info("pixel areas:  {}".format(in_sphere.pixel_areas))
+        #logger.info("pixel areas:  {}".format(in_sphere.pixel_areas))
         for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
             harmonic = np.exp(p2j*(u*in_sphere.l + v*in_sphere.m + w*n_arr_minus_1)) * in_sphere.pixel_areas
             assert(harmonic.shape[0] == in_sphere.npix)
@@ -265,7 +265,6 @@ class DiSkO(object):
             proj_operator_real = None
             proj_operator_imag = None 
             logger.info('augmented: {}'.format(proj_operator.shape))
-            logger.info('operator: {}'.format(proj_operator))
             
             vis_aux = np.array(np.concatenate((np.real(vis_arr), np.imag(vis_arr))), dtype=np.float32)
             logger.info('vis mean: {} shape: {}'.format(np.mean(vis_aux), vis_aux.shape))
