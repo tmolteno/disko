@@ -40,6 +40,11 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
+0.7.0b8 Optimize mesh at each stage of refinement.
+0.7.0b7 Better refinement.
+0.7.0b6 Limit gradient calculation to cells above nyquist limit
+0.7.0b5 Improve channel selection
+0.7.0b4 Allow selection of the channel number
 0.7.0b2 New adaptive meshing on gradient
 0.7.0b1 Add adaptive meshing and --adaptive option
 0.6.0b9 Report Nyquist resolution

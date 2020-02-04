@@ -57,13 +57,14 @@ if __name__ == '__main__':
     parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter. (this is divided by the sqrt of the number of pixels.")
     parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
     parser.add_argument('--nvis', type=int, default=1000, help="Number of visibilities to use.")
-    parser.add_argument('--arcmin', type=float, default=None, help="Resolution of the sky in arc minutes.")
+    parser.add_argument('--arcmin', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
+    parser.add_argument('--arcmax', type=float, default=None, help="Starting Resolution of the sky in arc minutes.")
     parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
 
     parser.add_argument('--elevation', type=float, default=20.0, help="Elevation limit for displaying sources (degrees)")
     parser.add_argument('--display', action="store_true", help="Display Image to the user")
     parser.add_argument('--adaptive', type=int, default=0, help="Use adaptive mesh")
-
+    parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel ")
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image")
@@ -129,7 +130,7 @@ if __name__ == '__main__':
         disko = DiSkO.from_cal_vis(cv)
     elif ARGS.ms:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
-        disko, info = disko_from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin)
+        disko, info = disko_from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel)
         
         # Convert from reduced Julian Date to timestamp.
         timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,
@@ -174,7 +175,7 @@ if __name__ == '__main__':
     nside = ARGS.nside
     radius = np.radians(ARGS.fov / 2.0)
     if ARGS.adaptive > 0:
-        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.arcmin/10, res_arcmax=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
+        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.arcmin, res_arcmax=ARGS.arcmax, theta=np.radians(0.0), phi=0.0, radius=radius)
     elif nside is None:
         sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
     else:

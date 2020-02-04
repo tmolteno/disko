@@ -227,7 +227,7 @@ class HealpixSphere(object):
         theta, phi = elaz2hp(el, az)
         hp.projplot(theta, phi, 'ro', rot=(0,90,180))  #
 
-    def set_visible_pixels(self, pix, scale=True):
+    def set_visible_pixels(self, pix, scale=False):
         # This discards the imaginary part.
         rpix = np.real(pix)
         if scale:

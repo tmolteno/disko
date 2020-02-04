@@ -54,7 +54,10 @@ class TestMeshsphere(unittest.TestCase):
         self.assertAlmostEqual(np.max(self.sphere.l), np.max(hp_sphere.l), 3)
         self.assertAlmostEqual(np.min(self.sphere.n), np.min(hp_sphere.n), 3)
 
-
+    def test_harmonics(self):
+        
+        
+        
     def test_svg(self):
         res_deg = 10
         fname='test.svg'

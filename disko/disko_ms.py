@@ -20,7 +20,7 @@ def get_visibility(vis_arr, baselines, i,j):
     return vis_arr[baselines.index([i,j])]
 
 
-def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000):
+def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0):
     '''
         Use dask-ms to load the necessary data to create a telescope operator
         (will use uvw positions, and antenna positions)
@@ -76,6 +76,7 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000):
         # Create datasets from a partioning of the MS
         datasets = list(xds_from_ms(ms, chunks={'row': chunks}))
 
+        pol = 0
         
         for ds in datasets:
             logger.info("DATA shape: {}".format(ds.DATA.data.shape))
@@ -84,7 +85,7 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000):
             ant1 = np.array(ds.ANTENNA1.data)
             ant2 = np.array(ds.ANTENNA2.data)
             flags = np.array(ds.FLAG.data)
-            cv_vis = np.array(ds.DATA.data)[:,0,0]
+            cv_vis = np.array(ds.DATA.data)[:,channel,pol]
             timestamp = np.array(ds.TIME.data)[0]
             
             # Try write the STATE_ID column back
@@ -101,6 +102,7 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000):
         
         u_max = 1.0 / (2 * np.sin(theta))
         logger.info("Resolution Max UVW: {:g}".format(u_max))
+        logger.info("Flags: {}".format(flags.shape))
 
         # Now report the recommended resolution from the data.
         # 1.0 / 2*np.sin(theta) = limit_u
@@ -109,9 +111,9 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000):
         logger.info("Nyquist resolution: {:g} arcmin".format(np.degrees(res_limit)*60.0))
 
         if False:
-            good_data = np.array(np.where(flags[:,0,0] == 0)).T.reshape((-1,))
+            good_data = np.array(np.where(flags[:,channel,pol] == 0)).T.reshape((-1,))
         else:
-            good_data = np.array(np.where((flags[:,0,0] == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
+            good_data = np.array(np.where((flags[:,channel,pol] == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
         logger.info("Good Data {}".format(good_data.shape))
 
         logger.info("Maximum UVW: {}".format(limit_uvw))

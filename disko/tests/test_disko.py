@@ -9,7 +9,7 @@ import json
 import numpy as np
 
 from disko import DiSkO
-from disko import HealpixSphere, HealpixSubSphere
+from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere
 
 from tart.operation import settings
 from tart_tools import api_imaging
@@ -52,6 +52,10 @@ class TestDiSkO(unittest.TestCase):
         res_deg = 4.0
         cls.subsphere = HealpixSubSphere.from_resolution(resolution=res_deg*60.0, 
                                       theta = np.radians(0.0), phi=0.0, radius=np.radians(89))
+        
+        cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=20, res_arcmax=res_deg*60, 
+                                                         theta=np.radians(0.0), 
+                                                         phi=0.0, radius=np.radians(10))
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
 
@@ -73,6 +77,11 @@ class TestDiSkO(unittest.TestCase):
         ### Check the harmonics are normalized.
 
         harmonics = self.disko.get_harmonics(self.sphere)
+        for h_i in harmonics:
+            dot = h_i @ h_i.conj().T
+            self.assertAlmostEqual(dot, 1.0)
+  
+        harmonics = self.disko.get_harmonics(self.adaptive_sphere)
         for h_i in harmonics:
             dot = h_i @ h_i.conj().T
             self.assertAlmostEqual(dot, 1.0)

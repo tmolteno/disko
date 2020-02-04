@@ -42,6 +42,12 @@ class AdaptiveMeshSphere(HealpixSphere):
         An adaptive mesh sphere.
     '''
     def __init__(self, res_min, res_max, radius):
+        self.radius = radius
+        self.fov = np.degrees(radius*2)
+        
+        self.res_max = res_max
+        self.res_min = res_min
+        self.res_arcmin = np.degrees(res_min*60)
         
         geo = dmsh.Circle([0.0, 0.0], 1.0)
 
@@ -53,20 +59,11 @@ class AdaptiveMeshSphere(HealpixSphere):
         
         logger.info("Optimizing Mesh")
         X, cells = optimesh.odt.fixed_point_uniform(X, cells, res_min/100, 10, verbose=True)
-
-        pts = X
-        self.tri = Delaunay(pts, incremental=True)
-        self.mesh()
-
-        self.res_max = res_max
-        self.res_min = res_min
-        self.res_arcmin = np.degrees(res_min*60)
+        
+        self.mesh(X)
 
         logger.info("New AdaptiveMeshSphere, resolution_min={}".format(self.res_arcmin))
 
-        self.radius = radius
-        self.fov = np.degrees(radius*2)
-        
 
 
     @classmethod
@@ -81,11 +78,20 @@ class AdaptiveMeshSphere(HealpixSphere):
 
         return ret
 
-    def mesh(self):
+    def mesh(self, pts):
+        self.tri = Delaunay(pts, incremental=False, qhull_options='Qbb Qc Qz Q12')
+        
+        logger.info("Optimizing Mesh")
+        X, cells = optimesh.cpt.linear_solve_density_preserving(self.tri.points, self.tri.simplices.copy(), self.res_min/100, 20, verbose=True)
+
+        self.tri = Delaunay(X, incremental=False, qhull_options='Qbb Qc Qz Q12')
+
         self.npix = self.tri.simplices.shape[0]
         logger.info("New Mesh {}".format(self.npix))
         self.pixels = np.zeros(self.npix)
-        self.points = self.radius*np.sum(self.tri.points[self.tri.simplices], axis=1)/3
+        
+        # Scale points
+        self.points = np.sum(self.tri.points[self.tri.simplices], axis=1)/3
         pixel_areas = self.radius*self.radius*np.array([area(cell=c, points=self.tri.points) for c in self.tri.simplices])
         total_area = np.sum(pixel_areas)
         self.pixel_areas = pixel_areas / total_area
@@ -96,16 +102,26 @@ class AdaptiveMeshSphere(HealpixSphere):
         # Return a gradient between every pair of cells
         ret = []
         cell_pairs = []
+        
+        r_nyquist = self.res_min/self.radius
+        logger.info("R limit: {}".format(r_nyquist))
+
         for p1, nlist in enumerate(self.tri.neighbors):
             y1 = self.pixels[p1]
             #print(p1, nlist)
+            n_ignored = 0
             for p2 in nlist:
                 if p2 != -1:
                     dx, dy = self.points[p2] - self.points[p1]
                     r = np.sqrt(dx*dx + dy*dy)
-                    grad = (y1 - self.pixels[p2])/r
-                    ret.append(grad)
-                    cell_pairs.append([p1, p2])
+                    if (r > r_nyquist): 
+                        grad = (y1 - self.pixels[p2])/r
+                        ret.append([grad, r])
+                        cell_pairs.append([p1, p2])
+                    else:
+                        n_ignored += 1
+        logger.info("Gradient Ignored: {} of {}".format(n_ignored, self.npix))
+        
         return np.array(ret), cell_pairs
     
     
@@ -116,23 +132,26 @@ class AdaptiveMeshSphere(HealpixSphere):
         
     def refine_adding(self, grad, pairs):
         
-        p05, p50, p95 = np.percentile(np.abs(grad), [5, 50, 90])
-        print("Data {} {} {}".format(p05, p50, p95))
+        p05, p50, p95 = np.percentile(np.abs(grad), [5, 50, 95])
+        logger.info("Grad Percentiles: 5: {} 50: {} 95: {}".format(p05, p50, p95))
 
-        new_pts = []
-        for g, p in zip(grad, pairs):
+        new_pts = [p for p in self.tri.points]
+        for g2, p in zip(grad, pairs):
             #print(g, p)
-            if (g > p95):
+            g,r = g2
+
+            if g > p95:
                 pt = (self.points[p[0]] + self.points[p[1]])/ 2
                 new_pts.append(pt)
-                print("adding point {}".format(pt))
+    
+        logger.info("Added {} points".format(len(new_pts)))
 
-        self.tri.add_points(new_pts)
+        #self.tri.add_points(new_pts)
         #self.optimize()
-        self.mesh()
+        self.mesh(np.array(new_pts))
         
     def refine_removing(self, grad, pairs):
-
+        # https://stackoverflow.com/questions/35298360/remove-simplex-from-scipy-delaunay-triangulation
         grad, pairs = self.gradient()
         p05, p50, p95 = np.percentile(np.abs(grad), [5, 50, 95])
         print("Data {} {} {}".format(p05, p50, p95))
@@ -167,8 +186,8 @@ class AdaptiveMeshSphere(HealpixSphere):
 
         
     def set_lmn(self):
-        x = self.points[:, 0]
-        y = self.points[:, 1]
+        x = self.points[:, 0]*self.radius
+        y = self.points[:, 1]*self.radius
         r = np.sqrt(x*x + y*y)
         
         # Convert the x,y to theta and phi

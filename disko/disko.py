@@ -116,7 +116,7 @@ class DiSkO(object):
             harmonic_list.append(harmonic)
         #self.harmonics[cache_key] = harmonic_list
 
-        assert(harmonic_list[0].shape[0] == in_sphere.npix)
+        #assert(harmonic_list[0].shape[0] == in_sphere.npix)
         return harmonic_list
 
     def image_visibilities(self, vis_arr, sphere):
