@@ -80,13 +80,7 @@ class AdaptiveMeshSphere(HealpixSphere):
 
     def mesh(self, pts):
         logger.info("Meshing {}".format(pts.shape))
-        for i,p in enumerate(pts):
-            print(i, p)
         self.tri = Delaunay(pts)
-        for i,p in enumerate(self.tri.points):
-            print(i, p)
-        for i,p in enumerate(self.tri.simplices):
-            print(i, p)
         
         logger.info("Optimizing Mesh {} {}".format(self.tri.points.shape, self.tri.simplices.shape))
         X, cells = optimesh.cpt.linear_solve_density_preserving(self.tri.points, self.tri.simplices.copy(), self.res_min/100, 100, verbose=True)
@@ -147,18 +141,16 @@ class AdaptiveMeshSphere(HealpixSphere):
         r05, r50, r95 = np.percentile(rlist, [5, 50, 95])
         logger.info("r Percentiles: 5: {} 50: {} 95: {}".format(r05, r50, r95))
 
-        new_pts = [p for p in self.tri.points] # sself.refine_removing()
+        new_pts = self.refine_removing()
         
         new_count = 0
         for g, r, p in zip(grad, rlist, pairs):
-            print(g, r, p)
             if g > p95:
                 pt = (self.points[p[0]] + self.points[p[1]])/ 2
                 new_pts.append(pt)
                 new_count += 1
-                print("boo")
     
-        logger.info("Added {} points to {} -> ".format(new_count, self.points.shape))
+        logger.info("Added {} points to {} -> ".format(new_count, self.tri.points.shape))
 
         #self.tri.add_points(new_pts)
         #self.optimize()
@@ -166,20 +158,27 @@ class AdaptiveMeshSphere(HealpixSphere):
         
     def refine_removing(self):
         # https://stackoverflow.com/questions/35298360/remove-simplex-from-scipy-delaunay-triangulation
+        if self.npix < 20000:
+            return [p for p in self.tri.points] 
 
         gradlist = []
+        edgelist = []
         for p1, nlist in enumerate(self.tri.neighbors):
             y1 = self.pixels[p1]
             #print(p1, nlist)
             g = 0
+            edge = False
             for p2 in nlist:
                 if p2 != -1:
                     dx, dy = self.points[p2] - self.points[p1]
                     r = np.sqrt(dx*dx + dy*dy)
                     grad = (y1 - self.pixels[p2])/r
                     g += (grad*grad)
+                else:
+                    edge = True
             g = g / len(nlist)   # average gradient
             gradlist.append(g)
+            edgelist.append(edge)
         
         grad = np.abs(np.array(gradlist))
         p05, p50, p95 = np.percentile(grad, [5, 50, 90])
@@ -187,8 +186,8 @@ class AdaptiveMeshSphere(HealpixSphere):
         
         new_pts = []
         # Now remove
-        for p, g in zip(self.tri.points.copy(), grad):
-            if g > p05:
+        for p, g, e in zip(self.tri.points.copy(), grad, edgelist):
+            if e or (g > p05):
                 new_pts.append(p)
         return new_pts
 
