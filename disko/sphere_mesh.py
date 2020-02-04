@@ -79,12 +79,19 @@ class AdaptiveMeshSphere(HealpixSphere):
         return ret
 
     def mesh(self, pts):
-        self.tri = Delaunay(pts, incremental=False, qhull_options='Qbb Qc Qz Q12')
+        logger.info("Meshing {}".format(pts.shape))
+        for i,p in enumerate(pts):
+            print(i, p)
+        self.tri = Delaunay(pts)
+        for i,p in enumerate(self.tri.points):
+            print(i, p)
+        for i,p in enumerate(self.tri.simplices):
+            print(i, p)
         
-        logger.info("Optimizing Mesh")
-        X, cells = optimesh.cpt.linear_solve_density_preserving(self.tri.points, self.tri.simplices.copy(), self.res_min/100, 20, verbose=True)
+        logger.info("Optimizing Mesh {} {}".format(self.tri.points.shape, self.tri.simplices.shape))
+        X, cells = optimesh.cpt.linear_solve_density_preserving(self.tri.points, self.tri.simplices.copy(), self.res_min/100, 100, verbose=True)
 
-        self.tri = Delaunay(X, incremental=False, qhull_options='Qbb Qc Qz Q12')
+        self.tri = Delaunay(X)
 
         self.npix = self.tri.simplices.shape[0]
         logger.info("New Mesh {}".format(self.npix))
@@ -106,10 +113,10 @@ class AdaptiveMeshSphere(HealpixSphere):
         r_nyquist = self.res_min/self.radius
         logger.info("R limit: {}".format(r_nyquist))
 
+        n_ignored = 0
         for p1, nlist in enumerate(self.tri.neighbors):
             y1 = self.pixels[p1]
             #print(p1, nlist)
-            n_ignored = 0
             for p2 in nlist:
                 if p2 != -1:
                     dx, dy = self.points[p2] - self.points[p1]
@@ -130,38 +137,61 @@ class AdaptiveMeshSphere(HealpixSphere):
 
         self.refine_adding(grad, pairs)
         
-    def refine_adding(self, grad, pairs):
+    def refine_adding(self, gradr, pairs):
         
-        p05, p50, p95 = np.percentile(np.abs(grad), [5, 50, 95])
+        grad = gradr[:,0]
+        rlist = gradr[:,1]
+        
+        p05, p50, p95 = np.percentile(grad, [5, 50, 95])
         logger.info("Grad Percentiles: 5: {} 50: {} 95: {}".format(p05, p50, p95))
+        r05, r50, r95 = np.percentile(rlist, [5, 50, 95])
+        logger.info("r Percentiles: 5: {} 50: {} 95: {}".format(r05, r50, r95))
 
-        new_pts = [p for p in self.tri.points]
-        for g2, p in zip(grad, pairs):
-            #print(g, p)
-            g,r = g2
-
+        new_pts = [p for p in self.tri.points] # sself.refine_removing()
+        
+        new_count = 0
+        for g, r, p in zip(grad, rlist, pairs):
+            print(g, r, p)
             if g > p95:
                 pt = (self.points[p[0]] + self.points[p[1]])/ 2
                 new_pts.append(pt)
+                new_count += 1
+                print("boo")
     
-        logger.info("Added {} points".format(len(new_pts)))
+        logger.info("Added {} points to {} -> ".format(new_count, self.points.shape))
 
         #self.tri.add_points(new_pts)
         #self.optimize()
         self.mesh(np.array(new_pts))
         
-    def refine_removing(self, grad, pairs):
+    def refine_removing(self):
         # https://stackoverflow.com/questions/35298360/remove-simplex-from-scipy-delaunay-triangulation
-        grad, pairs = self.gradient()
-        p05, p50, p95 = np.percentile(np.abs(grad), [5, 50, 95])
-        print("Data {} {} {}".format(p05, p50, p95))
 
-        # Go through points and find the max gradient between all cells that contain that point.
-        # If below a threshold, remove the point
-        indices, indptr = self.tri.vertex_neighbor_vertices()
-        # The indices of neighboring vertices of vertex k are indptr[indices[k]:indices[k+1]].
+        gradlist = []
+        for p1, nlist in enumerate(self.tri.neighbors):
+            y1 = self.pixels[p1]
+            #print(p1, nlist)
+            g = 0
+            for p2 in nlist:
+                if p2 != -1:
+                    dx, dy = self.points[p2] - self.points[p1]
+                    r = np.sqrt(dx*dx + dy*dy)
+                    grad = (y1 - self.pixels[p2])/r
+                    g += (grad*grad)
+            g = g / len(nlist)   # average gradient
+            gradlist.append(g)
         
+        grad = np.abs(np.array(gradlist))
+        p05, p50, p95 = np.percentile(grad, [5, 50, 90])
+        logger.info("Grad Percentiles: 5: {} 50: {} 95: {}".format(p05, p50, p95))
         
+        new_pts = []
+        # Now remove
+        for p, g in zip(self.tri.points.copy(), grad):
+            if g > p05:
+                new_pts.append(p)
+        return new_pts
+
 
     def plot(self):
         import matplotlib.pyplot as plt
@@ -203,148 +233,6 @@ class AdaptiveMeshSphere(HealpixSphere):
         self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
 
 
-class AdaptiveMeshSphereOld(HealpixSphere):
-    ''' 
-        An adaptive mesh sphere.
-    '''
-    def __init__(self, resolution_arcmin):
-        self.res_arcmin = resolution_arcmin
-        self.npix = None
-        self.pixel_areas = None
-
-        logger.info("New AdaptiveMeshSphere, resolution_arcmin={}".format(self.res_arcmin))
-
-    @classmethod
-    def from_resolution(cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius=0.0):
-        # Theta is co-latitude measured southward from the north pole
-        # Phi is [0..2pi]
-        
-        ret = cls(res_arcmin)
-        ret.res_min = np.radians(res_arcmin/60)
-        ret.res_max = np.radians(res_arcmax/60)
-        
-        geo = dmsh.Circle([theta, phi], radius)
-
-        logger.info("Generating Mesh")
-        ret.X, ret.cells = dmsh.generate(geo, ret.res_max, tol=ret.res_min/100)
-        logger.info(" Mesh generated {}".format(ret.cells.shape))
-
-        #logger.info("Optimizing Mesh")
-        #ret.X, ret.cells = optimesh.cvt.quasi_newton_uniform_full(ret.X, ret.cells, 1e-2, 100, verbose=True)
-
-        ret.npix = ret.cells.shape[0]
-        ret.pixels = np.zeros(ret.npix)
-        ret.radius = radius
-        ret.fov = np.degrees(radius*2)
-        
-        ret.refresh()
-        
-        logger.info("AdaptiveMeshSphere from_res, npix={}".format(ret.npix))
-
-        return ret
-
-    def refresh(self):
-        self.compute_points_and_areas()
-        self.set_lmn()
-
-    def write_mesh(self, fname='output.vtk'):
-        #import matplotlib.pyplot as plt
-        
-        #plt.plot(self.l, self.m, 'x')
-        ###plt.plot(el_r, az_r, 'x')
-        #plt.show()
-
-        # and write it to a file
-        meshio.write_points_cells(fname, self.X, {"triangle": self.cells}, 
-                                  cell_data={'triangle': {'flux': self.pixels}})
-
-    def compute_points_and_areas(self):
-        logger.info("Computing Cell Details")
-        self.points = np.array([centroid(cell=c, points=self.X) for c in self.cells])
-        pixel_areas = np.array([area(cell=c, points=self.X) for c in self.cells])
-        total_area = np.sum(pixel_areas)
-        self.pixel_areas = pixel_areas / total_area
-
-    def refine(self):
-        '''
-            refine the mesh by dividing each simplex into three
-            based on the values of the pixels in the existing mesh.
-            
-            The pixel value is flux, so each sub-element should be assigned 1/3 the value,
-            and the new pixels used as a starting point for the next lsqr solution.
-        '''
-        p05, p50, p95 = np.percentile(self.pixels, [5, 50, 95])
-        logging.info("Data {} {} {}".format(p05, p50, p95))
-        
-        # Compute cell gradient
-        
-        # Refine based on the gradient
-        refined_points = []
-        refined_cells = []
-        refined_pixels = []
-        
-        for y, c in zip(self.pixels, self.cells):
-            p1, p2, p3 = self.X[c]
-
-            refined_points.append(p1); p1_index = len(refined_points)-1;
-            refined_points.append(p2); p2_index = len(refined_points)-1;
-            refined_points.append(p3); p3_index = len(refined_points)-1;
-            if (y > p95):
-                # Split the cell, bisecting each edge
-                #
-                #    p1       p12          p2
-                #
-                #       p13          p23
-                #
-                #             p3
-                p12 = (p1 + p2) / 2
-                p13 = (p1 + p3) / 2
-                p23 = (p2 + p3) / 2
-                refined_points.append(p12); p12_index = len(refined_points)-1;
-                refined_points.append(p13); p13_index = len(refined_points)-1;
-                refined_points.append(p23); p23_index = len(refined_points)-1;
-                
-                refined_cells.append([p1_index, p12_index, p13_index])
-                refined_cells.append([p12_index, p2_index, p23_index])
-                refined_cells.append([p23_index, p3_index, p13_index])
-                refined_cells.append([p13_index, p23_index, p12_index])
-                
-                refined_pixels.append(y)
-                refined_pixels.append(y)
-                refined_pixels.append(y)
-                refined_pixels.append(y)
-                
-            else:
-                refined_cells.append([p1_index, p2_index, p3_index])
-                refined_pixels.append(y)
-
-                
-        self.X = np.array(refined_points)
-        self.cells = np.array(refined_cells)
-        self.pixels = np.array(refined_pixels)
-        self.npix = self.cells.shape[0]
-        
-        self.refresh()
-        
-    def set_lmn(self):
-        x = self.points[:, 0]
-        y = self.points[:, 1]
-        r = np.sqrt(x*x + y*y)
-        
-        # Convert the x,y to theta and phi
-        
-        theta = np.arcsin(r)
-        phi = np.arctan2(x,y)
-        
-        el_r, az_r = hp2elaz(theta, phi)
-
-        self.el_r = el_r
-        self.az_r = az_r
-
-        self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
-
-
-        
 if __name__=="__main__":
     
     logger = logging.getLogger()
