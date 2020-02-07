@@ -120,12 +120,14 @@ class DiSkO(object):
         return harmonic_list
 
     def image_visibilities(self, vis_arr, sphere):
-        """Create a DiSkO image from visibilities
+        """
+        Create a DiSkO image from visibilities using the direct ajoint of the
+        measurement operator (corresponds to the inverse DFT)
 
         Args:
 
             vis_arr (np.array): An array of visibilities
-            sphere (int):        The healpix sphere parameter.
+            sphere (int):       he healpix sphere.
         """
 
         assert len(vis_arr) == len(self.u_arr)

@@ -83,7 +83,8 @@ class AdaptiveMeshSphere(HealpixSphere):
         self.tri = Delaunay(pts)
         
         logger.info("Optimizing Mesh {} {}".format(self.tri.points.shape, self.tri.simplices.shape))
-        X, cells = optimesh.cpt.linear_solve_density_preserving(self.tri.points, self.tri.simplices.copy(), self.res_min/100, 100, verbose=True)
+        X, cells = optimesh.cpt.linear_solve_density_preserving(self.tri.points, self.tri.simplices.copy(), 1.0e-10, 100, verbose=True)
+
 
         self.tri = Delaunay(X)
 
@@ -116,12 +117,12 @@ class AdaptiveMeshSphere(HealpixSphere):
                     dx, dy = self.points[p2] - self.points[p1]
                     r = np.sqrt(dx*dx + dy*dy)
                     if (r > r_nyquist): 
-                        grad = (y1 - self.pixels[p2])/r
+                        grad = (y1 - self.pixels[p2]) # TODO Check this division by /r
                         ret.append([grad, r])
                         cell_pairs.append([p1, p2])
                     else:
                         n_ignored += 1
-        logger.info("Gradient Ignored: {} of {}".format(n_ignored, self.npix))
+        logger.info("Gradient Ignored: {} of {} points".format(n_ignored, self.npix))
         
         return np.array(ret), cell_pairs
     
@@ -158,9 +159,10 @@ class AdaptiveMeshSphere(HealpixSphere):
         
     def refine_removing(self):
         # https://stackoverflow.com/questions/35298360/remove-simplex-from-scipy-delaunay-triangulation
-        if self.npix < 20000:
+        if self.npix < 3000:
             return [p for p in self.tri.points] 
 
+        # The average gradient of each cell
         gradlist = []
         edgelist = []
         for p1, nlist in enumerate(self.tri.neighbors):
@@ -172,24 +174,26 @@ class AdaptiveMeshSphere(HealpixSphere):
                 if p2 != -1:
                     dx, dy = self.points[p2] - self.points[p1]
                     r = np.sqrt(dx*dx + dy*dy)
-                    grad = (y1 - self.pixels[p2])/r
+                    grad = (y1 - self.pixels[p2]) # TODO Fix Gradient /r
                     g += (grad*grad)
                 else:
                     edge = True
-            g = g / len(nlist)   # average gradient
+            g = np.sqrt(g) / len(nlist)   # average gradient
             gradlist.append(g)
             edgelist.append(edge)
         
         grad = np.abs(np.array(gradlist))
-        p05, p50, p95 = np.percentile(grad, [5, 50, 90])
+        p05, p50, p95 = np.percentile(grad, [25, 50, 90])
         logger.info("Grad Percentiles: 5: {} 50: {} 95: {}".format(p05, p50, p95))
         
-        new_pts = []
-        # Now remove
-        for p, g, e in zip(self.tri.points.copy(), grad, edgelist):
+        new_indices = [] # Just store the indices
+        # Now remove entire cells
+        for p, g, e in zip(self.tri.simplices, grad, edgelist):
             if e or (g > p05):
-                new_pts.append(p)
-        return new_pts
+                new_indices += list(p)  ### ERROR FIXME this adds points multiple times! Only add points sensibly!
+                    
+        new_indices = np.unique(new_indices)
+        return list(self.tri.points[new_indices].copy())
 
 
     def plot(self):
