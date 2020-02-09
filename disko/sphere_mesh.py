@@ -117,7 +117,7 @@ class AdaptiveMeshSphere(HealpixSphere):
                     dx, dy = self.points[p2] - self.points[p1]
                     r = np.sqrt(dx*dx + dy*dy)
                     if (r > r_nyquist): 
-                        grad = (y1 - self.pixels[p2]) # TODO Check this division by /r
+                        grad = (y1 - self.pixels[p2])/r # TODO Check this division by /r
                         ret.append([grad, r])
                         cell_pairs.append([p1, p2])
                     else:
@@ -174,7 +174,7 @@ class AdaptiveMeshSphere(HealpixSphere):
                 if p2 != -1:
                     dx, dy = self.points[p2] - self.points[p1]
                     r = np.sqrt(dx*dx + dy*dy)
-                    grad = (y1 - self.pixels[p2]) # TODO Fix Gradient /r
+                    grad = (y1 - self.pixels[p2])/r # TODO Fix Gradient /r
                     g += (grad*grad)
                 else:
                     edge = True
@@ -183,7 +183,7 @@ class AdaptiveMeshSphere(HealpixSphere):
             edgelist.append(edge)
         
         grad = np.abs(np.array(gradlist))
-        p05, p50, p95 = np.percentile(grad, [25, 50, 90])
+        p05, p50, p95 = np.percentile(grad, [5, 50, 95])
         logger.info("Grad Percentiles: 5: {} 50: {} 95: {}".format(p05, p50, p95))
         
         new_indices = [] # Just store the indices
@@ -193,6 +193,8 @@ class AdaptiveMeshSphere(HealpixSphere):
                 new_indices += list(p)  ### ERROR FIXME this adds points multiple times! Only add points sensibly!
                     
         new_indices = np.unique(new_indices)
+        logger.info("Removed: {} points to {} -> ".format(self.tri.points.shape, new_indices.shape))
+
         return list(self.tri.points[new_indices].copy())
 
 
