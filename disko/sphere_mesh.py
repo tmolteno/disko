@@ -159,7 +159,7 @@ class AdaptiveMeshSphere(HealpixSphere):
         
     def refine_removing(self):
         # https://stackoverflow.com/questions/35298360/remove-simplex-from-scipy-delaunay-triangulation
-        if self.npix < 3000:
+        if self.npix < 10000:
             return [p for p in self.tri.points] 
 
         # The average gradient of each cell

@@ -26,6 +26,7 @@ from tart.util import constants
 
 
 from .sphere import HealpixSphere
+from .ms_helper import read_ms
 
 '''
     Little helper function to get the UVW positions from the antennas positions.
@@ -76,7 +77,20 @@ class DiSkO(object):
         ## Get u, v, w from the antenna positions
         baselines, u_arr, v_arr, w_arr = get_all_uvw(ant_pos, wavelength)
         ret = cls(u_arr, v_arr, w_arr)
+        ret.info = {}
         return ret
+
+    @classmethod
+    def from_ms(cls, ms, num_vis, res_arcmin, chunks=1000, channel=0):
+        u_arr, v_arr, w_arr, cv_vis, hdr = read_ms(ms, num_vis, res_arcmin, chunks, channel)
+        
+        ret = cls(u_arr, v_arr, w_arr)
+        ret.vis_arr = np.array(cv_vis, dtype=np.complex128)
+        ret.timestamp = timestamp
+        ret.info = hdr
+
+        return ret
+
 
     @classmethod
     def from_cal_vis(cls, cal_vis):
@@ -96,6 +110,7 @@ class DiSkO(object):
             ret.vis_arr.append(v)
             logger.info("vis={}, bl={}".format(v, bl))
         ret.vis_arr = np.array(ret.vis_arr, dtype=DATATYPE)
+        ret.info = {}
         return ret
 
     def get_harmonics(self, in_sphere):
@@ -272,7 +287,7 @@ class DiSkO(object):
             logger.info('vis mean: {} shape: {}'.format(np.mean(vis_aux), vis_aux.shape))
 
             logger.info("Solving...")
-            reg = linear_model.ElasticNet(alpha=lambduh, l1_ratio=0.01, max_iter=10000, positive=True)
+            reg = linear_model.ElasticNet(alpha=lambduh, l1_ratio=0.5, max_iter=10000, positive=True)
             reg.fit(proj_operator, vis_aux)
             sky = reg.coef_
             

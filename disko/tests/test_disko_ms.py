@@ -8,7 +8,7 @@ import json
 
 import numpy as np
 
-from disko import DiSkO, disko_from_ms
+from disko import DiSkO
 from disko import HealpixSphere, HealpixSubSphere
 
 #from tart.operation import settings
@@ -28,7 +28,7 @@ class TestDiSkOMS(unittest.TestCase):
         fname = 'test_data/test.ms'
         logger.info("Getting Data from MS file: {}".format(fname))
 
-        cls.disko, hdr = disko_from_ms(fname, res_arcmin=180, num_vis=500)
+        cls.disko, hdr = DiSkO.from_ms(fname, res_arcmin=180, num_vis=500)
         cls.nside = 16
         cls.sphere = HealpixSphere(cls.nside)
         res_deg = 4.0

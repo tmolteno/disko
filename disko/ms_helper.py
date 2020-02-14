@@ -1,4 +1,3 @@
-from .disko import DiSkO
 from .scheduler_context import scheduler_context
 import dask
 import logging
@@ -13,14 +12,13 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
-def get_visibility(vis_arr, baselines, i,j):
-    if (i > j):
-        return get_visibility(vis_arr, baselines, j, i)
+#def get_visibility(vis_arr, baselines, i,j):
+    #if (i > j):
+        #return get_visibility(vis_arr, baselines, j, i)
     
-    return vis_arr[baselines.index([i,j])]
+    #return vis_arr[baselines.index([i,j])]
 
-
-def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0):
+def read_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0):
     '''
         Use dask-ms to load the necessary data to create a telescope operator
         (will use uvw positions, and antenna positions)
@@ -110,7 +108,7 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0):
         res_limit = np.arcsin(1.0 / (2*limit_uvw[0]))
         logger.info("Nyquist resolution: {:g} arcmin".format(np.degrees(res_limit)*60.0))
 
-        if False:
+        if True:
             good_data = np.array(np.where(flags[:,channel,pol] == 0)).T.reshape((-1,))
         else:
             good_data = np.array(np.where((flags[:,channel,pol] == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
@@ -144,11 +142,11 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0):
             'BTYPE':   'Intensity'                                                           
         }
         
-#from astropy.wcs.utils import celestial_frame_to_wcs
-#from astropy.coordinates import FK5
-#frame = FK5(equinox='J2010')
-#wcs = celestial_frame_to_wcs(frame)
-#wcs.to_header()
+        #from astropy.wcs.utils import celestial_frame_to_wcs
+        #from astropy.coordinates import FK5
+        #frame = FK5(equinox='J2010')
+        #wcs = celestial_frame_to_wcs(frame)
+        #wcs.to_header()
 
         u_arr = uvw[indices,0]
         v_arr = uvw[indices,1]
@@ -156,9 +154,6 @@ def disko_from_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0):
         
         cv_vis = cv_vis[indices]
         
-        ret = DiSkO(u_arr, v_arr, w_arr)
-        ret.vis_arr = np.array(cv_vis, dtype=np.complex128)
-        ret.timestamp = timestamp
-        return ret, hdr
-
+        return u_arr, v_arr, w_arr, cv_vis, hdr
+        
 
