@@ -6,7 +6,7 @@ develop:
 	sudo python3 setup.py develop
 
 install:
-	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite
+	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-meshio python3-dask
 
 lint:
 	pylint --extension-pkg-whitelist=numpy --ignored-modules=numpy --extension-pkg-whitelist=astropy disko
@@ -45,7 +45,7 @@ cygnus_center:
 	disko --fov 0.02 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.012 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
 	
 tart:
-	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=280 --alpha=0.0025 --tikhonov --adaptive 3
+	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=0.0025 --tikhonov  # --adaptive 3
 
 # Memory 4800x276 456212 
 #	 19328x276 640932 ->  458364 for 

@@ -1,6 +1,7 @@
 from .scheduler_context import scheduler_context
 import dask
 import logging
+import datetime
 
 import numpy as np
 
@@ -84,7 +85,7 @@ def read_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0):
             ant2 = np.array(ds.ANTENNA2.data)
             flags = np.array(ds.FLAG.data)
             cv_vis = np.array(ds.DATA.data)[:,channel,pol]
-            timestamp = np.array(ds.TIME.data)[0]
+            epoch_seconds = np.array(ds.TIME.data)[0]
             
             # Try write the STATE_ID column back
             write = xds_to_table(ds, ms, 'STATE_ID')
@@ -138,7 +139,7 @@ def read_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0):
             'CDELT3': 10026896.158854,
             'CUNIT3': 'Hz      ',
             'EQUINOX':  '2000.',
-            'DATE-OBS': "{}".format(timestamp),
+            'DATE-OBS': "{}".format(epoch_seconds),
             'BTYPE':   'Intensity'                                                           
         }
         
@@ -154,6 +155,10 @@ def read_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0):
         
         cv_vis = cv_vis[indices]
         
-        return u_arr, v_arr, w_arr, cv_vis, hdr
+        # Convert from reduced Julian Date to timestamp.
+        timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,
+                                      tzinfo=datetime.timezone.utc) + datetime.timedelta(seconds=epoch_seconds)
+
+        return u_arr, v_arr, w_arr, cv_vis, hdr, timestamp
         
 

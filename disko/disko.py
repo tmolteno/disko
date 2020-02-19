@@ -82,11 +82,11 @@ class DiSkO(object):
 
     @classmethod
     def from_ms(cls, ms, num_vis, res_arcmin, chunks=1000, channel=0):
-        u_arr, v_arr, w_arr, cv_vis, hdr = read_ms(ms, num_vis, res_arcmin, chunks, channel)
+        u_arr, v_arr, w_arr, cv_vis, hdr, tstamp = read_ms(ms, num_vis, res_arcmin, chunks, channel)
         
         ret = cls(u_arr, v_arr, w_arr)
         ret.vis_arr = np.array(cv_vis, dtype=np.complex128)
-        ret.timestamp = timestamp
+        ret.timestamp = tstamp
         ret.info = hdr
 
         return ret

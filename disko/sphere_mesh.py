@@ -58,7 +58,7 @@ class AdaptiveMeshSphere(HealpixSphere):
         logger.info(" Mesh generated {}".format(cells.shape))
         
         logger.info("Optimizing Mesh")
-        X, cells = optimesh.odt.fixed_point_uniform(X, cells, res_min/100, 10, verbose=True)
+        X, cells = optimesh.odt.fixed_point_uniform(X, cells, 1e-2, 10, verbose=True)
         
         self.mesh(X)
 

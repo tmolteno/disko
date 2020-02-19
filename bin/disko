@@ -131,8 +131,7 @@ if __name__ == '__main__':
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
         disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel)
         # Convert from reduced Julian Date to timestamp.
-        timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,
-                                      tzinfo=datetime.timezone.utc) + datetime.timedelta(seconds=disko.timestamp)
+        timestamp = disko.timestamp
         
     else:
         logger.info("Getting Data from API: {}".format(ARGS.api))
