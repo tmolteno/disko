@@ -63,6 +63,45 @@ def get_source_list(source_json, el_limit, jy_limit):
 
 DATATYPE=np.complex128
 
+
+from scipy.sparse.linalg import LinearOperator
+
+class DiSKOOperator(LinearOperator):
+    '''
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.LinearOperator.html
+    
+    A subclass must implement either one of the methods _matvec and _matmat, and the attributes/properties shape (pair of integers) and dtype (may be None). It may call the __init__ on this class to have these attributes validated. Implementing _matvec automatically implements _matmat (using a naive algorithm) and vice-versa.
+    '''
+    
+    def __init__(self, u_arr, v_arr, w_arr, data, frequencies, sphere):
+        self.N = sphere.n_s # Number of pixels
+        self.n_v, self.n_freq, self.npol = data.shape
+        self.M = self.n_v * self.n_freq
+        
+        self.frequencies = frequencies
+        self.sphere = sphere
+        
+        self.shape = 1
+        
+    def _matvec(self, v):
+        '''
+            Multiply by the sky v, producing the set of measurements y
+        '''
+        n_arr_minus_1 = self.sphere.n - 1
+
+        y = []
+        for f in frequencies:
+            wavelength = 2.99793e8 / f
+            p2j = 2*np.pi*1.0j / wavelength
+
+            for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
+                harmonic = np.exp(p2j*(u*self.sphere.l + v*self.sphere.m + w*n_arr_minus_1)) * self.sphere.pixel_areas
+
+                y.append(np.dot(v, harmonic))
+        ret =  np.array(y)
+        assert(ret.shape[0] == self.M)
+        return ret
+    
 class DiSkO(object):
     
     def __init__(self, u_arr, v_arr, w_arr):
@@ -287,7 +326,7 @@ class DiSkO(object):
             logger.info('vis mean: {} shape: {}'.format(np.mean(vis_aux), vis_aux.shape))
 
             logger.info("Solving...")
-            reg = linear_model.ElasticNet(alpha=lambduh, l1_ratio=0.5, max_iter=10000, positive=True)
+            reg = linear_model.ElasticNet(alpha=lambduh, l1_ratio=0.05, max_iter=10000, positive=True)
             reg.fit(proj_operator, vis_aux)
             sky = reg.coef_
             

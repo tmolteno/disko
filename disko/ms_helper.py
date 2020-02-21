@@ -19,7 +19,7 @@ logger.setLevel(logging.INFO)
     
     #return vis_arr[baselines.index([i,j])]
 
-def read_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0):
+def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
     '''
         Use dask-ms to load the necessary data to create a telescope operator
         (will use uvw positions, and antenna positions)
@@ -66,8 +66,8 @@ def read_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0):
         for spw_ds in xds_from_table(spw_table, group_cols="__row__"):
             #print(spw_ds)
             #print(spw_ds.NUM_CHAN.values)
-            #print(spw_ds.CHAN_FREQ.values)
-            frequency=dask.compute(spw_ds.CHAN_FREQ.values)[0].flatten()[0]
+            logger.info("CHAN_FREQ.values: {}".format(spw_ds.CHAN_FREQ.values.shape))
+            frequency=dask.compute(spw_ds.CHAN_FREQ.values)[0].flatten()[channel]
             logger.info("Frequency = {}".format(frequency))
             logger.info("NUM_CHAN = %f" % np.array(spw_ds.NUM_CHAN.values)[0])
             wavelength = 2.99793e8 / frequency
