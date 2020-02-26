@@ -453,8 +453,9 @@ class HealpixSphere(object):
 
                     source_circles.add(circ)
             dwg.add(source_circles)
-
-        dwg.save()
+            
+        with open(fname, 'w', encoding='utf-8') as outfile:
+            dwg.write(outfile)
 
 
 

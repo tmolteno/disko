@@ -2,7 +2,7 @@
 
 import logging
 import dmsh
-import optimesh
+#import optimesh
 import meshio
 import scipy
 
@@ -57,8 +57,8 @@ class AdaptiveMeshSphere(HealpixSphere):
         X, cells = dmsh.generate(geo, res_max/radius, tol=res_min/100)
         logger.info(" Mesh generated {}".format(cells.shape))
         
-        logger.info("Optimizing Mesh")
-        X, cells = optimesh.odt.fixed_point_uniform(X, cells, 1e-2, 10, verbose=True)
+        #logger.info("Optimizing Mesh")
+        #X, cells = optimesh.odt.fixed_point_uniform(X, cells, 1e-2, 10, verbose=True)
         
         self.mesh(X)
 
@@ -82,11 +82,9 @@ class AdaptiveMeshSphere(HealpixSphere):
         logger.info("Meshing {}".format(pts.shape))
         self.tri = Delaunay(pts)
         
-        logger.info("Optimizing Mesh {} {}".format(self.tri.points.shape, self.tri.simplices.shape))
-        X, cells = optimesh.cpt.linear_solve_density_preserving(self.tri.points, self.tri.simplices.copy(), 1.0e-10, 100, verbose=True)
-
-
-        self.tri = Delaunay(X)
+        #logger.info("Optimizing Mesh {} {}".format(self.tri.points.shape, self.tri.simplices.shape))
+        #X, cells = optimesh.cpt.linear_solve_density_preserving(self.tri.points, self.tri.simplices.copy(), 1.0e-10, 100, verbose=True)
+        #self.tri = Delaunay(X)
 
         self.npix = self.tri.simplices.shape[0]
         logger.info("New Mesh {}".format(self.npix))
