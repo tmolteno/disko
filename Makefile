@@ -1,6 +1,6 @@
 test:
 	- rm *.npz
-	python3 setup.py test
+	pytest-3  # python3 setup.py test
 	
 develop:
 	sudo python3 setup.py develop

@@ -394,7 +394,7 @@ class HealpixSphere(object):
             if pixels_only:
                 if min_lat >= 0.00:  # Ignore points on, or below the horizon
                     dlat = max_lat - min_lat
-                    logger.info(poly)
+                    #logger.info(poly)
                     font_size = pc.from_d(dlat*np.sin(max_lat))//5
 
                     dwg.add(dwg.polygon(points=poly, fill='none', stroke='black', stroke_linejoin="round", stroke_width=font_size//10))
