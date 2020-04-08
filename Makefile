@@ -14,7 +14,7 @@ lint:
 test2:
 	#python3 -m unittest  disko.tests.test_gridless.TestGridless.test_from_pos
 #	python3 -m unittest  disko.tests.test_subsphere
-	python3 setup.py test -s disko.tests.test_meshsphere
+	python3 setup.py test -s disko.tests.test_disko
 
 
 ngc1194:

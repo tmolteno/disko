@@ -132,6 +132,12 @@ class TestDiSkO(unittest.TestCase):
         self.assertEqual(sky1.shape[0], 3072)
         self.assertEqual(sky2.shape[0], 1504)
 
+    def test_matrix_free(self):
+        data = np.zeros((self.disko.n_v, 1, 1))
+        data[:,0,0] = self.disko.vis_arr
+        sky1 = self.disko.solve_matrix_free(data, self.subsphere, scale=True)
+        self.assertEqual(sky1.shape[0], 1504)
+
     def test_gamma_size(self):
         dut = DiSkO.from_ant_pos(self.ant_pos, wavelength=constants.L1_WAVELENGTH)
         gamma = dut.make_gamma(self.sphere)

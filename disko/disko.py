@@ -64,43 +64,97 @@ def get_source_list(source_json, el_limit, jy_limit):
 DATATYPE=np.complex128
 
 
-from scipy.sparse.linalg import LinearOperator
+import scipy.sparse.linalg as spalg
 
-class DiSKOOperator(LinearOperator):
+class DiSKOOperator(spalg.LinearOperator):
     '''
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.LinearOperator.html
     
     A subclass must implement either one of the methods _matvec and _matmat, and the attributes/properties shape (pair of integers) and dtype (may be None). It may call the __init__ on this class to have these attributes validated. Implementing _matvec automatically implements _matmat (using a naive algorithm) and vice-versa.
+    
+    THe linearoperatro represents the Telescope Operator with the harmonics as row_vectors
+    
+    A_ij = 
+    
+    https://pylops.readthedocs.io/en/latest/adding.html
     '''
     
     def __init__(self, u_arr, v_arr, w_arr, data, frequencies, sphere):
-        self.N = sphere.n_s # Number of pixels
-        self.n_v, self.n_freq, self.npol = data.shape
+        self.N = sphere.npix # Number of pixels
+        logger.info("Creating LinearOperator data={}".format(data.shape))
+        self.u_arr = u_arr
+        self.v_arr = v_arr
+        self.w_arr = w_arr
+        
+        try:
+            self.n_v, self.n_freq, self.npol = data.shape
+        except:
+            raise RuntimeError("Data must be of the shape [n_v, n_freq, n_pol]")
+            
         self.M = self.n_v * self.n_freq
         
         self.frequencies = frequencies
         self.sphere = sphere
         
-        self.shape = 1
+        self.shape = (self.M, self.N)
         
-    def _matvec(self, v):
+    def A(self, i, j, p2j):
+        u, v, w = self.u_arr[i], self.v_arr[i], self.w_arr[i]
+        l, m, n = self.sphere.l[j], self.sphere.m[j], self.sphere.n[j]
+        return np.exp(p2j*(u*l + v*m + w*(n-1)))
+    
+    def _matvec(self, x):
         '''
-            Multiply by the sky v, producing the set of measurements y
+            Multiply by the sky x, producing the set of measurements y
+            Returns returns A * x.
         '''
         n_arr_minus_1 = self.sphere.n - 1
 
         y = []
-        for f in frequencies:
+        for f in self.frequencies:
             wavelength = 2.99793e8 / f
             p2j = 2*np.pi*1.0j / wavelength
 
             for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
                 harmonic = np.exp(p2j*(u*self.sphere.l + v*self.sphere.m + w*n_arr_minus_1)) * self.sphere.pixel_areas
 
+                y.append(np.dot(x, harmonic))
+        ret =  np.array(y)
+        assert(ret.shape[0] == self.M)
+        return ret
+
+    def testmv(self, x):
+        '''
+           x is a vector in the sky space. returns vector in the data space
+        '''
+        ret = np.zeros(self.M)
+        
+        for i in range(self.M):  # vis_data
+            y = 0
+            for j in range(self.N):  # pixels
+                y = y + x[j]*A(i,j)
+            ret[i] = y
+            
+        return ret
+    
+    def _rmatvec(self, x):
+        '''
+            Returns A^H * v, where A^H is the conjugate transpose of A.
+        '''
+        
+        y = []
+        for f in self.frequencies:
+            wavelength = 2.99793e8 / f
+            p2j = 2*np.pi*1.0j / wavelength
+
+            for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
+                harmonic = np.exp(-p2j*(u*self.sphere.l + v*self.sphere.m + w*n_arr_minus_1)) * self.sphere.pixel_areas
+
                 y.append(np.dot(v, harmonic))
         ret =  np.array(y)
         assert(ret.shape[0] == self.M)
         return ret
+    
     
 class DiSkO(object):
     
@@ -215,6 +269,18 @@ class DiSkO(object):
         sphere.set_visible_pixels(sky, scale)
         
         return sky.reshape(-1,1)
+
+
+    def solve_matrix_free(self, data, sphere, scale=True):
+        '''
+            data = [vis_arr, n_freq, n_pol]
+        '''
+        logger.info("Solving Visabilities nside={}".format(sphere.nside))
+        t0 = time.time()
+
+        frequencies = [1.5e9]
+        A = DiSKOOperator(self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere)
+        x, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=0.0)
 
     def make_gamma(self, sphere):
 
