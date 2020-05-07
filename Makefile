@@ -13,8 +13,8 @@ lint:
 
 test2:
 	#python3 -m unittest  disko.tests.test_gridless.TestGridless.test_from_pos
-#	python3 -m unittest  disko.tests.test_subsphere
-	python3 setup.py test -s disko.tests.test_disko
+	#	python3 -m unittest  disko.tests.test_subsphere
+	pytest-3 test_matrix_free
 
 
 ngc1194:

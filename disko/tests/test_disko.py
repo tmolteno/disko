@@ -9,6 +9,7 @@ import json
 import numpy as np
 
 from disko import DiSkO
+import disko
 from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere
 
 from tart.operation import settings
@@ -133,10 +134,16 @@ class TestDiSkO(unittest.TestCase):
         self.assertEqual(sky2.shape[0], 1504)
 
     def test_matrix_free(self):
-        data = np.zeros((self.disko.n_v, 1, 1))
+        
+        ## Generate fake data with a frequency axis and an npol axis.
+        data = np.zeros((self.disko.n_v, 1, 1), dtype=np.complex128)
         data[:,0,0] = self.disko.vis_arr
         sky1 = self.disko.solve_matrix_free(data, self.subsphere, scale=True)
         self.assertEqual(sky1.shape[0], 1504)
+        sky2 = self.disko.solve_vis(self.disko.vis_arr, self.subsphere, scale=True)
+        logger.info(sky1)
+        logger.info(sky2)
+        self.assertTrue(np.allclose(sky1, sky2))
 
     def test_gamma_size(self):
         dut = DiSkO.from_ant_pos(self.ant_pos, wavelength=constants.L1_WAVELENGTH)
