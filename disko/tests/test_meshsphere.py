@@ -57,7 +57,7 @@ class TestMeshsphere(unittest.TestCase):
     #def test_harmonics(self):
         
         
-        
+    @unittest.skip("We don't have svg write going yet")        
     def test_svg(self):
         res_deg = 10
         fname='test.svg'

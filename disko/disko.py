@@ -66,7 +66,7 @@ DATATYPE=np.complex128
 
 import scipy.sparse.linalg as spalg
 
-class DiSKOOperator(spalg.LinearOperator):
+class DiSkOOperator(spalg.LinearOperator):
     '''
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.LinearOperator.html
     
@@ -276,7 +276,7 @@ class DiSkO(object):
         frequencies = [1.57542e9]
         wavelength = 2.99793e8 / frequencies[0]
 
-        A = DiSKOOperator(self.u_arr * wavelength, self.v_arr * wavelength, self.w_arr * wavelength, data, frequencies, sphere)
+        A = DiSkOOperator(self.u_arr * wavelength, self.v_arr * wavelength, self.w_arr * wavelength, data, frequencies, sphere)
         if True:
             sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=alpha)
             logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))      
