@@ -266,7 +266,7 @@ class DiSkO(object):
         return sky.reshape(-1,1)
 
 
-    def solve_matrix_free(self, data, sphere, scale=True):
+    def solve_matrix_free(self, data, sphere, alpha=0.0, scale=True):
         '''
             data = [vis_arr, n_freq, n_pol]
         '''
@@ -277,11 +277,11 @@ class DiSkO(object):
         wavelength = 2.99793e8 / frequencies[0]
 
         A = DiSKOOperator(self.u_arr * wavelength, self.v_arr * wavelength, self.w_arr * wavelength, data, frequencies, sphere)
-        if False:
-            sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=0)
+        if True:
+            sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=alpha)
             logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))      
         else:
-            sky, lstop, itn, normr, mormar, morma, conda, normx = spalg.lsmr(A, data, damp=0.1)
+            sky, lstop, itn, normr, mormar, morma, conda, normx = spalg.lsmr(A, data, damp=alpha)
             logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} normr={}".format(time.time() - t0, sky.shape, lstop, itn, normr))      
         #sky = np.abs(sky)
         sphere.set_visible_pixels(sky, scale)

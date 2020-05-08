@@ -185,7 +185,7 @@ if __name__ == '__main__':
         if True:
             data = np.zeros((disko.n_v, 1, 1), dtype=np.complex128)
             data[:,0,0] = disko.vis_arr
-            sky = disko.solve_matrix_free(data, sphere, scale=True)
+            sky = disko.solve_matrix_free(data, sphere, alpha=ARGS.alpha, scale=True)
         else:
             sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, usedask=ARGS.dask)
         for i in range(ARGS.adaptive):
