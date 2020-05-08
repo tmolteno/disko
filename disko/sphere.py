@@ -295,7 +295,8 @@ class HealpixSphere(object):
     def to_svg(self, fname, pixels_only=False, show_grid=False, src_list=None, fov=180.0, title=None):
 
         w = 4000
-        dwg = svgwrite.Drawing(filename=fname, size=(w,w), profile='tiny')
+        #dwg = svgwrite.Drawing(filename=fname, size=(w,w), profile='tiny')
+        dwg = svgwrite.Drawing(filename=fname, size=(w,w))
         
         #dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
         #dwg.add(dwg.text('Test', insert=(0, 0.2), fill='red'))

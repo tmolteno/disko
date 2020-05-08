@@ -40,7 +40,8 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
-0.7.0b10 Fix up timestamp loading
+0.7.0b10 Clean up tests. Rename the DiSkOOperator and get it going. 
+0.7.0b9 Fix up timestamp loading
 0.7.0b8 Optimize mesh at each stage of refinement.
 0.7.0b7 Better refinement.
 0.7.0b6 Limit gradient calculation to cells above nyquist limit
