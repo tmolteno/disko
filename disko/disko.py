@@ -101,77 +101,55 @@ class DiSKOOperator(spalg.LinearOperator):
         logger.info("Creating LinearOperator data={}".format(self.shape))
         
     def A(self, i, j, p2j):
-        u, v, w = self.u_arr[i], self.v_arr[i], self.w_arr[i]
-        l, m, n = self.sphere.l[j], self.sphere.m[j], self.sphere.n[j]
-        return np.exp(p2j*(u*l + v*m + w*(n-1)))
+        u, v, w = self.u_arr[j], self.v_arr[j], self.w_arr[j]      # the row index (one u,v,w element per vis)
+        l, m, n = self.sphere.l[i], self.sphere.m[i], self.sphere.n[i] # The column index (one l,m,n element per pixel)
+        return np.exp(-p2j*(u*l + v*m + w*(n-1))) * self.sphere.pixel_areas
 
-    def Ah(self, j, i, p2j):
-        u, v, w = self.u_arr[i], self.v_arr[i], self.w_arr[i]
-        l, m, n = self.sphere.l[j], self.sphere.m[j], self.sphere.n[j]
-        return np.exp(-p2j*(u*l + v*m + w*(n-1)))
+    def Ah(self, i, j, p2j):
+        np.conj(self.A(j, i, p2j))
     
     def _matvec(self, x):
         '''
             Multiply by the sky x, producing the set of measurements y
             Returns returns A * x.
         '''
-
         y = []
         for f in self.frequencies:
             wavelength = 2.99793e8 / f
             p2j = 2*np.pi*1.0j / wavelength
 
-            for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
-                harmonic = np.exp(p2j*(u*self.sphere.l + v*self.sphere.m + w*self.n_arr_minus_1)) * self.sphere.pixel_areas
+            if True:
+                for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
+                    column = np.exp(-p2j*(u*self.sphere.l + v*self.sphere.m + w*self.n_arr_minus_1)) * self.sphere.pixel_areas
 
-                y.append(np.dot(x, harmonic))
-        ret =  np.array(y)
-        assert(ret.shape[0] == self.M)
-        return ret
-
-    def testmv(self, x):
-        '''
-           x is a vector in the sky space. returns vector in the data space
-        '''
-        ret = np.zeros(self.M)
-        
-        for i in range(self.M):  # vis_data
-            y = 0
-            for j in range(self.N):  # pixels
-                y = y + x[j]*A(i,j)
-            ret[i] = y
-            
-        return ret
+                    y.append(np.dot(x, column))
+            else:
+                for col in range(self.M):
+                    p = 0.0
+                    
+                    for row in range(self.N):
+                        _x = self.A(row, col, p2j)*x[row]
+                        logger.info("{} * {} = {}".format(self.A(row, col, p2j), x[row], _x))
+                        p += _x
+                    y.append(p)
+                    logger.info("={}".format(p))
+        return np.array(y)
     
     def _rmatvec(self, x):
-        '''
+        r'''
             Returns A^H * v, where A^H is the conjugate transpose of A.
-            
-            TODO Vectorize this calculation. It will be much much faster
         '''
-        
         ret = []
         for f in self.frequencies:
             wavelength = 2.99793e8 / f
             p2j = 2*np.pi*1.0j / wavelength
             
-            # TODO Vectorize
-            if False:
-                for i in range(self.N):  # pixels
-                    y = 0
-                    for j in range(self.M):  # vis_data
-                        y = y + x[j]* self.Ah(i,j, p2j)
-                    ret.append(y)
-            else:
-                # Vector version
-                for l, m, n_1 in zip(self.sphere.l, self.sphere.m, self.n_arr_minus_1):
-                    column = np.exp(-p2j*(self.u_arr*l + self.v_arr*m + self.w_arr*n_1)) * self.sphere.pixel_areas  # TODO check the pixel areas here.
-                    ret.append(np.dot(x, column))
+            # Vector version
+            for l, m, n_1 in zip(self.sphere.l, self.sphere.m, self.n_arr_minus_1):
+                column = np.exp(p2j*(self.u_arr*l + self.v_arr*m + self.w_arr*n_1)) * self.sphere.pixel_areas  # TODO check the pixel areas here.
+                ret.append(np.dot(x, column))
 
-        ret = np.array(ret)
-        
-        assert(ret.shape[0] == self.N)
-        return ret
+        return np.array(ret)
     
     
 class DiSkO(object):
@@ -281,7 +259,6 @@ class DiSkO(object):
         
         sky, residuals, rank, s = np.linalg.lstsq(gamma, to_column(vis_arr), rcond=None)
         
-        t1 = time.time()
         logger.info("Elapsed {}s".format(time.time() - t0))
 
         sphere.set_visible_pixels(sky, scale)
@@ -296,10 +273,17 @@ class DiSkO(object):
         logger.info("Solving Visabilities nside={}".format(sphere.nside))
         t0 = time.time()
 
-        frequencies = [1.5e9]
-        A = DiSKOOperator(self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere)
-        sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=0.0)
-        logger.info("Matrix free solve complete x={}, stop={}, itn={} r1norm={}".format(sky.shape, lstop, itn, r1norm))      
+        frequencies = [1.57542e9]
+        wavelength = 2.99793e8 / frequencies[0]
+
+        A = DiSKOOperator(self.u_arr * wavelength, self.v_arr * wavelength, self.w_arr * wavelength, data, frequencies, sphere)
+        if False:
+            sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=0)
+            logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))      
+        else:
+            sky, lstop, itn, normr, mormar, morma, conda, normx = spalg.lsmr(A, data, damp=0.1)
+            logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} normr={}".format(time.time() - t0, sky.shape, lstop, itn, normr))      
+        #sky = np.abs(sky)
         sphere.set_visible_pixels(sky, scale)
         return sky.reshape(-1,1)
 

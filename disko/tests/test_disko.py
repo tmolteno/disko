@@ -8,6 +8,8 @@ import json
 
 import numpy as np
 
+import pylops
+
 from disko import DiSkO
 import disko
 from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere
@@ -59,6 +61,7 @@ class TestDiSkO(unittest.TestCase):
                                                          phi=0.0, radius=np.radians(10))
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
+        cls.subgamma = cls.disko.make_gamma(cls.subsphere)
 
 
     def get_harmonic_sky(self, h_index):
@@ -138,13 +141,92 @@ class TestDiSkO(unittest.TestCase):
         ## Generate fake data with a frequency axis and an npol axis.
         data = np.zeros((self.disko.n_v, 1, 1), dtype=np.complex128)
         data[:,0,0] = self.disko.vis_arr
-        sky1 = self.disko.solve_matrix_free(data, self.subsphere, scale=True)
-        self.assertEqual(sky1.shape[0], 1504)
-        sky2 = self.disko.solve_vis(self.disko.vis_arr, self.subsphere, scale=True)
-        logger.info(sky1)
-        logger.info(sky2)
-        self.assertTrue(np.allclose(sky1, sky2))
+        sky = self.disko.solve_matrix_free(data, self.subsphere, scale=False)
+        self.assertEqual(sky.shape[0], 1504)
+        
+        # Check that sky is a solution
+        vis = self.subgamma @ sky
+        
+        logger.info(self.disko.vis_arr)
+        logger.info(vis[:,0])
+        self.assertEqual(vis[:,0].shape, self.disko.vis_arr.shape)
+        self.assertTrue(np.allclose(vis[:,0], self.disko.vis_arr))
 
+    def test_dot_matrix_free(self):
+        r'''
+            Test using the build-in pylops tester for new operators
+        '''
+        data = np.zeros((self.disko.n_v, 1, 1), dtype=np.complex128)
+        data[:,0,0] = self.disko.vis_arr
+        frequencies = [1.5e9]
+        wavelength = 2.99793e8 / frequencies[0]
+
+        Op = disko.DiSKOOperator(self.disko.u_arr * wavelength, 
+                                 self.disko.v_arr * wavelength,
+                                 self.disko.w_arr * wavelength, 
+                                 data, frequencies, self.sphere)
+        # Test that we have the same effect as matrix vector multiply
+        
+        sky = np.random.normal(0,1, self.sphere.npix)
+
+        vis1 = self.gamma @ sky
+
+        vis2 = Op.matvec(sky)
+        logger.info(vis1)
+        logger.info(vis2)
+        
+        self.assertEqual(vis1.shape, vis2.shape)
+        self.assertTrue(np.allclose(vis1, vis2))
+
+        pylops.utils.dottest(Op, self.disko.n_v, self.subsphere.npix, tol=1e-06, complexflag=2, raiseerror=True, verb=True)
+        pylops.utils.dottest(Op, self.disko.n_v, self.subsphere.npix, tol=1e-06, complexflag=3, raiseerror=True, verb=True)
+    
+    def test_tiny_gamma(self):
+        r'''
+            Test such a small gamma that we can inspect every element and 
+            check that the matrix is what we expect it to be.
+            
+            
+        '''
+        tiny_subsphere = HealpixSubSphere.from_resolution(resolution=60*60.0, 
+                                      theta = np.radians(0.0), phi=0.0, radius=np.radians(80))
+        self.assertEqual(tiny_subsphere.npix, 4)
+
+        frequencies = [1.5e9]
+        wavelength = 2.99793e8 / frequencies[0]
+        
+        n_vis = 3
+        u = np.random.uniform(0,1, n_vis) 
+        v = np.random.uniform(0,1, n_vis)
+        w = np.random.uniform(0,1, n_vis)
+        tiny_disko = DiSkO(u,v,w) # Assumes that u,v,w are measured in wavelengths
+        
+        tiny_gamma = tiny_disko.make_gamma(tiny_subsphere)
+        logger.info("Gamma={}".format(tiny_gamma))
+        
+        data = np.zeros((tiny_disko.n_v, 1, 1), dtype=np.complex128)
+        data[:,0,0] = np.random.normal(0,1,tiny_disko.n_v) + 1.0j*np.random.normal(0,1,tiny_disko.n_v)
+        p2j = 2*np.pi*1.0j / wavelength
+
+        Op = disko.DiSKOOperator(tiny_disko.u_arr * wavelength, tiny_disko.v_arr * wavelength, tiny_disko.w_arr * wavelength, data, frequencies, tiny_subsphere)
+
+
+        logger.info("Op Matrix")
+        for i in range(Op.M):
+            col = [Op.A(j, i, p2j ) for j in range(Op.N)]
+            logger.info(col)
+                
+        sky = np.random.normal(0,1, tiny_subsphere.npix)
+        logger.info("sky={}".format(sky))
+        vis1 = tiny_gamma @ sky
+        vis2 = Op.matvec(sky)
+        logger.info(vis1)
+        logger.info(vis2)
+        
+        self.assertEqual(vis1.shape, vis2.shape)
+        self.assertTrue(np.allclose(vis1, vis2))
+
+        
     def test_gamma_size(self):
         dut = DiSkO.from_ant_pos(self.ant_pos, wavelength=constants.L1_WAVELENGTH)
         gamma = dut.make_gamma(self.sphere)

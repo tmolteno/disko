@@ -508,12 +508,12 @@ class HealpixSubSphere(HealpixSphere):
         if nside is None: # Calculate nside to the appropriate resolution
             nside = 1
             while True:
-                nside = nside * 2
                 res = hp.nside2resol(nside, arcmin = True)
                 logger.info("nside={} res={} arcmin".format(nside, res))
                 if res < resolution:
                     break
-    
+                nside = nside * 2
+
         ret = cls(nside)
         
         # The coordinates of the unit vector defining the center

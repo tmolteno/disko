@@ -182,8 +182,12 @@ if __name__ == '__main__':
         sky = disko.image_lasso(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, use_cv=ARGS.cv)
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
-        #sky = disko.sub_image(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, n=ARGS.n)
-        sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, usedask=ARGS.dask)
+        if True:
+            data = np.zeros((disko.n_v, 1, 1), dtype=np.complex128)
+            data[:,0,0] = disko.vis_arr
+            sky = disko.solve_matrix_free(data, sphere, scale=True)
+        else:
+            sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, usedask=ARGS.dask)
         for i in range(ARGS.adaptive):
                 sphere.write_mesh("round_{}.vtk".format(i))
 
