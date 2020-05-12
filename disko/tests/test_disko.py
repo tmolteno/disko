@@ -159,12 +159,11 @@ class TestDiSkO(unittest.TestCase):
         '''
         data = np.zeros((self.disko.n_v, 1, 1), dtype=np.complex128)
         data[:,0,0] = self.disko.vis_arr
-        frequencies = [1.5e9]
-        wavelength = 2.99793e8 / frequencies[0]
+        frequencies = [self.disko.frequency]
 
-        Op = disko.DiSkOOperator(self.disko.u_arr * wavelength, 
-                                 self.disko.v_arr * wavelength,
-                                 self.disko.w_arr * wavelength, 
+        Op = disko.DiSkOOperator(self.disko.u_arr, 
+                                 self.disko.v_arr,
+                                 self.disko.w_arr, 
                                  data, frequencies, self.sphere)
         # Test that we have the same effect as matrix vector multiply
         
@@ -173,8 +172,8 @@ class TestDiSkO(unittest.TestCase):
         vis1 = self.gamma @ sky
 
         vis2 = Op.matvec(sky)
-        logger.info(vis1)
-        logger.info(vis2)
+        logger.info(vis1[0:10])
+        logger.info(vis2[0:10])
         
         self.assertEqual(vis1.shape, vis2.shape)
         self.assertTrue(np.allclose(vis1, vis2))
@@ -200,7 +199,7 @@ class TestDiSkO(unittest.TestCase):
         u = np.random.uniform(0,1, n_vis) 
         v = np.random.uniform(0,1, n_vis)
         w = np.random.uniform(0,1, n_vis)
-        tiny_disko = DiSkO(u,v,w) # Assumes that u,v,w are measured in wavelengths
+        tiny_disko = DiSkO(u,v,w, frequencies[0])
         
         tiny_gamma = tiny_disko.make_gamma(tiny_subsphere)
         logger.info("Gamma={}".format(tiny_gamma))
@@ -209,7 +208,7 @@ class TestDiSkO(unittest.TestCase):
         data[:,0,0] = np.random.normal(0,1,tiny_disko.n_v) + 1.0j*np.random.normal(0,1,tiny_disko.n_v)
         p2j = 2*np.pi*1.0j / wavelength
 
-        Op = disko.DiSkOOperator(tiny_disko.u_arr * wavelength, tiny_disko.v_arr * wavelength, tiny_disko.w_arr * wavelength, data, frequencies, tiny_subsphere)
+        Op = disko.DiSkOOperator(tiny_disko.u_arr, tiny_disko.v_arr, tiny_disko.w_arr, data, frequencies, tiny_subsphere)
 
 
         logger.info("Op Matrix")

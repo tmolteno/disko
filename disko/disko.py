@@ -33,7 +33,7 @@ from .ms_helper import read_ms
     The test (i != j) can be changed to (i > j) to avoid the duplicated conjugate
     measurements.
 '''
-def get_all_uvw(ant_pos, wavelength):
+def get_all_uvw(ant_pos):
     baselines = []
     num_ant = len(ant_pos)
     ant_p = np.array(ant_pos)
@@ -43,7 +43,7 @@ def get_all_uvw(ant_pos, wavelength):
                 baselines.append([i,j])
                 
     bl_pos = ant_p[np.array(baselines).astype(int)]
-    uu_a, vv_a, ww_a = (bl_pos[:,0] - bl_pos[:,1]).T/wavelength
+    uu_a, vv_a, ww_a = (bl_pos[:,0] - bl_pos[:,1]).T
     return baselines, uu_a, vv_a, ww_a
 
 
@@ -63,7 +63,17 @@ def get_source_list(source_json, el_limit, jy_limit):
 
 DATATYPE=np.complex128
 
+C = 2.99793e8
 
+def jomega(freq):
+    r'''
+        Little routine to convert a frequency into j*omega
+    '''
+    wavelength = C / freq
+    return 2*np.pi*1.0j / wavelength
+    
+    
+    
 import scipy.sparse.linalg as spalg
 
 class DiSkOOperator(spalg.LinearOperator):
@@ -115,8 +125,7 @@ class DiSkOOperator(spalg.LinearOperator):
         '''
         y = []
         for f in self.frequencies:
-            wavelength = 2.99793e8 / f
-            p2j = 2*np.pi*1.0j / wavelength
+            p2j = jomega(f)
 
             if True:
                 for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
@@ -141,8 +150,7 @@ class DiSkOOperator(spalg.LinearOperator):
         '''
         ret = []
         for f in self.frequencies:
-            wavelength = 2.99793e8 / f
-            p2j = 2*np.pi*1.0j / wavelength
+            p2j = jomega(f)
             
             # Vector version
             for l, m, n_1 in zip(self.sphere.l, self.sphere.m, self.n_arr_minus_1):
@@ -154,26 +162,27 @@ class DiSkOOperator(spalg.LinearOperator):
     
 class DiSkO(object):
     
-    def __init__(self, u_arr, v_arr, w_arr):
+    def __init__(self, u_arr, v_arr, w_arr, frequency):
         self.harmonics = {} # Temporary store for harmonics
         self.u_arr = u_arr
         self.v_arr = v_arr
         self.w_arr = w_arr
+        self.frequency = frequency
         self.n_v = len(self.u_arr)
         
     @classmethod
     def from_ant_pos(cls, ant_pos, wavelength):
         ## Get u, v, w from the antenna positions
-        baselines, u_arr, v_arr, w_arr = get_all_uvw(ant_pos, wavelength)
-        ret = cls(u_arr, v_arr, w_arr)
+        baselines, u_arr, v_arr, w_arr = get_all_uvw(ant_pos)
+        ret = cls(u_arr, v_arr, w_arr, C / wavelength)
         ret.info = {}
         return ret
 
     @classmethod
     def from_ms(cls, ms, num_vis, res_arcmin, chunks=1000, channel=0):
-        u_arr, v_arr, w_arr, cv_vis, hdr, tstamp = read_ms(ms, num_vis, res_arcmin, chunks, channel)
+        u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp = read_ms(ms, num_vis, res_arcmin, chunks, channel)
         
-        ret = cls(u_arr, v_arr, w_arr)
+        ret = cls(u_arr, v_arr, w_arr, frequency)
         ret.vis_arr = np.array(cv_vis, dtype=np.complex128)
         ret.timestamp = tstamp
         ret.info = hdr
@@ -190,9 +199,9 @@ class DiSkO(object):
         # We need to get the vis array to be correct for the full set of u,v,w points (baselines), 
         # including the -u,-v, -w points.
 
-        baselines, u_arr, v_arr, w_arr = get_all_uvw(ant_p, wavelength=constants.L1_WAVELENGTH)
+        baselines, u_arr, v_arr, w_arr = get_all_uvw(ant_p)
 
-        ret = cls(u_arr, v_arr, w_arr)
+        ret = cls(u_arr, v_arr, w_arr, c.get_operating_frequency())
         ret.vis_arr = []
         for bl in baselines:
             v = cal_vis.get_visibility(bl[0], bl[1])  # Handles the conjugate bit
@@ -211,7 +220,7 @@ class DiSkO(object):
 
         n_arr_minus_1 = in_sphere.n - 1
         harmonic_list = []
-        p2j = 2*np.pi*1.0j
+        p2j = jomega(self.frequency)
         
         #logger.info("pixel areas:  {}".format(in_sphere.pixel_areas))
         for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
@@ -273,10 +282,10 @@ class DiSkO(object):
         logger.info("Solving Visabilities nside={}".format(sphere.nside))
         t0 = time.time()
 
-        frequencies = [1.57542e9]
-        wavelength = 2.99793e8 / frequencies[0]
+        frequencies = [self.frequency]
+        logger.info("frequencies: {}".format(frequencies))
 
-        A = DiSkOOperator(self.u_arr * wavelength, self.v_arr * wavelength, self.w_arr * wavelength, data, frequencies, sphere)
+        A = DiSkOOperator(self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere)
         if True:
             sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=alpha)
             logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))      

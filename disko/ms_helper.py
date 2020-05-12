@@ -19,7 +19,7 @@ logger.setLevel(logging.INFO)
     
     #return vis_arr[baselines.index([i,j])]
 
-def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
+def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
     '''
         Use dask-ms to load the necessary data to create a telescope operator
         (will use uvw positions, and antenna positions)
@@ -67,10 +67,12 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
             #print(spw_ds)
             #print(spw_ds.NUM_CHAN.values)
             logger.info("CHAN_FREQ.values: {}".format(spw_ds.CHAN_FREQ.values.shape))
-            frequency=dask.compute(spw_ds.CHAN_FREQ.values)[0].flatten()[channel]
+            frequencies = dask.compute(spw_ds.CHAN_FREQ.values)[0].flatten()
+            frequency=frequencies[channel]
+            logger.info("Frequencies = {}".format(frequencies))
             logger.info("Frequency = {}".format(frequency))
             logger.info("NUM_CHAN = %f" % np.array(spw_ds.NUM_CHAN.values)[0])
-            wavelength = 2.99793e8 / frequency
+            
 
         # Create datasets from a partioning of the MS
         datasets = list(xds_from_ms(ms, chunks={'row': chunks}))
@@ -80,7 +82,8 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
         for ds in datasets:
             logger.info("DATA shape: {}".format(ds.DATA.data.shape))
             logger.info("UVW shape: {}".format(ds.UVW.data.shape))
-            uvw = np.array(ds.UVW.data)/wavelength   # UVW is stored in meters!
+
+            uvw = np.array(ds.UVW.data)   # UVW is stored in meters!
             ant1 = np.array(ds.ANTENNA1.data)
             ant2 = np.array(ds.ANTENNA2.data)
             flags = np.array(ds.FLAG.data)
@@ -153,12 +156,12 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
         v_arr = uvw[indices,1]
         w_arr = uvw[indices,2]
         
-        cv_vis = cv_vis[indices]
+        cv_vis = good_vis[indices]
         
         # Convert from reduced Julian Date to timestamp.
         timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,
                                       tzinfo=datetime.timezone.utc) + datetime.timedelta(seconds=epoch_seconds)
 
-        return u_arr, v_arr, w_arr, cv_vis, hdr, timestamp
+        return u_arr, v_arr, w_arr, frequency, cv_vis, hdr, timestamp
         
 

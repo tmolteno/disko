@@ -73,6 +73,7 @@ if __name__ == '__main__':
     parser.add_argument('--dask', action="store_true", help="Use dask")
     parser.add_argument('--lasso', action="store_true", help="Use L1 regularization")
     parser.add_argument('--tikhonov', action="store_true", help="Use L2 regularization")
+    parser.add_argument('--matrix-free', action="store_true", help="Use matrix-free regularization")
     parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG).")
 
     parser.add_argument('--title', required=False, default="disko", help="Prefix the title.")
@@ -180,14 +181,14 @@ if __name__ == '__main__':
     if ARGS.lasso:
         logger.info("L1 regularization alpha=%f" %ARGS.alpha)
         sky = disko.image_lasso(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, use_cv=ARGS.cv)
+    elif ARGS.matrix_free:
+        logger.info("Matrix Free alpha={}".format(ARGS.alpha))
+        data = np.zeros((disko.n_v, 1, 1), dtype=np.complex128)
+        data[:,0,0] = disko.vis_arr
+        sky = disko.solve_matrix_free(data, sphere, alpha=ARGS.alpha, scale=True)
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
-        if True:
-            data = np.zeros((disko.n_v, 1, 1), dtype=np.complex128)
-            data[:,0,0] = disko.vis_arr
-            sky = disko.solve_matrix_free(data, sphere, alpha=ARGS.alpha, scale=True)
-        else:
-            sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, usedask=ARGS.dask)
+        sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, usedask=ARGS.dask)
         for i in range(ARGS.adaptive):
                 sphere.write_mesh("round_{}.vtk".format(i))
 

@@ -26,7 +26,7 @@ def plot_spectrum(s, n_s, n_v, rank, name):
     plt.grid(True)
     plt.title('Singular Value Spectrum $N_s={}$,  $N_v={}$, $r={}$'.format(n_s, n_v, rank))
     plt.xlabel('Rank ($i$)')
-    plt.ylabel('Singular value $\sigma_i$')
+    plt.ylabel('Singular value $\\sigma_i$')
     plt.savefig('{}_Singular_Ns_{}_Nv_{}.pdf'.format(name, n_s, n_v))
     plt.close()
 
@@ -129,13 +129,13 @@ def to_column(x):
     
 '''
 class TelescopeOperator:
-    '''
+    r'''
         Do an SVD to allow conversion into the natural basis.
         
         Gamma = N_v x N_s (m x n) where n > m (harmonics are row vectors of Gamma)
         
-        C^n = R(Gamma^H) \oplus N(Gamma)
-        C^m = R(Gamma) \oplus N(Gamma^H)
+        C^n = R(Gamma^H) \\oplus N(Gamma)
+        C^m = R(Gamma) \\oplus N(Gamma^H)
         
         https://math.stackexchange.com/questions/1771013/null-space-from-svd
         

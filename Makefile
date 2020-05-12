@@ -47,6 +47,13 @@ cygnus_center:
 tart:
 	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=0.0025 --tikhonov  # --adaptive 3
 
+tart:
+	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=0.0025 --tikhonov  # --adaptive 3
+
+profile:
+	python3 -m cProfile -o disko.prof ./bin/disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=1.25 --matrix-free
+	python3 prof.py
+	
 # Memory 4800x276 456212 
 #	 19328x276 640932 ->  458364 for 
 test_upload:
