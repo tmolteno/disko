@@ -72,6 +72,7 @@ if __name__ == '__main__':
     parser.add_argument('--cv', action="store_true", help="Use Cross Validation")
     parser.add_argument('--dask', action="store_true", help="Use dask")
     parser.add_argument('--lsqr', action="store_true", help="Use lsqr in matrix-free, ortherwise use the slightly faster lsmr.")
+    parser.add_argument('--fista', action="store_true", help="Use FISTA in matrix-free, ortherwise use the slightly faster lsmr.")
     parser.add_argument('--lasso', action="store_true", help="Use L1 regularization.")
     parser.add_argument('--tikhonov', action="store_true", help="Use L2 regularization.")
     parser.add_argument('--matrix-free', action="store_true", help="Use matrix-free regularization.")

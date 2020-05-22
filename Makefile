@@ -26,7 +26,7 @@ adaptive:
 	
 
 cygnus:
-	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.1 --arcmax=0.1 --tikhonov --nvis 3000 --alpha 0.0025 --title 'cygnus'
+	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.1 --arcmax=0.1 --matrix-free --nvis 6000 --alpha 0.0025 --title 'cygnus'
 #Mem 4G for 22260 x 3000
 #Mem 16G 90000 x 3000
 #Mem 160G 90000 x 30000
@@ -47,7 +47,9 @@ cygnus_center:
 tart:
 	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=0.0025 --tikhonov  --title 'tart' # --adaptive 3
 
-
+mf:
+	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=1.25 --matrix-free
+	
 profile:
 	python3 -m cProfile -o disko.prof ./bin/disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=1.25 --matrix-free
 	python3 prof.py
