@@ -61,22 +61,25 @@ if __name__ == '__main__':
     parser.add_argument('--arcmax', type=float, default=None, help="Starting Resolution of the sky in arc minutes.")
     parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
 
-    parser.add_argument('--elevation', type=float, default=20.0, help="Elevation limit for displaying sources (degrees)")
-    parser.add_argument('--display', action="store_true", help="Display Image to the user")
-    parser.add_argument('--adaptive', type=int, default=0, help="Use adaptive mesh")
-    parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel ")
-    parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image")
-    parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image")
-    parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image")
+    parser.add_argument('--elevation', type=float, default=20.0, help="Elevation limit for displaying sources (degrees).")
+    parser.add_argument('--display', action="store_true", help="Display Image to the user.")
+    parser.add_argument('--adaptive', type=int, default=0, help="Use adaptive mesh.")
+    parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
+    parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
+    parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
+    parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
 
     parser.add_argument('--cv', action="store_true", help="Use Cross Validation")
     parser.add_argument('--dask', action="store_true", help="Use dask")
-    parser.add_argument('--lasso', action="store_true", help="Use L1 regularization")
-    parser.add_argument('--tikhonov', action="store_true", help="Use L2 regularization")
-    parser.add_argument('--matrix-free', action="store_true", help="Use matrix-free regularization")
+    parser.add_argument('--lsqr', action="store_true", help="Use lsqr in matrix-free")
+    parser.add_argument('--lsmr', action="store_true", help="Use lsmr in matrix-free")
+    parser.add_argument('--fista', action="store_true", help="Use FISTA in matrix-free")
+    parser.add_argument('--lasso', action="store_true", help="Use L1 regularization.")
+    parser.add_argument('--tikhonov', action="store_true", help="Use L2 regularization.")
+    parser.add_argument('--matrix-free', action="store_true", help="Use matrix-free regularization.")
     parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG).")
 
-    parser.add_argument('--title', required=False, default="disko", help="Prefix the title.")
+    parser.add_argument('--title', required=False, default="disko", help="Prefix the output files.")
 
     source_json = None
 
@@ -185,7 +188,7 @@ if __name__ == '__main__':
         logger.info("Matrix Free alpha={}".format(ARGS.alpha))
         data = np.zeros((disko.n_v, 1, 1), dtype=np.complex128)
         data[:,0,0] = disko.vis_arr
-        sky = disko.solve_matrix_free(data, sphere, alpha=ARGS.alpha, scale=True)
+        sky = disko.solve_matrix_free(data, sphere, alpha=ARGS.alpha, scale=True, lsqr=ARGS.lsqr, fista=ARGS.fista, lsmr=ARGS.lsmr)
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, usedask=ARGS.dask)
