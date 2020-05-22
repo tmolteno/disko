@@ -40,6 +40,7 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
+0.8.0b2 Add an lsqr option to force the slightly slower lsqr algorithm in place of lsmr.
 0.8.0b1 Add a matrix-free operator that actually works. Process UVW in meters.
 0.7.0b10 Clean up tests. Rename the DiSkOOperator and get it going. 
 0.7.0b9 Fix up timestamp loading

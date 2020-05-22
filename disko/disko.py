@@ -275,7 +275,7 @@ class DiSkO(object):
         return sky.reshape(-1,1)
 
 
-    def solve_matrix_free(self, data, sphere, alpha=0.0, scale=True):
+    def solve_matrix_free(self, data, sphere, alpha=0.0, scale=True, lsqr=True):
         '''
             data = [vis_arr, n_freq, n_pol]
         '''
@@ -286,7 +286,7 @@ class DiSkO(object):
         logger.info("frequencies: {}".format(frequencies))
 
         A = DiSkOOperator(self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere)
-        if True:
+        if lsqr:
             sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=alpha)
             logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))      
         else:
