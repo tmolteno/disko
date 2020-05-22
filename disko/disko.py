@@ -12,6 +12,7 @@ import datetime
 import json
 import logging
 import time
+import pylops
 
 import numpy as np
 import healpy as hp
@@ -76,7 +77,7 @@ def jomega(freq):
     
 import scipy.sparse.linalg as spalg
 
-class DiSkOOperator(spalg.LinearOperator):
+class DiSkOOperator(pylops.LinearOperator):
     '''
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.LinearOperator.html
     
@@ -108,6 +109,7 @@ class DiSkOOperator(spalg.LinearOperator):
         self.n_arr_minus_1 = self.sphere.n - 1
 
         self.shape = (self.M, self.N)
+        self.explicit = False # Can't be directly inverted
         logger.info("Creating LinearOperator data={}".format(self.shape))
         
     def A(self, i, j, p2j):
@@ -148,6 +150,8 @@ class DiSkOOperator(spalg.LinearOperator):
         r'''
             Returns A^H * v, where A^H is the conjugate transpose of A.
         '''
+        assert(x.shape == (self.M,))
+                
         ret = []
         for f in self.frequencies:
             p2j = jomega(f)
@@ -287,9 +291,20 @@ class DiSkO(object):
 
         A = DiSkOOperator(self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere)
         if True:
+            sky, niter =  pylops.optimization.sparsity.FISTA(A, data.flatten(), tol=1e-3, niter=130, show=True)
+            logger.info("Data shape {}".format(data.shape))
+            logger.info("A M={} N={}".format(A.M, A.N))
+            #D2op = pylops.Identity(A.M)
+            #sky = pylops.optimization.leastsquares.NormalEquationsInversion(A, [D2op], data.flatten(),
+                                                              #epsI=0.03,
+                                                              #epsRs=[1e-2],
+                                                              #returninfo=False,
+                                                              #**dict(maxiter=50))
+
+        if False:
             sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=alpha)
             logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))      
-        else:
+        if False:
             sky, lstop, itn, normr, mormar, morma, conda, normx = spalg.lsmr(A, data, damp=alpha)
             logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} normr={}".format(time.time() - t0, sky.shape, lstop, itn, normr))      
         #sky = np.abs(sky)
