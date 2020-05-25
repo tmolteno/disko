@@ -279,7 +279,7 @@ class DiSkO(object):
         return sky.reshape(-1,1)
 
 
-    def solve_matrix_free(self, data, sphere, alpha=0.0, scale=True, fista=True, lsqr=False, lsmr=False):
+    def solve_matrix_free(self, data, sphere, alpha=0.0, scale=True, fista=False, lsqr=True, lsmr=False):
         '''
             data = [vis_arr, n_freq, n_pol]
         '''
@@ -292,7 +292,7 @@ class DiSkO(object):
         A = DiSkOOperator(self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere)
 
         if fista:
-            sky, niter =  pylops.optimization.sparsity.FISTA(A, data.flatten(), tol=1e-3, niter=130, show=True)
+            sky, niter =  pylops.optimization.sparsity.FISTA(A, data.flatten(), tol=1e-3, niter=130, alpha=alpha, show=True)
             logger.info("Data shape {}".format(data.shape))
             logger.info("A M={} N={}".format(A.M, A.N))
             #D2op = pylops.Identity(A.M)
