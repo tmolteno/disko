@@ -178,9 +178,18 @@ class TestDiSkO(unittest.TestCase):
         self.assertEqual(vis1.shape, vis2.shape)
         self.assertTrue(np.allclose(vis1, vis2))
 
-        pylops.utils.dottest(Op, self.disko.n_v, self.sphere.npix, tol=1e-06, complexflag=2, raiseerror=True, verb=True)
-        pylops.utils.dottest(Op, self.disko.n_v, self.sphere.npix, tol=1e-06, complexflag=3, raiseerror=True, verb=True)
-    
+        pylops.utils.dottest(Op, self.disko.n_v, self.sphere.npix, tol=1e-06, 
+                             complexflag=2, raiseerror=True, verb=True)
+        pylops.utils.dottest(Op, self.disko.n_v, self.sphere.npix, tol=1e-06, 
+                             complexflag=3, raiseerror=True, verb=True)
+
+        Op = disko.DirectImagingOperator(self.disko.u_arr, 
+                                 self.disko.v_arr,
+                                 self.disko.w_arr, 
+                                 data, frequencies, self.sphere)
+        pylops.utils.dottest(Op, self.sphere.npix, self.disko.n_v, tol=1e-06, 
+                             complexflag=2, raiseerror=True, verb=True)
+
     def test_tiny_gamma(self):
         r'''
             Test such a small gamma that we can inspect every element and 

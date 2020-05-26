@@ -211,7 +211,8 @@ class HealpixSphere(object):
         self.az_r = az_r
 
         self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
-
+        self.n_minus_1 = self.n - 1
+        
     def get_lmn(self):
         return self.l, self.m, self.n
 
@@ -543,6 +544,7 @@ class HealpixSubSphere(HealpixSphere):
         ret.az_r = az_r
 
         ret.l, ret.m, ret.n = elaz2lmn(ret.el_r, ret.az_r)
+        ret.n_minus_1 = ret.n - 1
 
         if False:
             import matplotlib.pyplot as plt
