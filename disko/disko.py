@@ -363,7 +363,7 @@ class DiSkO(object):
         #u,s,vt = spalg.svds(A, k=min(A.shape)-2) 
         #logger.info("t ={}, s={}".format(time.time() - t0, s))      
         if fista:
-            sky, niter =  pylops.optimization.sparsity.FISTA(A, d, tol=1e-3, niter=2500, alpha=alpha, show=True)
+            sky, niter =  pylops.optimization.sparsity.FISTA(A, d, tol=1e-2, niter=250, alpha=alpha, show=True)
         if lsqr:
             sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=alpha)
             logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))      
