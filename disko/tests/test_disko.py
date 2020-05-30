@@ -34,7 +34,7 @@ class TestDiSkO(unittest.TestCase):
             calib_info = json.load(json_file)
 
         info = calib_info['info']
-        cls.ant_pos = calib_info['ant_pos']
+        cls.ant_pos = np.array(calib_info['ant_pos'])
         config = settings.from_api_json(info['info'], cls.ant_pos)
 
         flag_list = []
@@ -124,7 +124,7 @@ class TestDiSkO(unittest.TestCase):
         ''' Check that the DiSkO calculated from ant_pos only agrees with that from the 
             calibrated vis
         '''
-        dut = DiSkO.from_ant_pos(self.ant_pos, wavelength=constants.L1_WAVELENGTH)
+        dut = DiSkO.from_ant_pos(self.ant_pos, frequency=constants.L1_FREQ)
         self.assertTrue(dut.n_v == self.disko.n_v)
         self.assertTrue(np.allclose(dut.u_arr, self.disko.u_arr))
 
@@ -237,7 +237,7 @@ class TestDiSkO(unittest.TestCase):
 
         
     def test_gamma_size(self):
-        dut = DiSkO.from_ant_pos(self.ant_pos, wavelength=constants.L1_WAVELENGTH)
+        dut = DiSkO.from_ant_pos(self.ant_pos, frequency=constants.L1_FREQ)
         gamma = dut.make_gamma(self.sphere)
         gamma_sub = dut.make_gamma(self.subsphere)
         self.assertEqual(gamma.shape[1], self.sphere.npix)

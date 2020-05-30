@@ -35,6 +35,12 @@ from .ms_helper import read_ms
     measurements.
 '''
 def get_all_uvw(ant_pos):
+    
+    '''
+        ant pos is an array of (N_ant, 3)
+    '''
+    if ant_pos.shape[1] != 3:
+        raise RuntimeError("Ant pos (shape={}) must be an array of (N_ant, 3)".format(ant_pos.shape))
     baselines = []
     num_ant = len(ant_pos)
     ant_p = np.array(ant_pos)
@@ -53,8 +59,6 @@ def to_column(x):
 
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
-logger.setLevel(logging.INFO)
 
 def get_source_list(source_json, el_limit, jy_limit):
     src_list = []
@@ -243,10 +247,10 @@ class DiSkO(object):
         self.n_v = len(self.u_arr)
         
     @classmethod
-    def from_ant_pos(cls, ant_pos, wavelength):
+    def from_ant_pos(cls, ant_pos, frequency):
         ## Get u, v, w from the antenna positions
         baselines, u_arr, v_arr, w_arr = get_all_uvw(ant_pos)
-        ret = cls(u_arr, v_arr, w_arr, C / wavelength)
+        ret = cls(u_arr, v_arr, w_arr, frequency)
         ret.info = {}
         return ret
 
