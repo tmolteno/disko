@@ -35,17 +35,13 @@ def get_resolution_max_baseline(res_arcmin, frequency):
     
     #return vis_arr[baselines.index([i,j])]
 
-<<<<<<< HEAD
 class RadioObservation(object):
     
     def __init__(self):
         pass
     
 
-def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
-=======
 def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
->>>>>>> 7924aab6f59690358d59cb7f7999bafd6ea768f3
     '''
         Use dask-ms to load the necessary data to create a telescope operator
         (will use uvw positions, and antenna positions)
