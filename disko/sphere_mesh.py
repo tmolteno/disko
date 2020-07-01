@@ -3,10 +3,10 @@
 import logging
 import dmsh
 #import optimesh
-import meshio
 import scipy
 
 from scipy.spatial import Delaunay, delaunay_plot_2d
+#import meshio
 
 from .sphere import HealpixSphere, hp2elaz, elaz2lmn
 

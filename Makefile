@@ -6,15 +6,15 @@ develop:
 	sudo python3 setup.py develop
 
 install:
-	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-meshio python3-dask
+	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-dask
 
 lint:
 	pylint --extension-pkg-whitelist=numpy --ignored-modules=numpy --extension-pkg-whitelist=astropy disko
 
 test2:
 	#python3 -m unittest  disko.tests.test_gridless.TestGridless.test_from_pos
-#	python3 -m unittest  disko.tests.test_subsphere
-	python3 setup.py test -s disko.tests.test_meshsphere
+	#	python3 -m unittest  disko.tests.test_subsphere
+	pytest-3 -k test_dot_matrix_free
 
 
 ngc1194:
@@ -26,7 +26,7 @@ adaptive:
 	
 
 cygnus:
-	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.1 --arcmax=0.1 --tikhonov --nvis 3000 --alpha 0.0025 --title 'cygnus'
+	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.1 --arcmax=0.1 --matrix-free --nvis 6000 --alpha 0.0025 --title 'cygnus'
 #Mem 4G for 22260 x 3000
 #Mem 16G 90000 x 3000
 #Mem 160G 90000 x 30000
@@ -45,8 +45,15 @@ cygnus_center:
 	disko --fov 0.02 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.012 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
 	
 tart:
-	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=0.0025 --tikhonov  # --adaptive 3
+	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=0.0025 --tikhonov  --title 'tart' # --adaptive 3
 
+mf:
+	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --arcmax=190 --alpha=0.25 --fista --matrix-free
+	
+profile:
+	python3 -m cProfile -o disko.prof ./bin/disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --alpha=0.25 --matrix-free --lsmr
+	python3 prof.py
+	
 # Memory 4800x276 456212 
 #	 19328x276 640932 ->  458364 for 
 test_upload:

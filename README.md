@@ -40,7 +40,13 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
-0.7.0b10 Fix up timestamp loading, use the correct frequency (based on channel parameter)
+0.8.0b4 Clean up code and avoid recalculating harmonics. 
+        Added a DirectImagingOperator that performs the discrete Fourier Transform.
+0.8.0b3 Add --fista command line option to use the FISTA solver.
+0.8.0b2 Add an lsqr option to force the slightly slower lsqr algorithm in place of lsmr.
+0.8.0b1 Add a matrix-free operator that actually works. Process UVW in meters.
+0.7.0b10 Clean up tests. Rename the DiSkOOperator and get it going.  Fix up timestamp loading, use the correct frequency (based on channel parameter)
+0.7.0b9 Fix up timestamp loading
 0.7.0b8 Optimize mesh at each stage of refinement.
 0.7.0b7 Better refinement.
 0.7.0b6 Limit gradient calculation to cells above nyquist limit

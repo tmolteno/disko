@@ -211,7 +211,8 @@ class HealpixSphere(object):
         self.az_r = az_r
 
         self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
-
+        self.n_minus_1 = self.n - 1
+        
     def get_lmn(self):
         return self.l, self.m, self.n
 
@@ -295,7 +296,8 @@ class HealpixSphere(object):
     def to_svg(self, fname, pixels_only=False, show_grid=False, src_list=None, fov=180.0, title=None):
 
         w = 4000
-        dwg = svgwrite.Drawing(filename=fname, size=(w,w), profile='tiny')
+        #dwg = svgwrite.Drawing(filename=fname, size=(w,w), profile='tiny')
+        dwg = svgwrite.Drawing(filename=fname, size=(w,w))
         
         #dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
         #dwg.add(dwg.text('Test', insert=(0, 0.2), fill='red'))
@@ -508,12 +510,12 @@ class HealpixSubSphere(HealpixSphere):
         if nside is None: # Calculate nside to the appropriate resolution
             nside = 1
             while True:
-                nside = nside * 2
                 res = hp.nside2resol(nside, arcmin = True)
                 logger.info("nside={} res={} arcmin".format(nside, res))
                 if res < resolution:
                     break
-    
+                nside = nside * 2
+
         ret = cls(nside)
         
         # The coordinates of the unit vector defining the center
@@ -542,6 +544,7 @@ class HealpixSubSphere(HealpixSphere):
         ret.az_r = az_r
 
         ret.l, ret.m, ret.n = elaz2lmn(ret.el_r, ret.az_r)
+        ret.n_minus_1 = ret.n - 1
 
         if False:
             import matplotlib.pyplot as plt

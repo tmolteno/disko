@@ -13,12 +13,29 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
+def get_baseline_resolution(bl, frequency):
+    # d sin(theta) = \lambda / 2
+    c = 2.99793e8
+    wavelength = c/frequency
+
+    res_limit = np.arcsin(wavelength / (2*bl))
+    return res_limit
+
+def get_resolution_max_baseline(res_arcmin, frequency):
+    # d sin(theta) = \lambda / 2
+    theta = np.radians(res_arcmin / 60.0)
+    c = 2.99793e8
+    wavelength = c/frequency
+    u_max = wavelength / (2 * np.sin(theta))
+    return u_max
+    
 #def get_visibility(vis_arr, baselines, i,j):
     #if (i > j):
         #return get_visibility(vis_arr, baselines, j, i)
     
     #return vis_arr[baselines.index([i,j])]
 
+<<<<<<< HEAD
 class RadioObservation(object):
     
     def __init__(self):
@@ -26,6 +43,9 @@ class RadioObservation(object):
     
 
 def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
+=======
+def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
+>>>>>>> 7924aab6f59690358d59cb7f7999bafd6ea768f3
     '''
         Use dask-ms to load the necessary data to create a telescope operator
         (will use uvw positions, and antenna positions)
@@ -39,7 +59,7 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
                        
                        d sin(theta) = lambda / 2
                        d / lambda = 1 / (2 sin(theta))
-                       u_max = 1 / 2sin(theta)
+                       u_max = lambda / 2sin(theta)
                        
                        
     '''
@@ -47,7 +67,6 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
         # Create a dataset representing the entire antenna table
         ant_table = '::'.join((ms, 'ANTENNA'))
 
-        wavelength = -1.0;
         for ant_ds in xds_from_table(ant_table):
             #print(ant_ds)
             #print(dask.compute(ant_ds.NAME.data,
@@ -73,10 +92,12 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
             #print(spw_ds)
             #print(spw_ds.NUM_CHAN.values)
             logger.info("CHAN_FREQ.values: {}".format(spw_ds.CHAN_FREQ.values.shape))
-            frequency=dask.compute(spw_ds.CHAN_FREQ.values)[0].flatten()[channel]
+            frequencies = dask.compute(spw_ds.CHAN_FREQ.values)[0].flatten()
+            frequency=frequencies[channel]
+            logger.info("Frequencies = {}".format(frequencies))
             logger.info("Frequency = {}".format(frequency))
             logger.info("NUM_CHAN = %f" % np.array(spw_ds.NUM_CHAN.values)[0])
-            wavelength = 2.99793e8 / frequency
+            
 
         # Create datasets from a partioning of the MS
         datasets = list(xds_from_ms(ms, chunks={'row': chunks}))
@@ -86,7 +107,8 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
         for ds in datasets:
             logger.info("DATA shape: {}".format(ds.DATA.data.shape))
             logger.info("UVW shape: {}".format(ds.UVW.data.shape))
-            uvw = np.array(ds.UVW.data)/wavelength   # UVW is stored in meters!
+
+            uvw = np.array(ds.UVW.data)   # UVW is stored in meters!
             ant1 = np.array(ds.ANTENNA1.data)
             ant2 = np.array(ds.ANTENNA2.data)
             flags = np.array(ds.FLAG.data)
@@ -100,22 +122,26 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
 
             # Profile
             #prof.visualize(file_path="chunked.html")
-        c = 2.99793e8
         
-        # d sin(theta) = \lambda / 2
-        theta = np.radians(res_arcmin / 60.0)
         
-        u_max = 1.0 / (2 * np.sin(theta))
+        ### NOW REMOVE DATA THAT DOESN'T FIT THE IMAGE RESOLUTION
+        
+        
+        u_max = get_resolution_max_baseline(res_arcmin, frequency)
+        
         logger.info("Resolution Max UVW: {:g}".format(u_max))
         logger.info("Flags: {}".format(flags.shape))
 
         # Now report the recommended resolution from the data.
         # 1.0 / 2*np.sin(theta) = limit_u
         limit_uvw = np.max(np.abs(uvw), 0)
-        res_limit = np.arcsin(1.0 / (2*limit_uvw[0]))
+        res_limit = get_baseline_resolution(limit_uvw[0], frequency)
         logger.info("Nyquist resolution: {:g} arcmin".format(np.degrees(res_limit)*60.0))
-
-        if True:
+        
+        #maxuvw = np.max(np.abs(uvw), 1)
+        #logger.info(np.random.choice(maxuvw, 100))
+        
+        if False:
             good_data = np.array(np.where(flags[:,channel,pol] == 0)).T.reshape((-1,))
         else:
             good_data = np.array(np.where((flags[:,channel,pol] == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
@@ -165,6 +191,6 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
         timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,
                                       tzinfo=datetime.timezone.utc) + datetime.timedelta(seconds=epoch_seconds)
 
-        return u_arr, v_arr, w_arr, cv_vis, hdr, timestamp
+        return u_arr, v_arr, w_arr, frequency, cv_vis, hdr, timestamp
         
 

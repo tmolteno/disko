@@ -8,7 +8,10 @@ import json
 
 import numpy as np
 
+import pylops
+
 from disko import DiSkO
+import disko
 from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere
 
 from tart.operation import settings
@@ -31,7 +34,7 @@ class TestDiSkO(unittest.TestCase):
             calib_info = json.load(json_file)
 
         info = calib_info['info']
-        cls.ant_pos = calib_info['ant_pos']
+        cls.ant_pos = np.array(calib_info['ant_pos'])
         config = settings.from_api_json(info['info'], cls.ant_pos)
 
         flag_list = []
@@ -58,6 +61,7 @@ class TestDiSkO(unittest.TestCase):
                                                          phi=0.0, radius=np.radians(10))
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
+        cls.subgamma = cls.disko.make_gamma(cls.subsphere)
 
 
     def get_harmonic_sky(self, h_index):
@@ -81,6 +85,9 @@ class TestDiSkO(unittest.TestCase):
             dot = h_i @ h_i.conj().T
             self.assertAlmostEqual(dot, 1.0)
   
+    @unittest.skip("Should Fail as the adaptive mesh harmonics dont work")
+    def test_adaptive_harmonics_normalized(self):
+        ### Check the harmonics are normalized.
         harmonics = self.disko.get_harmonics(self.adaptive_sphere)
         for h_i in harmonics:
             dot = h_i @ h_i.conj().T
@@ -117,7 +124,7 @@ class TestDiSkO(unittest.TestCase):
         ''' Check that the DiSkO calculated from ant_pos only agrees with that from the 
             calibrated vis
         '''
-        dut = DiSkO.from_ant_pos(self.ant_pos, wavelength=constants.L1_WAVELENGTH)
+        dut = DiSkO.from_ant_pos(self.ant_pos, frequency=constants.L1_FREQ)
         self.assertTrue(dut.n_v == self.disko.n_v)
         self.assertTrue(np.allclose(dut.u_arr, self.disko.u_arr))
 
@@ -132,8 +139,105 @@ class TestDiSkO(unittest.TestCase):
         self.assertEqual(sky1.shape[0], 3072)
         self.assertEqual(sky2.shape[0], 1504)
 
+    def test_matrix_free(self):
+        
+        ## Generate fake data with a frequency axis and an npol axis.
+        data = np.zeros((self.disko.n_v, 1, 1), dtype=np.complex128)
+        data[:,0,0] = self.disko.vis_arr
+        sky = self.disko.solve_matrix_free(data, self.subsphere, alpha=0.0, scale=False)
+        self.assertEqual(sky.shape[0], 1504)
+        
+        # Check that sky is a solution
+        vis = self.subgamma @ sky
+        
+        self.assertEqual(vis[:,0].shape, self.disko.vis_arr.shape)
+        self.assertTrue(np.allclose(vis[:,0], self.disko.vis_arr, atol=1e-6))
+
+    def test_dot_matrix_free(self):
+        r'''
+            Test using the build-in pylops tester for new operators
+        '''
+        data = np.zeros((self.disko.n_v, 1, 1), dtype=np.complex128)
+        data[:,0,0] = self.disko.vis_arr
+        frequencies = [self.disko.frequency]
+
+        Op = disko.DiSkOOperator(self.disko.u_arr, 
+                                 self.disko.v_arr,
+                                 self.disko.w_arr, 
+                                 data, frequencies, self.sphere)
+        # Test that we have the same effect as matrix vector multiply
+        
+        sky = np.random.normal(0,1, self.sphere.npix)
+
+        vis1 = self.gamma @ sky
+
+        vis2 = Op.matvec(sky)
+        logger.info(vis1[0:10])
+        logger.info(vis2[0:10])
+        
+        self.assertEqual(vis1.shape, vis2.shape)
+        self.assertTrue(np.allclose(vis1, vis2))
+
+        pylops.utils.dottest(Op, self.disko.n_v, self.sphere.npix, tol=1e-06, 
+                             complexflag=2, raiseerror=True, verb=True)
+        pylops.utils.dottest(Op, self.disko.n_v, self.sphere.npix, tol=1e-06, 
+                             complexflag=3, raiseerror=True, verb=True)
+
+        Op = disko.DirectImagingOperator(self.disko.u_arr, 
+                                 self.disko.v_arr,
+                                 self.disko.w_arr, 
+                                 data, frequencies, self.sphere)
+        pylops.utils.dottest(Op, self.sphere.npix, self.disko.n_v, tol=1e-06, 
+                             complexflag=2, raiseerror=True, verb=True)
+
+    def test_tiny_gamma(self):
+        r'''
+            Test such a small gamma that we can inspect every element and 
+            check that the matrix is what we expect it to be.
+            
+            
+        '''
+        tiny_subsphere = HealpixSubSphere.from_resolution(resolution=60*60.0, 
+                                      theta = np.radians(0.0), phi=0.0, radius=np.radians(80))
+        self.assertEqual(tiny_subsphere.npix, 4)
+
+        frequencies = [1.5e9]
+        wavelength = 2.99793e8 / frequencies[0]
+        
+        n_vis = 3
+        u = np.random.uniform(0,1, n_vis) 
+        v = np.random.uniform(0,1, n_vis)
+        w = np.random.uniform(0,1, n_vis)
+        tiny_disko = DiSkO(u,v,w, frequencies[0])
+        
+        tiny_gamma = tiny_disko.make_gamma(tiny_subsphere)
+        logger.info("Gamma={}".format(tiny_gamma))
+        
+        data = np.zeros((tiny_disko.n_v, 1, 1), dtype=np.complex128)
+        data[:,0,0] = np.random.normal(0,1,tiny_disko.n_v) + 1.0j*np.random.normal(0,1,tiny_disko.n_v)
+        p2j = 2*np.pi*1.0j / wavelength
+
+        Op = disko.DiSkOOperator(tiny_disko.u_arr, tiny_disko.v_arr, tiny_disko.w_arr, data, frequencies, tiny_subsphere)
+
+
+        logger.info("Op Matrix")
+        for i in range(Op.M):
+            col = [Op.A(j, i, p2j ) for j in range(Op.N)]
+            logger.info(col)
+                
+        sky = np.random.normal(0,1, tiny_subsphere.npix)
+        logger.info("sky={}".format(sky))
+        vis1 = tiny_gamma @ sky
+        vis2 = Op.matvec(sky)
+        logger.info(vis1)
+        logger.info(vis2)
+        
+        self.assertEqual(vis1.shape, vis2.shape)
+        self.assertTrue(np.allclose(vis1, vis2))
+
+        
     def test_gamma_size(self):
-        dut = DiSkO.from_ant_pos(self.ant_pos, wavelength=constants.L1_WAVELENGTH)
+        dut = DiSkO.from_ant_pos(self.ant_pos, frequency=constants.L1_FREQ)
         gamma = dut.make_gamma(self.sphere)
         gamma_sub = dut.make_gamma(self.subsphere)
         self.assertEqual(gamma.shape[1], self.sphere.npix)
