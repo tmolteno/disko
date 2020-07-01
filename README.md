@@ -40,7 +40,7 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
-0.7.0b10 Fix up timestamp loading
+0.7.0b10 Fix up timestamp loading, use the correct frequency (based on channel parameter)
 0.7.0b8 Optimize mesh at each stage of refinement.
 0.7.0b7 Better refinement.
 0.7.0b6 Limit gradient calculation to cells above nyquist limit

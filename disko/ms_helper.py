@@ -19,6 +19,12 @@ logger.setLevel(logging.INFO)
     
     #return vis_arr[baselines.index([i,j])]
 
+class RadioObservation(object):
+    
+    def __init__(self):
+        pass
+    
+
 def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
     '''
         Use dask-ms to load the necessary data to create a telescope operator
