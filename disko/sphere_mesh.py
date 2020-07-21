@@ -233,7 +233,8 @@ class AdaptiveMeshSphere(HealpixSphere):
         self.el_r = el_r
         self.az_r = az_r
 
-        self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
+        self.l, self.m, n = elaz2lmn(self.el_r, self.az_r)
+        self.n_minus_1 = n - 1
 
 
 if __name__=="__main__":
