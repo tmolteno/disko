@@ -346,7 +346,7 @@ class DiSkO(object):
 
         gamma = self.make_gamma(sphere)
         
-        sky, residuals, rank, s = np.linalg.lstsq(gamma, to_column(vis_arr), rcond=None)
+        sky, residuals, rank, s = np.linalg.lstsq(gamma, to_column(vis_to_real(vis_arr)), rcond=None)
         
         logger.info("Elapsed {}s".format(time.time() - t0))
 
