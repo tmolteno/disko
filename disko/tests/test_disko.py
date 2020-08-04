@@ -142,23 +142,21 @@ class TestDiSkO(unittest.TestCase):
     def test_matrix_free(self):
         
         ## Generate fake data with a frequency axis and an npol axis.
-        data = np.zeros((self.disko.n_v, 1, 1), dtype=np.complex128)
-        data[:,0,0] = self.disko.vis_arr
+        data = self.disko.vis_to_data()
         sky = self.disko.solve_matrix_free(data, self.subsphere, alpha=0.0, scale=False)
         self.assertEqual(sky.shape[0], 1504)
         
         # Check that sky is a solution
         vis = self.subgamma @ sky
         
-        self.assertEqual(vis[:,0].shape, self.disko.vis_arr.shape)
-        self.assertTrue(np.allclose(vis[:,0], self.disko.vis_arr, atol=1e-6))
+        self.assertEqual(vis[:,0].shape, data[:,0,0].shape)
+        self.assertTrue(np.allclose(vis[:,0], data[:,0,0].shape, atol=1e-6))
 
     def test_dot_matrix_free(self):
         r'''
             Test using the build-in pylops tester for new operators
         '''
-        data = np.zeros((self.disko.n_v, 1, 1), dtype=np.complex128)
-        data[:,0,0] = self.disko.vis_arr
+        data = self.disko.vis_to_data()
         frequencies = [self.disko.frequency]
 
         Op = disko.DiSkOOperator(self.disko.u_arr, 
@@ -178,17 +176,15 @@ class TestDiSkO(unittest.TestCase):
         self.assertEqual(vis1.shape, vis2.shape)
         self.assertTrue(np.allclose(vis1, vis2))
 
-        pylops.utils.dottest(Op, self.disko.n_v, self.sphere.npix, tol=1e-06, 
-                             complexflag=2, raiseerror=True, verb=True)
-        pylops.utils.dottest(Op, self.disko.n_v, self.sphere.npix, tol=1e-06, 
-                             complexflag=3, raiseerror=True, verb=True)
+        pylops.utils.dottest(Op, self.disko.n_v*2, self.sphere.npix, tol=1e-06, 
+                             complexflag=0, raiseerror=True, verb=True)
 
         Op = disko.DirectImagingOperator(self.disko.u_arr, 
                                  self.disko.v_arr,
                                  self.disko.w_arr, 
                                  data, frequencies, self.sphere)
-        pylops.utils.dottest(Op, self.sphere.npix, self.disko.n_v, tol=1e-06, 
-                             complexflag=2, raiseerror=True, verb=True)
+        pylops.utils.dottest(Op, self.sphere.npix, self.disko.n_v*2, tol=1e-06, 
+                             complexflag=0, raiseerror=True, verb=True)
 
     def test_tiny_gamma(self):
         r'''
@@ -213,8 +209,7 @@ class TestDiSkO(unittest.TestCase):
         tiny_gamma = tiny_disko.make_gamma(tiny_subsphere)
         logger.info("Gamma={}".format(tiny_gamma))
         
-        data = np.zeros((tiny_disko.n_v, 1, 1), dtype=np.complex128)
-        data[:,0,0] = np.random.normal(0,1,tiny_disko.n_v) + 1.0j*np.random.normal(0,1,tiny_disko.n_v)
+        data = tiny_disko.vis_to_data(np.random.normal(0,1,tiny_disko.n_v) + 1.0j*np.random.normal(0,1,tiny_disko.n_v))
         p2j = 2*np.pi*1.0j / wavelength
 
         Op = disko.DiSkOOperator(tiny_disko.u_arr, tiny_disko.v_arr, tiny_disko.w_arr, data, frequencies, tiny_subsphere)

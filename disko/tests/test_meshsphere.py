@@ -44,15 +44,15 @@ class TestMeshsphere(unittest.TestCase):
         
         self.assertAlmostEqual(self.sphere.fov, hp_sphere.fov)
 
-        print(np.max(self.sphere.l), np.max(self.sphere.m), np.max(self.sphere.n))
-        print(np.max(hp_sphere.l), np.max(hp_sphere.m), np.max(hp_sphere.n))
+        print(np.max(self.sphere.l), np.max(self.sphere.m), np.max(self.sphere.n_minus_1))
+        print(np.max(hp_sphere.l), np.max(hp_sphere.m), np.max(hp_sphere.n_minus_1))
         
         print("el_r {} {}".format(np.max(self.sphere.el_r), np.max(hp_sphere.el_r)))
         self.assertAlmostEqual(np.max(self.sphere.el_r), np.max(hp_sphere.el_r), 1)
 
         self.assertAlmostEqual(np.max(self.sphere.m), np.max(hp_sphere.m), 2)
         self.assertAlmostEqual(np.max(self.sphere.l), np.max(hp_sphere.l), 2)
-        self.assertAlmostEqual(np.min(self.sphere.n), np.min(hp_sphere.n), 2)
+        self.assertAlmostEqual(np.min(self.sphere.n_minus_1), np.min(hp_sphere.n_minus_1), 2)
 
     #def test_harmonics(self):
         
