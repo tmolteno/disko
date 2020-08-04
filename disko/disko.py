@@ -119,11 +119,11 @@ class DiSkOOperator(pylops.LinearOperator):
         
     def A(self, i, j, p2j):
         n_vis = len(self.u_arr)
-        u, v, w = self.u_arr[j % n_vis], self.v_arr[j % n_vis], self.w_arr[j % n_vis]      # the row index (one u,v,w element per vis)
-        l, m, n = self.sphere.l[i], self.sphere.m[i], self.sphere.n[i] # The column index (one l,m,n element per pixel)
+        u, v, w = self.u_arr[i % n_vis], self.v_arr[i % n_vis], self.w_arr[i % n_vis]      # the row index (one u,v,w element per vis)
+        l, m, n = self.sphere.l[j], self.sphere.m[j], self.sphere.n[j] # The column index (one l,m,n element per pixel)
          
         z = np.exp(-p2j*(u*l + v*m + w*(n-1))) * self.sphere.pixel_areas
-        if j < n_vis:
+        if i < n_vis:
             return np.real(z)
         else:
             return np.imag(z)
