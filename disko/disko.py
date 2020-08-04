@@ -118,17 +118,18 @@ class DiSkOOperator(pylops.LinearOperator):
         logger.info("Creating DiSkOOperator data={}".format(self.shape))
         
     def A(self, i, j, p2j):
-        u, v, w = self.u_arr[j//2], self.v_arr[j//2], self.w_arr[j//2]      # the row index (one u,v,w element per vis)
+        n_vis = len(self.u_arr)
+        u, v, w = self.u_arr[j % n_vis], self.v_arr[j % n_vis], self.w_arr[j % n_vis]      # the row index (one u,v,w element per vis)
         l, m, n = self.sphere.l[i], self.sphere.m[i], self.sphere.n[i] # The column index (one l,m,n element per pixel)
          
         z = np.exp(-p2j*(u*l + v*m + w*(n-1))) * self.sphere.pixel_areas
-        if j < self.n_v//2:
+        if j < n_vis:
             return np.real(z)
         else:
             return np.imag(z)
 
     def Ah(self, i, j, p2j):
-        np.conj(self.A(j, i, p2j))
+        return np.conj(self.A(j, i, p2j))
     
     def _matvec(self, x):
         '''

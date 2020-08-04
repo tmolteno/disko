@@ -217,9 +217,23 @@ class TestDiSkO(unittest.TestCase):
 
         logger.info("Op Matrix")
         for i in range(Op.M):
-            col = [Op.A(j, i, p2j ) for j in range(Op.N)]
+            col = [Op.A(j, i, p2j) for j in range(Op.N)]
             logger.info(col)
-                
+
+        logger.info("Op Matrix Ajoint")
+        for i in range(Op.M):
+            col = [Op.Ah(j, i, p2j) for j in range(Op.N)]
+            logger.info(col)
+
+        for i in range(Op.M):
+            for j in range(Op.N):
+                self.assertAlmostEqual(Op.A(j, i, p2j), tiny_gamma[i,j])
+        
+        for i in range(Op.M):
+            for j in range(Op.N):
+                self.assertAlmostEqual(Op.Aj(i, j, p2j), tiny_gamma[i,j])
+        
+            
         sky = np.random.normal(0,1, tiny_subsphere.npix)
         logger.info("sky={}".format(sky))
         vis1 = tiny_gamma @ sky
