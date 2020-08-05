@@ -357,7 +357,7 @@ class DiSkO(object):
 
         Args:
 
-            vis_arr (np.array): An array of visibilities
+            vis_arr (np.array): An array of complex visibilities
             sphere (int):       he healpix sphere.
         """
 
@@ -365,7 +365,7 @@ class DiSkO(object):
         logger.info("Imaging Visabilities nside={}".format(sphere.nside))
         t0 = time.time()
         
-        pixels = np.zeros(sphere.npix, dtype=REAL_DATATYPE)
+        pixels = np.zeros(sphere.npix, dtype=COMPLEXL_DATATYPE)
         harmonic_list = self.get_harmonics(sphere)
         for h, vis in zip(harmonic_list, vis_arr):
             pixels += vis*h
@@ -373,7 +373,7 @@ class DiSkO(object):
         t1 = time.time()
         logger.info("Elapsed {}s".format(time.time() - t0))
 
-        sphere.set_visible_pixels(pixels)
+        sphere.set_visible_pixels(np.abs(pixels))
         
         return pixels.reshape(-1,1)
 
