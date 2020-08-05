@@ -12,7 +12,7 @@ from copy import deepcopy
 
 import numpy as np
 import scipy
-from scipy import misc
+import imageio
 
 from tart.operation import settings
 
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     # Have a look at some harmonics
     
     if ARGS.harmonics:
-        mask = misc.imread(ARGS.mask)
+        mask = imageio.imread(ARGS.mask)
         s = mask_to_sky(mask, ARGS.nside)
         dut = to.gamma @ s
         print("Batman Vis = {}".format(dut))
