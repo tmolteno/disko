@@ -230,7 +230,7 @@ class HealpixSphere(object):
 
     def set_visible_pixels(self, pix, scale=False):
         # This discards the imaginary part.
-        rpix = np.real(pix)
+        rpix = np.abs(pix)
         if scale:
             max_p, min_p, mad_p = image_stats(rpix)
             rpix = (rpix - min_p) / mad_p

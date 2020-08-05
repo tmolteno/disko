@@ -73,12 +73,19 @@ COMPLEX_DATATYPE=np.complex128
 
 C = 2.99793e8
 
+def omega(freq):
+    r'''
+        Little routine to convert a frequency into omega
+    '''
+    wavelength = C / freq
+    return 2*np.pi / wavelength
+
 def jomega(freq):
     r'''
         Little routine to convert a frequency into j*omega
     '''
-    wavelength = C / freq
-    return 2*np.pi*1.0j / wavelength
+    return 1.0j * omega(freq)
+
     
     
 def get_harmonic(p2j, in_sphere, u, v, w):
@@ -135,37 +142,68 @@ class DiSkOOperator(pylops.LinearOperator):
         '''
             Multiply by the sky x, producing the set of measurements y
             Returns returns A * x.
-        '''
-        y = []
-        for f in self.frequencies:
-            p2j = jomega(f)
             
-            for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr): # For all complex vis
-                column = np.exp(-p2j*(u*self.sphere.l + v*self.sphere.m + w*self.sphere.n_minus_1)) * self.sphere.pixel_areas
+            ( v_real    = (T_real   x
+              v_imag )     T_imag)
+        '''
+        if True:
+            y = []
+            for f in self.frequencies:
+                p2j = jomega(f)
 
-                y.append(np.dot(x, column)) 
+                for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr): # For all complex vis
+                    column = np.exp(-p2j*(u*self.sphere.l + v*self.sphere.m + w*self.sphere.n_minus_1)) * self.sphere.pixel_areas
+                    y.append(np.dot(x, column))
 
-        y = np.array(y)
-        return vis_to_real(y)
+            y = np.array(y)
+            return vis_to_real(y)
+        else:
+            y_re = []
+            y_im = []
+            for f in self.frequencies:
+                p2 = omega(f)
+
+                for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr): # For all complex vis
+                    theta = -p2*(u*self.sphere.l + v*self.sphere.m + w*self.sphere.n_minus_1)  # harmonics
+                    re = np.cos(theta) * self.sphere.pixel_areas
+                    im = np.sin(theta) * self.sphere.pixel_areas
+                    y_re.append(np.dot(x, re))
+                    y_im.append(np.dot(x, im))
+
+            y = np.concatenate( (np.array(y_re), np.array(y_im)) )
+            return y
     
     def _rmatvec(self, v):
         r'''
             Returns x = A^H * v, where A^H is the conjugate transpose of A. 
-            v = A x 
-            
-            v should be a block composed of real an imaginary parts
+           
+            x = ( T_real' T_imag') (v_real
+                                    v_imag)
         '''
         assert(v.shape == (self.M,))
-                
+        n_vis = self.M//2
+        
+        vis_complex = v[0:n_vis] + 1.0J*v[n_vis:]
         ret = []
+        
         for f in self.frequencies:
             p2j = jomega(f)
-            
+            p2 = omega(f)
             # Vector version
-            for l, m, n_1 in zip(self.sphere.l, self.sphere.m, self.sphere.n_minus_1):
-                column = np.exp(p2j*(self.u_arr*l + self.v_arr*m + self.w_arr*n_1)) * self.sphere.pixel_areas
-                col_vec = vis_to_real(column)
-                ret.append(np.dot(v, col_vec))
+            for l, m, n_1 in zip(self.sphere.l, self.sphere.m, self.sphere.n_minus_1): # for each pixel
+                if False:
+                    column = np.exp(p2j*(self.u_arr*l + self.v_arr*m + self.w_arr*n_1)) * self.sphere.pixel_areas
+                    ret.append(np.dot(vis_complex, column))
+                else:
+                    theta = -p2*(self.u_arr*l + self.v_arr*m + self.w_arr*n_1)
+                
+                    re = np.cos(theta) * self.sphere.pixel_areas
+                    im = np.sin(theta) * self.sphere.pixel_areas
+                    
+                    reim = np.concatenate((re, im))
+                    assert(reim.shape == (self.M,))
+                    ret.append(np.dot(v, reim))
+
         return np.array(ret)
 
 
@@ -203,7 +241,7 @@ class DirectImagingOperator(pylops.LinearOperator):
             
             This is treating the v as a vector in a vector space where the basis vectors are the harmonics. This operator is a transformation from v to R^N
             
-            sky = \sum_v h_i * v_i
+            sky = sum_v h_i * v_i
             
             What do the rows and columns of this matrix look like?
             
@@ -264,7 +302,7 @@ class DiSkO(object):
         u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp = read_ms(ms, num_vis, res_arcmin, chunks, channel)
         
         ret = cls(u_arr, v_arr, w_arr, frequency)
-        ret.vis_arr = np.array(cv_vis, dtype=np.complex128)
+        ret.vis_arr = np.array(cv_vis, dtype=COMPLEX_DATATYPE)
         ret.timestamp = tstamp
         ret.info = hdr
 
@@ -357,7 +395,7 @@ class DiSkO(object):
 
     
     def vis_to_data(self, vis_arr=None):
-        data = np.zeros((self.n_v*2, 1, 1), dtype=np.float64)
+        data = np.zeros((self.n_v*2, 1, 1), dtype=REAL_DATATYPE)
         if vis_arr is not None:
             data[:,0,0] = vis_to_real(vis_arr)
         else:
@@ -378,7 +416,7 @@ class DiSkO(object):
         Apre = DirectImagingOperator(self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere)
         d = data.flatten()
         
-        loggin.info("Data.shape {}".format(data.shape))
+        logger.info("Data.shape {}".format(data.shape))
 
         #u,s,vt = spalg.svds(A, k=min(A.shape)-2) 
         #logger.info("t ={}, s={}".format(time.time() - t0, s))      
@@ -407,26 +445,25 @@ class DiSkO(object):
     def make_gamma(self, sphere):
 
         logger.info("Making Gamma Matrix npix={}".format(sphere.npix))
-        t0 = time.time()
 
         harmonic_list = self.get_harmonics(sphere)
 
         n_s = len(harmonic_list[0])
         n_v = len(harmonic_list)
 
-        gamma = np.array(harmonic_list, dtype=np.complex128)
+        gamma = np.array(harmonic_list, dtype=COMPLEX_DATATYPE)
         gamma = gamma.reshape((n_v, n_s))
         gamma = gamma.conj()
 
-        g_real = np.real(gamma)
-        g_imag = np.imag(gamma)
-        gamma = np.block([[g_real], [g_imag]])
+        g_real = np.real(gamma).astype(REAL_DATATYPE)
+        g_imag = np.imag(gamma).astype(REAL_DATATYPE)
+        ret = np.block([[g_real], [g_imag]])
 
         logger.info('Gamma Shape: {}'.format(gamma.shape))
         #for i, h in enumerate(harmonic_list):
             #gamma[i,:] = h[0]
         
-        return gamma
+        return ret
 
     def image_lasso(self, vis_arr, sphere, alpha, scale=True, use_cv=False):
         gamma = self.make_gamma(sphere)
