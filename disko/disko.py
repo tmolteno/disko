@@ -113,7 +113,7 @@ class DiSkOOperator(pylops.LinearOperator):
             raise RuntimeError("Data must be of the shape [n_v*2, n_freq, n_pol]")
         
         if (self.n_v != len(self.u_arr)*2):
-            raise RuntimeError("Vis data must be split into [real, imag]")
+            raise RuntimeError("Vis data must be split into [real, imag] {} {}".format(self.n_v, self.u_arr.shape ))
             
         self.M = self.n_v * self.n_freq
         
@@ -400,13 +400,18 @@ class DiSkO(object):
             data[:,0,0] = vis_to_real(vis_arr)
         else:
             data[:,0,0] = vis_to_real(self.vis_arr)
+            assert(data.shape[0] == self.n_v*2)
+
         return data
     
     def solve_matrix_free(self, data, sphere, alpha=0.0, scale=True, fista=False, lsqr=True, lsmr=False):
         '''
             data = [vis_arr, n_freq, n_pol]
         '''
-        logger.info("Solving Visabilities nside={}".format(sphere.nside))
+        logger.info("Solving Visabilities nside={} data={}".format(sphere.nside, data.shape))
+        assert(data.shape[0] == self.n_v*2)
+
+
         t0 = time.time()
 
         frequencies = [self.frequency]

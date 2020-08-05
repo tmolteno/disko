@@ -51,7 +51,7 @@ mf:
 	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --arcmax=190 --alpha=0.25 --fista --matrix-free
 	
 profile:
-	python3 -m cProfile -o disko.prof ./bin/disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --alpha=0.25 --matrix-free --lsmr
+	python3 -m cProfile -o disko.prof ./bin/disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --alpha=0.25 --matrix-free --lsqr
 	python3 prof.py
 	
 # Memory 4800x276 456212 
