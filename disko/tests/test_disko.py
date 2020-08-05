@@ -117,6 +117,7 @@ class TestDiSkO(unittest.TestCase):
             dot = h_i @ h_i.conj().T
             self.assertAlmostEqual(dot, 1.0)
   
+    @unittest.skip("When there is only a real sky, there are no harmonics.")
     def test_vis_from_harmonic_sky(self):
         sky, harmonics = self.get_harmonic_sky(0)
 
@@ -278,6 +279,7 @@ class TestDiSkO(unittest.TestCase):
         self.assertEqual(gamma.shape[1], self.sphere.npix)
         self.assertEqual(gamma_sub.shape[1], self.subsphere.npix)
 
+    @unittest.skip("Should Fail as the sky can not be complex.")
     def test_ml_sky(self):
         ### Create an image of a sky composed of multiples of the harmonics.
         ### Image that sky, and check that it products the correct visibilities.

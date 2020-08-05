@@ -68,9 +68,14 @@ class TestTelescopeOperator(unittest.TestCase):
 
     def test_harmonics(self):
         ### Check the harmonics are normalized.
-        for i in range(0,self.to.n_v):
-            h_i = self.to.harmonic(i)
+        n_h = self.to.n_v // 2
+        for i in range(0,n_h):
+            h_re = self.to.harmonic(i) 
+            h_im = self.to.harmonic(i+n_h)
+        
+            h_i = h_re + 1.0j*h_im
             dot = h_i @ h_i.conj().T
+            #dot = np.dot(h_re, h_re) + np.dot(h_im, h_im)
             self.assertAlmostEqual(dot, 1.0)
   
 
