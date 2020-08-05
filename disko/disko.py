@@ -365,7 +365,7 @@ class DiSkO(object):
         logger.info("Imaging Visabilities nside={}".format(sphere.nside))
         t0 = time.time()
         
-        pixels = np.zeros(sphere.npix, dtype=COMPLEXL_DATATYPE)
+        pixels = np.zeros(sphere.npix, dtype=COMPLEX_DATATYPE)
         harmonic_list = self.get_harmonics(sphere)
         for h, vis in zip(harmonic_list, vis_arr):
             pixels += vis*h
