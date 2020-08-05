@@ -337,7 +337,7 @@ class TelescopeOperator:
         t0 = time.time()
 
         sky, residuals, rank, s = np.linalg.lstsq(self.gamma, 
-                                                  vis_to_real(vis_arr), rcond=None)
+                                                  vis_arr, rcond=None)
         
         t1 = time.time()
         logger.info("Elapsed {}s".format(time.time() - t0))
@@ -362,7 +362,7 @@ class TelescopeOperator:
         logger.info("Imaging Natural nside={}".format(sphere.nside))
         t0 = time.time()
 
-        x_r = np.linalg.solve(self.A_r, vis_to_real(vis_arr))
+        x_r = np.linalg.solve(self.A_r, vis_arr)
         #x_n = to_column(np.zeros(self.n_n()))
         #logging.info("x_r = {}".format(x_r.shape))
         #logging.info("x_n = {}".format(x_n.shape))
@@ -387,7 +387,7 @@ class TelescopeOperator:
         logger.info("D = {}".format(D.shape))
         logger.info("vis_arr = {}".format(vis_arr.shape))
 
-        sky = self.V_1 @ D @ self.U.conj().T @ vis_to_real(vis_arr)
+        sky = self.V_1 @ D @ self.U.conj().T @ vis_arr
         sphere.set_visible_pixels(sky, scale)
         return sky
 

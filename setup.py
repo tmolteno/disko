@@ -10,7 +10,7 @@ with open('README.md') as f:
     readme = f.read()
 
 setup(name='disko',
-    version='0.8.0b5',
+    version='0.9.0b1',
     description='Discrete Sky Operator (DiSkO) Aperture Synthesis Radio Imaging',
     long_description=readme,
     long_description_content_type="text/markdown",
