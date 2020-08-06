@@ -208,11 +208,11 @@ if __name__ == '__main__':
             sky = to.image_tikhonov(real_vis, sphere, float(i))
             sphere.plot(plt, src_list)
             handle_image(ARGS, "tikhonov_{:04.2f}".format(i) + ARGS.title, time_repr, src_list)
-            pixels = grid.image_lasso(real_vis, sphere, float(i/5), scale=True)
+            pixels = grid.image_lasso(grid.vis_arr, sphere, float(i/5), scale=True)
             sphere.plot(plt, src_list)
             handle_image(ARGS, "lasso_{:04.2f}".format(i) + ARGS.title, time_repr, src_list)
 
-        pixels = grid.image_visibilities(real_vis, sphere)
+        pixels = grid.image_visibilities(grid.vis_arr, sphere)
         sphere.plot(plt, src_list)
         handle_image(ARGS, "gridless" + ARGS.title, time_repr, src_list)
 
