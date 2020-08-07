@@ -114,7 +114,7 @@ if __name__ == '__main__':
     sky = to.sequential_inference(real_vis, sphere, prior)
 
     image_title = '{}_{}'.format(ARGS.title, time_repr)
-
+    src_list = None
     # Save as a FITS file
     fname = '{}.fits'.format(image_title)
     fpath = os.path.join(ARGS.dir, fname)

@@ -404,12 +404,15 @@ class TelescopeOperator:
         logger.info("Bayeian Inference of sky (n_s = {})".format(sphere.npix))
         t0 = time.time()
        
-        x_r = np.linalg.solve(self.A_r, vis_arr)
-
-        D = np.diag(self.s / (self.s**2 + alpha**2))
-        logger.info("D = {}".format(D.shape))
         logger.info("vis_arr = {}".format(vis_arr.shape))
+        y_m = (self.U.conj().T @ vis_arr)[0:self.rank]
+        logger.info("y_m = {}".format(y_m.shape))
+        
+        Sigma_r = np.diag(self.s[0:self.rank])
+        x_r = np.linalg.solve(Sigma_r, y_m)
+        
+        logger.info("x_r = {}".format(x_r.shape))
 
-        sky = self.V_1 @ D @ self.U.conj().T @ vis_arr
-        sphere.set_visible_pixels(sky, scale)
+        sky = self.V_1 @ x_r
+        sphere.set_visible_pixels(sky, scale=True)
         return sky
