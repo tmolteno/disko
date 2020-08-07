@@ -15,6 +15,7 @@ from pathlib import Path
 
 from .sphere import HealpixSphere
 from .disko import vis_to_real
+from .multivariate_gaussian import MultivariateGaussian
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
@@ -392,3 +393,23 @@ class TelescopeOperator:
         return sky
 
 
+    def sequential_inference(self, vis_arr, sphere, prior):
+        '''
+            Perform the Bayesian Update of the prior sky. Return the posterior.
+            
+            prior is a MultivariateGaussian object
+            
+            1) Compute the 
+        '''
+        logger.info("Bayeian Inference of sky (n_s = {})".format(sphere.npix))
+        t0 = time.time()
+       
+        x_r = np.linalg.solve(self.A_r, vis_arr)
+
+        D = np.diag(self.s / (self.s**2 + alpha**2))
+        logger.info("D = {}".format(D.shape))
+        logger.info("vis_arr = {}".format(vis_arr.shape))
+
+        sky = self.V_1 @ D @ self.U.conj().T @ vis_arr
+        sphere.set_visible_pixels(sky, scale)
+        return sky

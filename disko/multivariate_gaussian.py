@@ -30,7 +30,8 @@ class MultivariateGaussian:
         if (sigma.shape[0] != self.D) or (sigma.shape[1] != self.D):
             raise ValueError('Covariance sigma {} must be a {}x{} square matrix'.format(sigma.shape, self.D))
     
-        self._sigma_inv = np.linalg.inv(self.sigma)
+        self._sigma_inv = None
+        self._A = None
     
     def sigma_inv(self):
         if self._sigma_inv is None:
@@ -57,4 +58,15 @@ class MultivariateGaussian:
         sigma_1 = A @ self.sigma @ self.sigma.T
         mu_1 = A @ self.mu + b
         return MultivariateGaussian(mu_1, sigma_1)
+    
+    
+    def sample(self):
+        '''
+            Return a sample from this multivariate distribution
+        '''
+        z = np.random.normal(0, 1, self.D)
+        if self._A is None:
+            self._A = np.linalg.cholesky(self.sigma)
+        
+        return self.mu + self._A @ z
         

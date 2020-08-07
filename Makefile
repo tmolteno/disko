@@ -16,6 +16,8 @@ test2:
 	#	python3 -m unittest  disko.tests.test_subsphere
 	pytest-3 -k test_multivariate
 
+bayes:
+	/usr/bin/time -v disko_bayes --fov 165 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart'
 
 ngc1194:
 	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
