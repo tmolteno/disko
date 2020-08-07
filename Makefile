@@ -14,7 +14,7 @@ lint:
 test2:
 	#python3 -m unittest  disko.tests.test_gridless.TestGridless.test_from_pos
 	#	python3 -m unittest  disko.tests.test_subsphere
-	pytest-3 -k test_disko
+	pytest-3 -k test_multivariate
 
 
 ngc1194:

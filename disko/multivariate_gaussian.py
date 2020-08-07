@@ -1,3 +1,5 @@
+import numpy as np
+
 class MultivariateGaussian:
     '''
         Handle a multivariate gaussian with D dimensions, and real entries.
@@ -13,19 +15,20 @@ class MultivariateGaussian:
         posterior = bayes_update(lh, prior)
         
     '''
-    def __init__(self, D, mu, sigma):
+    def __init__(self, mu, sigma):
         '''
             Create a D-dimensional multivariate Gaussian with known mean and standard deviation
         '''
-        self.D = D
+        try:
+            self.D = mu.shape[0]
+        except:
+            raise ValueError('Mean mu {} must be a vector'.format(mu.shape))
         self.mu = mu
         self.sigma = sigma
         self.dtype = np.float64
         
-        if (mu.shape[0] != D):
-            raise ValueError('Mean mu {} must be a {}-vector'.format(mu.shape, D)
-        if (sigma.shape[0] != (D,D)):
-            raise ValueError('Covariance sigma {} must be a {}x{} square matrix'.format(sigma.shape, D)
+        if (sigma.shape[0] != self.D) or (sigma.shape[1] != self.D):
+            raise ValueError('Covariance sigma {} must be a {}x{} square matrix'.format(sigma.shape, self.D))
     
         self._sigma_inv = np.linalg.inv(self.sigma)
     
