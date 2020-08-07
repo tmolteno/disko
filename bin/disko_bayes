@@ -1,0 +1,149 @@
+#!/usr/bin/env python
+import matplotlib
+import os
+if os.name == 'posix' and "DISPLAY" not in os.environ:
+    matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+import argparse
+import datetime
+import json
+import logging
+from copy import deepcopy
+
+import numpy as np
+
+from tart.operation import settings
+
+from tart_tools import api_handler
+from tart_tools import api_imaging
+from tart.imaging import elaz
+
+
+from disko import DiSkO, get_source_list, TelescopeOperator, HealpixSubSphere, vis_to_real, MultivariateGaussian
+
+def handle_image(args, img, title, time_repr, src_list=None):
+    """ This function manages the output of an image, drawing sources e.t.c."""
+    image_title = '{}_{}'.format(title, time_repr)
+    plt.title(image_title)
+    if args.fits:
+        fname = '{}.fits'.format(image_title)
+        fpath = os.path.join(args.dir, fname)
+        api_imaging.save_fits_image(img, fname=fname, out_dir=args.dir, timestamp=time_repr)
+        logger.info("Generating {}".format(fname))
+    if args.PNG:
+        fname = '{}.png'.format(image_title)
+        fpath = os.path.join(args.dir, fname)
+        plt.savefig(fpath, dpi=300)
+        logger.info("Generating {}".format(fname))
+    if args.PDF:
+        fname = '{}.pdf'.format(image_title)
+        fpath = os.path.join(args.dir, fname)
+        plt.savefig(fpath, dpi=600)
+        logger.info("Generating {}".format(fname))
+    if args.display:
+        plt.show()
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='DiSkO: Bayesian inference of a posterior sky', 
+                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('--ms', required=False, default=None, help="visibility file")
+
+    parser.add_argument('--dir', required=False, default='.', help="Output directory.")
+    parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter. (this is divided by the sqrt of the number of pixels.")
+    parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
+    parser.add_argument('--nvis', type=int, default=1000, help="Number of visibilities to use.")
+    parser.add_argument('--arcmin', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
+    parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
+
+    parser.add_argument('--display', action="store_true", help="Display Image to the user.")
+
+    parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
+    parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
+    parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
+    parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
+
+    parser.add_argument('--title', required=False, default="disko", help="Prefix the output files.")
+
+    source_json = None
+
+    ARGS = parser.parse_args()
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    fh = logging.FileHandler('disko.log')
+    fh.setLevel(logging.INFO)
+    
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+
+    # create formatter
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # add formatter to ch
+    ch.setFormatter(formatter)
+    fh.setFormatter(formatter)
+
+    # add ch to logger
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+    
+    logger.info("Getting Data from MS file: {}".format(ARGS.ms))
+    disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel)
+    # Convert from reduced Julian Date to timestamp.
+    timestamp = disko.timestamp
+        
+
+    time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
+
+    # Processing
+    
+    nside = ARGS.nside
+    radius = np.radians(ARGS.fov / 2.0)
+    sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
+    
+    to = TelescopeOperator(disko, sphere)
+
+    real_vis = vis_to_real(disko.vis_arr)
+    
+    prior = MultivariateGaussian(np.zeros(sphere.npix), np.diag(np.ones(sphere.npix)))
+    
+    sky = to.sequential_inference(real_vis, sphere, prior)
+
+    image_title = '{}_{}'.format(ARGS.title, time_repr)
+
+    # Save as a FITS file
+    fname = '{}.fits'.format(image_title)
+    fpath = os.path.join(ARGS.dir, fname)
+    sphere.to_fits(fname=fpath, fov=ARGS.fov, info=disko.info)
+    
+    if ARGS.SVG:
+        fname = '{}.svg'.format(image_title)
+        fpath = os.path.join(ARGS.dir, fname)
+
+        #sky = disko.image_lasso(disko.vis_arr, sphere, alpha=0.02, scale=False)
+        sphere.to_svg(fname=fpath, show_grid=True, src_list=src_list, fov=ARGS.fov, title=image_title)
+        logger.info("Generating {}".format(fname))
+    if ARGS.PNG:
+        sphere.plot(plt, src_list)
+        plt.title(image_title)
+        fname = '{}.png'.format(image_title)
+        fpath = os.path.join(ARGS.dir, fname)
+        plt.savefig(fpath, dpi=300)
+        plt.close()
+        logger.info("Generating {}".format(fname))
+    if ARGS.PDF:
+        sphere.plot(plt, src_list)
+        plt.title(image_title)
+        fname = '{}.pdf'.format(image_title)
+        fpath = os.path.join(ARGS.dir, fname)
+        plt.savefig(fpath, dpi=600)
+        plt.close()
+        logger.info("Generating {}".format(fname))
+    if ARGS.display:
+        sphere.plot(plt, src_list)
+        plt.title(image_title)
+        plt.show()
