@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 from .sphere import HealpixSphere
+from .disko import vis_to_real
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
@@ -335,7 +336,8 @@ class TelescopeOperator:
         logger.info("Imaging Direct nside={}".format(sphere.nside))
         t0 = time.time()
 
-        sky, residuals, rank, s = np.linalg.lstsq(self.gamma, to_column(vis_arr), rcond=None)
+        sky, residuals, rank, s = np.linalg.lstsq(self.gamma, 
+                                                  vis_arr, rcond=None)
         
         t1 = time.time()
         logger.info("Elapsed {}s".format(time.time() - t0))
@@ -360,7 +362,7 @@ class TelescopeOperator:
         logger.info("Imaging Natural nside={}".format(sphere.nside))
         t0 = time.time()
 
-        x_r = np.linalg.solve(self.A_r, to_column(vis_arr))
+        x_r = np.linalg.solve(self.A_r, vis_arr)
         #x_n = to_column(np.zeros(self.n_n()))
         #logging.info("x_r = {}".format(x_r.shape))
         #logging.info("x_n = {}".format(x_n.shape))

@@ -40,6 +40,8 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
+0.9.0b1 Move to a real telescope operator.
+0.8.0b5 Allow FISTA to calculate its own largest eigenvalue if negative values are passed in.
 0.8.0b4 Clean up code and avoid recalculating harmonics. 
         Added a DirectImagingOperator that performs the discrete Fourier Transform.
 0.8.0b3 Add --fista command line option to use the FISTA solver.

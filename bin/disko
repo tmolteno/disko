@@ -186,8 +186,7 @@ if __name__ == '__main__':
         sky = disko.image_lasso(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, use_cv=ARGS.cv)
     elif ARGS.matrix_free:
         logger.info("Matrix Free alpha={}".format(ARGS.alpha))
-        data = np.zeros((disko.n_v, 1, 1), dtype=np.complex128)
-        data[:,0,0] = disko.vis_arr
+        data = disko.vis_to_data()
         sky = disko.solve_matrix_free(data, sphere, alpha=ARGS.alpha, scale=True, lsqr=ARGS.lsqr, fista=ARGS.fista, lsmr=ARGS.lsmr)
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))

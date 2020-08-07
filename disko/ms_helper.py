@@ -125,7 +125,7 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         
         u_max = get_resolution_max_baseline(res_arcmin, frequency)
         
-        logger.info("Resolution Max UVW: {:g}".format(u_max))
+        logger.info("Resolution Max UVW: {:g} meters".format(u_max))
         logger.info("Flags: {}".format(flags.shape))
 
         # Now report the recommended resolution from the data.

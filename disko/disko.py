@@ -57,6 +57,8 @@ def get_all_uvw(ant_pos):
 def to_column(x):
     return x.reshape([-1,1])
 
+def vis_to_real(vis_arr):
+    return np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
 
 logger = logging.getLogger(__name__)
 
@@ -66,16 +68,24 @@ def get_source_list(source_json, el_limit, jy_limit):
         src_list = elaz.from_json(source_json, el_limit=el_limit, jy_limit=jy_limit)
     return src_list
 
-DATATYPE=np.complex128
+REAL_DATATYPE=np.float64
+COMPLEX_DATATYPE=np.complex128
 
 C = 2.99793e8
+
+def omega(freq):
+    r'''
+        Little routine to convert a frequency into omega
+    '''
+    wavelength = C / freq
+    return 2*np.pi / wavelength
 
 def jomega(freq):
     r'''
         Little routine to convert a frequency into j*omega
     '''
-    wavelength = C / freq
-    return 2*np.pi*1.0j / wavelength
+    return 1.0j * omega(freq)
+
     
     
 def get_harmonic(p2j, in_sphere, u, v, w):
@@ -95,12 +105,15 @@ class DiSkOOperator(pylops.LinearOperator):
         self.u_arr = u_arr
         self.v_arr = v_arr
         self.w_arr = w_arr
-        self.dtype=DATATYPE
+        self.dtype=REAL_DATATYPE
         
         try:
             self.n_v, self.n_freq, self.npol = data.shape
         except:
-            raise RuntimeError("Data must be of the shape [n_v, n_freq, n_pol]")
+            raise RuntimeError("Data must be of the shape [n_v*2, n_freq, n_pol]")
+        
+        if (self.n_v != len(self.u_arr)*2):
+            raise RuntimeError("Vis data must be split into [real, imag] {} {}".format(self.n_v, self.u_arr.shape ))
             
         self.M = self.n_v * self.n_freq
         
@@ -112,54 +125,84 @@ class DiSkOOperator(pylops.LinearOperator):
         logger.info("Creating DiSkOOperator data={}".format(self.shape))
         
     def A(self, i, j, p2j):
-        u, v, w = self.u_arr[j], self.v_arr[j], self.w_arr[j]      # the row index (one u,v,w element per vis)
-        l, m, n = self.sphere.l[i], self.sphere.m[i], self.sphere.n[i] # The column index (one l,m,n element per pixel)
-        return np.exp(-p2j*(u*l + v*m + w*(n-1))) * self.sphere.pixel_areas
+        n_vis = len(self.u_arr)
+        u, v, w = self.u_arr[i % n_vis], self.v_arr[i % n_vis], self.w_arr[i % n_vis]      # the row index (one u,v,w element per vis)
+        l, m, n = self.sphere.l[j], self.sphere.m[j], self.sphere.n[j] # The column index (one l,m,n element per pixel)
+         
+        z = np.exp(-p2j*(u*l + v*m + w*(n-1))) * self.sphere.pixel_areas
+        if i < n_vis:
+            return np.real(z)
+        else:
+            return np.imag(z)
 
     def Ah(self, i, j, p2j):
-        np.conj(self.A(j, i, p2j))
+        return np.conj(self.A(j, i, p2j))
     
     def _matvec(self, x):
         '''
             Multiply by the sky x, producing the set of measurements y
             Returns returns A * x.
+            
+            ( v_real    = (T_real   x
+              v_imag )     T_imag)
         '''
-        y = []
-        for f in self.frequencies:
-            p2j = jomega(f)
+        if True:
+            y = []
+            for f in self.frequencies:
+                p2j = jomega(f)
 
-            if True:
-                for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
+                for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr): # For all complex vis
                     column = np.exp(-p2j*(u*self.sphere.l + v*self.sphere.m + w*self.sphere.n_minus_1)) * self.sphere.pixel_areas
-
                     y.append(np.dot(x, column))
-            else:
-                for col in range(self.M):
-                    p = 0.0
-                    
-                    for row in range(self.N):
-                        _x = self.A(row, col, p2j)*x[row]
-                        logger.info("{} * {} = {}".format(self.A(row, col, p2j), x[row], _x))
-                        p += _x
-                    y.append(p)
-                    logger.info("={}".format(p))
-        return np.array(y)
+
+            y = np.array(y)
+            return vis_to_real(y)
+        else:
+            y_re = []
+            y_im = []
+            for f in self.frequencies:
+                p2 = omega(f)
+
+                for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr): # For all complex vis
+                    theta = -p2*(u*self.sphere.l + v*self.sphere.m + w*self.sphere.n_minus_1)  # harmonics
+                    re = np.cos(theta) * self.sphere.pixel_areas
+                    im = np.sin(theta) * self.sphere.pixel_areas
+                    y_re.append(np.dot(x, re))
+                    y_im.append(np.dot(x, im))
+
+            y = np.concatenate( (np.array(y_re), np.array(y_im)) )
+            return y
     
     def _rmatvec(self, v):
         r'''
             Returns x = A^H * v, where A^H is the conjugate transpose of A. 
-            v = A x 
+           
+            x = ( T_real' T_imag') (v_real
+                                    v_imag)
         '''
         assert(v.shape == (self.M,))
-                
+        n_vis = self.M//2
+        
+        vis_complex = v[0:n_vis] + 1.0J*v[n_vis:]
         ret = []
+        
         for f in self.frequencies:
             p2j = jomega(f)
-            
+            p2 = omega(f)
             # Vector version
-            for l, m, n_1 in zip(self.sphere.l, self.sphere.m, self.sphere.n_minus_1):
-                column = np.exp(p2j*(self.u_arr*l + self.v_arr*m + self.w_arr*n_1)) * self.sphere.pixel_areas  # TODO check the pixel areas here.
-                ret.append(np.dot(v, column))
+            for l, m, n_1 in zip(self.sphere.l, self.sphere.m, self.sphere.n_minus_1): # for each pixel
+                if False:
+                    column = np.exp(p2j*(self.u_arr*l + self.v_arr*m + self.w_arr*n_1)) * self.sphere.pixel_areas
+                    ret.append(np.dot(vis_complex, column))
+                else:
+                    theta = -p2*(self.u_arr*l + self.v_arr*m + self.w_arr*n_1)
+                
+                    re = np.cos(theta) * self.sphere.pixel_areas
+                    im = np.sin(theta) * self.sphere.pixel_areas
+                    
+                    reim = np.concatenate((re, im))
+                    assert(reim.shape == (self.M,))
+                    ret.append(np.dot(v, reim))
 
         return np.array(ret)
 
@@ -174,7 +217,7 @@ class DirectImagingOperator(pylops.LinearOperator):
         self.u_arr = u_arr
         self.v_arr = v_arr
         self.w_arr = w_arr
-        self.dtype=DATATYPE
+        self.dtype=REAL_DATATYPE
         
         try:
             self.n_v, self.n_freq, self.npol = data.shape
@@ -198,7 +241,7 @@ class DirectImagingOperator(pylops.LinearOperator):
             
             This is treating the v as a vector in a vector space where the basis vectors are the harmonics. This operator is a transformation from v to R^N
             
-            sky = \sum_v h_i * v_i
+            sky = sum_v h_i * v_i
             
             What do the rows and columns of this matrix look like?
             
@@ -259,7 +302,7 @@ class DiSkO(object):
         u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp = read_ms(ms, num_vis, res_arcmin, chunks, channel)
         
         ret = cls(u_arr, v_arr, w_arr, frequency)
-        ret.vis_arr = np.array(cv_vis, dtype=np.complex128)
+        ret.vis_arr = np.array(cv_vis, dtype=COMPLEX_DATATYPE)
         ret.timestamp = tstamp
         ret.info = hdr
 
@@ -283,7 +326,7 @@ class DiSkO(object):
             v = cal_vis.get_visibility(bl[0], bl[1])  # Handles the conjugate bit
             ret.vis_arr.append(v)
             #logger.info("vis={}, bl={}".format(v, bl))
-        ret.vis_arr = np.array(ret.vis_arr, dtype=DATATYPE)
+        ret.vis_arr = np.array(ret.vis_arr, dtype=COMPLEX_DATATYPE)
         ret.info = {}
         return ret
 
@@ -314,7 +357,7 @@ class DiSkO(object):
 
         Args:
 
-            vis_arr (np.array): An array of visibilities
+            vis_arr (np.array): An array of complex visibilities
             sphere (int):       he healpix sphere.
         """
 
@@ -322,7 +365,7 @@ class DiSkO(object):
         logger.info("Imaging Visabilities nside={}".format(sphere.nside))
         t0 = time.time()
         
-        pixels = np.zeros(sphere.npix, dtype=DATATYPE)
+        pixels = np.zeros(sphere.npix, dtype=COMPLEX_DATATYPE)
         harmonic_list = self.get_harmonics(sphere)
         for h, vis in zip(harmonic_list, vis_arr):
             pixels += vis*h
@@ -330,7 +373,7 @@ class DiSkO(object):
         t1 = time.time()
         logger.info("Elapsed {}s".format(time.time() - t0))
 
-        sphere.set_visible_pixels(pixels)
+        sphere.set_visible_pixels(np.abs(pixels))
         
         return pixels.reshape(-1,1)
 
@@ -341,7 +384,7 @@ class DiSkO(object):
 
         gamma = self.make_gamma(sphere)
         
-        sky, residuals, rank, s = np.linalg.lstsq(gamma, to_column(vis_arr), rcond=None)
+        sky, residuals, rank, s = np.linalg.lstsq(gamma, to_column(vis_to_real(vis_arr)), rcond=None)
         
         logger.info("Elapsed {}s".format(time.time() - t0))
 
@@ -350,11 +393,25 @@ class DiSkO(object):
         return sky.reshape(-1,1)
 
 
+    
+    def vis_to_data(self, vis_arr=None):
+        data = np.zeros((self.n_v*2, 1, 1), dtype=REAL_DATATYPE)
+        if vis_arr is not None:
+            data[:,0,0] = vis_to_real(vis_arr)
+        else:
+            data[:,0,0] = vis_to_real(self.vis_arr)
+            assert(data.shape[0] == self.n_v*2)
+
+        return data
+    
     def solve_matrix_free(self, data, sphere, alpha=0.0, scale=True, fista=False, lsqr=True, lsmr=False):
         '''
             data = [vis_arr, n_freq, n_pol]
         '''
-        logger.info("Solving Visabilities nside={}".format(sphere.nside))
+        logger.info("Solving Visabilities nside={} data={}".format(sphere.nside, data.shape))
+        assert(data.shape[0] == self.n_v*2)
+
+
         t0 = time.time()
 
         frequencies = [self.frequency]
@@ -363,11 +420,15 @@ class DiSkO(object):
         A = DiSkOOperator(self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere)
         Apre = DirectImagingOperator(self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere)
         d = data.flatten()
+        
+        logger.info("Data.shape {}".format(data.shape))
 
         #u,s,vt = spalg.svds(A, k=min(A.shape)-2) 
         #logger.info("t ={}, s={}".format(time.time() - t0, s))      
         if fista:
-            sky, niter =  pylops.optimization.sparsity.FISTA(A, d, tol=1e-2, niter=250, alpha=alpha, show=True)
+            if alpha < 0:
+                alpha = None
+            sky, niter =  pylops.optimization.sparsity.FISTA(A, d, tol=1e-3, niter=2500, alpha=alpha, show=True)
         if lsqr:
             sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=alpha)
             logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))      
@@ -389,54 +450,48 @@ class DiSkO(object):
     def make_gamma(self, sphere):
 
         logger.info("Making Gamma Matrix npix={}".format(sphere.npix))
-        t0 = time.time()
 
         harmonic_list = self.get_harmonics(sphere)
 
         n_s = len(harmonic_list[0])
         n_v = len(harmonic_list)
 
-        if False:
-            gamma = np.zeros((n_v, n_s), dtype=DATATYPE)
-            for i in range(n_v):
-                gamma[i, :] = harmonic_list[i].reshape(n_s).conj()
-        else:
-            gamma = np.array(harmonic_list, dtype=DATATYPE)
-            gamma = gamma.reshape((n_v, n_s))
-            gamma = gamma.conj()
-            
+        gamma = np.array(harmonic_list, dtype=COMPLEX_DATATYPE)
+        gamma = gamma.reshape((n_v, n_s))
+        gamma = gamma.conj()
+
+        g_real = np.real(gamma).astype(REAL_DATATYPE)
+        g_imag = np.imag(gamma).astype(REAL_DATATYPE)
+        ret = np.block([[g_real], [g_imag]])
+
         logger.info('Gamma Shape: {}'.format(gamma.shape))
         #for i, h in enumerate(harmonic_list):
             #gamma[i,:] = h[0]
         
-        return gamma
+        return ret
 
     def image_lasso(self, vis_arr, sphere, alpha, scale=True, use_cv=False):
         gamma = self.make_gamma(sphere)
-        
-        proj_operator_real = np.real(gamma)
-        proj_operator_imag = np.imag(gamma)
-        proj_operator = np.block([[proj_operator_real], [proj_operator_imag]])
-        
-        vis_aux = np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
+                
+        vis_aux = vis_to_real(vis_arr)
         
         # Save proj operator for Further Analysis.
         if False:
             fname = "l1_big_files.npz"
-            np.savez_compressed(fname, gamma_re=proj_operator_real, gamma_im=proj_operator_imag, vis_re=np.real(vis_arr), vis_im=np.imag(vis_arr))
+            np.savez_compressed(fname, gamma_re=gamma, vis_re=np.real(vis_arr), vis_im=np.imag(vis_arr))
             logger.info("Operator file {} saved".format(fname))
             
-            logger.info("proj_operator = {}".format(proj_operator.shape))
+            logger.info("gamma = {}".format(gamma.shape))
             logger.info("vis_aux = {}".format(vis_aux.shape))
         
         n_s = sphere.pixels.shape[0]
         
         if not use_cv:
             reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=1.0, max_iter=10000, positive=True)
-            reg.fit(proj_operator, vis_aux)
+            reg.fit(gamma, vis_aux)
         else:
             reg = linear_model.ElasticNetCV(l1_ratio=1.0, cv=5, max_iter=10000, positive=True)
-            reg.fit(proj_operator, vis_aux)
+            reg.fit(gamma, vis_aux)
             logger.info("Cross Validation = {}".format(reg.alpha_))
 
         sky = reg.coef_
@@ -445,36 +500,6 @@ class DiSkO(object):
         sphere.set_visible_pixels(sky, scale)
         return sky.reshape(-1,1)
 
-    #def sub_image(self, vis_arr, sphere, alpha, scale=True, n=4):
-        #'''
-            #Split an image up and image the bits separately
-        #'''
-        #subspheres = sphere.split(n)
-        #full_soln = np.zeros_like(sphere.pixels)
-        
-        #results = []
-        #for sph in subspheres:
-            #gamma = self.make_gamma(sph)
-            #proj_operator_real = np.real(gamma)
-            #proj_operator_imag = np.imag(gamma)
-            #proj_operator = np.block([[proj_operator_real], [proj_operator_imag]])
-            
-            #vis_aux = np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
-            
-            #n_s = sph.pixels.shape[0]
-
-            #if True:
-                #reg = linear_model.ElasticNet(alpha=alpha, l1_ratio=0.0, max_iter=10000, positive=True)
-                #reg.fit(proj_operator, vis_aux)
-                #subsky = reg.coef_
-            #else:
-                #subsky = dask.linalg.linear.lstsqr()
-            #results.append(subsky)
-            #logger.info("subsky = {}".format(subsky.shape))
-        #full_soln = np.stack(results)
-            
-        #sphere.set_visible_pixels(full_soln, scale)
-        #return full_soln.reshape(-1,1)
         
     def image_tikhonov(self, vis_arr, sphere, alpha, scale=True, usedask=False):
         n_s = sphere.pixels.shape[0]
@@ -483,24 +508,17 @@ class DiSkO(object):
         lambduh = alpha/np.sqrt(n_s)
         if not usedask:
             gamma = self.make_gamma(sphere)
-            logger.info("Building Augmented Operator...")
-            proj_operator_real = np.real(gamma).astype(np.float32)
-            proj_operator_imag = np.imag(gamma).astype(np.float32)
-            gamma = None
-            proj_operator = np.block([[proj_operator_real], [proj_operator_imag]])
-            proj_operator_real = None
-            proj_operator_imag = None 
-            logger.info('augmented: {}'.format(proj_operator.shape))
+            logger.info('augmented: {}'.format(gamma.shape))
             
-            vis_aux = np.array(np.concatenate((np.real(vis_arr), np.imag(vis_arr))), dtype=np.float32)
+            vis_aux = vis_to_real(vis_arr)
             logger.info('vis mean: {} shape: {}'.format(np.mean(vis_aux), vis_aux.shape))
 
             logger.info("Solving...")
             reg = linear_model.ElasticNet(alpha=lambduh, l1_ratio=0.05, max_iter=10000, positive=True)
-            reg.fit(proj_operator, vis_aux)
+            reg.fit(gamma, vis_aux)
             sky = reg.coef_
             
-            score = reg.score(proj_operator, vis_aux)
+            score = reg.score(gamma, vis_aux)
             logger.info('Loss function: {}'.format(score))
             
         else:

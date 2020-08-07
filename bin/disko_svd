@@ -12,7 +12,7 @@ from copy import deepcopy
 
 import numpy as np
 import scipy
-from scipy import misc
+import imageio
 
 from tart.operation import settings
 
@@ -20,7 +20,7 @@ from tart_tools import api_handler
 from tart_tools import api_imaging
 from tart.imaging import elaz
 
-from disko import DiSkO, get_source_list, TelescopeOperator, HealpixSphere, mask_to_sky
+from disko import DiSkO, get_source_list, TelescopeOperator, HealpixSphere, mask_to_sky, vis_to_real
 
 logger = logging.getLogger()
 
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     # Have a look at some harmonics
     
     if ARGS.harmonics:
-        mask = misc.imread(ARGS.mask)
+        mask = imageio.imread(ARGS.mask)
         s = mask_to_sky(mask, ARGS.nside)
         dut = to.gamma @ s
         print("Batman Vis = {}".format(dut))
@@ -195,14 +195,17 @@ if __name__ == '__main__':
         handle_image(ARGS, "psf_gridless" + ARGS.title, time_repr, src_list)
 
     if should_make_images:
-        src_list = get_source_list(source_json, el_limit=ARGS.elevation, jy_limit=1e4)
+        if ARGS.show_sources:
+            src_list = get_source_list(source_json, el_limit=ARGS.elevation, jy_limit=1e4)
 
-        sky = to.image_visibilities(grid.vis_arr, sphere)
+        real_vis = vis_to_real(grid.vis_arr)
+        
+        sky = to.image_visibilities(real_vis, sphere)
         sphere.plot(plt, src_list)
         handle_image(ARGS, "natural" + ARGS.title, time_repr, src_list)
 
         for i in np.linspace(0.0, 1.0, 11):
-            sky = to.image_tikhonov(grid.vis_arr, sphere, float(i))
+            sky = to.image_tikhonov(real_vis, sphere, float(i))
             sphere.plot(plt, src_list)
             handle_image(ARGS, "tikhonov_{:04.2f}".format(i) + ARGS.title, time_repr, src_list)
             pixels = grid.image_lasso(grid.vis_arr, sphere, float(i/5), scale=True)
