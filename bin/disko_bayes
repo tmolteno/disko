@@ -111,7 +111,8 @@ if __name__ == '__main__':
     
     prior = MultivariateGaussian(np.zeros(sphere.npix), np.diag(np.ones(sphere.npix)))
     
-    sky = to.sequential_inference(real_vis, sphere, prior)
+    #sky = to.sequential_inference(real_vis, sphere, prior)
+    sky = to.image_tikhonov(real_vis, sphere, alpha=0.5)
 
     image_title = '{}_{}'.format(ARGS.title, time_repr)
     src_list = None

@@ -144,7 +144,7 @@ class TelescopeOperator:
         The sky is C^n, in other words, we can represent the sky as the direct sum of the null-space of Gamma, and the range of (Gamma^H).
         
         
-        Use SVD. Gamma = U Sigma V^h
+        Use SVD. Gamma = U Sigma V^H
         ma
         The represent the U and V as block matrices.
         
@@ -241,10 +241,13 @@ class TelescopeOperator:
         logger.info("    Sigma {} bytes".format(self.sigma.nbytes))
         logger.info("    Vh {} bytes".format(self.Vh.nbytes))
         logger.info("U = {}".format(self.U.shape))
+        logger.info("sigma = {}".format(self.sigma.shape))
         logger.info("V = {}".format(self.Vh.shape))
         logger.info("rank = {}".format(self.rank))
 
-    
+        self.U_1 = self.U[:, 0:self.rank]
+        self.U_2 = self.U[:, self.rank:]
+
         self.A = self.U @ self.sigma # The new telescope operator.
         self.A_r = self.A[0:self.rank, 0:self.rank]
 
@@ -384,11 +387,12 @@ class TelescopeOperator:
         ''' Do a Tikhonov regularization solution
             using the power of the SVD!
         '''
-        D = np.diag(self.s / (self.s**2 + alpha**2))
+        D = np.array(self.sigma).T
+        np.fill_diagonal(D, self.s / (self.s**2 + alpha**2), wrap=False)
         logger.info("D = {}".format(D.shape))
         logger.info("vis_arr = {}".format(vis_arr.shape))
 
-        sky = self.V_1 @ D @ self.U.conj().T @ vis_arr
+        sky = self.V @ D @ self.U.conj().T @ vis_arr
         sphere.set_visible_pixels(sky, scale)
         return sky
 
@@ -399,20 +403,67 @@ class TelescopeOperator:
             
             prior is a MultivariateGaussian object
             
-            1) Compute the 
+            v = U D V^H s
+            U^H v = D V^H s
+            
+            
+                y = U^H v
+                A = D 
+                x = V^H s = (V_1h V_2h) s
+        
+        v = Gamma s = U Sigma V^H
+        
+        Gamma = [U_1 U_2] [Sigma_1 0] [ V_1^H ]
+                          [ 0      0] [ V_2^H ]
+
+        Let A = U Sigma = [ U_1 Sigma_1     0 ] = [ A_r 0 ]
+                          [       0         0 ]   [  0  0 ]
+        
+        The v = A x = [ A_r  0 ] [x_r] = A_r x_r = U_1 Sigma_1 V_1^H s
+                      [  0   0 ] [x_n]
+                      
+        where x_r = V_1^H s
+              x_n = V_2^H s
+
+        So the steps are
+        
+        1) Solve [U_1^H] v =  [Sigma_1 0] [ V_1^H ] s
+                 [U_2^H]      [ 0      0] [ V_2^H ]
+                 
+                 [U_1^H v] =  [Sigma_1 0] [ V_1^H s ]
+                 [U_2^H v]    [ 0      0] [ V_2^H s ]
+
+                 [U_1^H v] =  [Sigma_1 0] [ x_r ]
+                 [U_2^H v]    [ 0      0] [ x_n ]
+                 
+                 
+                 [U_1^H v] =  [Sigma_1 x_r]
+                 [U_2^H v]    [ 0         ]
+                 
+                 
+                 U_1^H v =  Sigma_1 x_r
+                 
+                 x_r = inv(Sigma_1) y
         '''
-        logger.info("Bayeian Inference of sky (n_s = {})".format(sphere.npix))
+        logger.info("Bayesian Inference of sky (n_s = {})".format(sphere.npix))
         t0 = time.time()
        
+        # project visibility vectors onto the range space of gamma
         logger.info("vis_arr = {}".format(vis_arr.shape))
         y_m = (self.U.conj().T @ vis_arr)[0:self.rank]
         logger.info("y_m = {}".format(y_m.shape))
+
+        y_m = (self.U_1.T @ vis_arr)
+        logger.info("y_m = {}".format(y_m.shape))
         
-        Sigma_r = np.diag(self.s[0:self.rank])
-        x_r = np.linalg.solve(Sigma_r, y_m)
+        s = self.s[0:self.rank]
+        Sigma_r = np.diag(s / (s**2 + 1e-4)) # np.diag(1.0/self.s[0:self.rank])
+        x_r = Sigma_r @ y_m #np.linalg.solve(Sigma_r, y_m)
         
         logger.info("x_r = {}".format(x_r.shape))
 
-        sky = self.V_1 @ x_r
+        x = np.zeros(sphere.npix)
+        x[0:self.rank] = x_r
+        sky = self.natural_to_sky(x) # self.V_1 @ x_r
         sphere.set_visible_pixels(sky, scale=True)
         return sky
