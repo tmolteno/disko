@@ -49,7 +49,7 @@ if __name__ == '__main__':
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--ms', required=False, default=None, help="visibility file")
-    parser.add_argument('--file', required=True, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
+    parser.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
 
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
     parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter. (this is divided by the sqrt of the number of pixels.")
