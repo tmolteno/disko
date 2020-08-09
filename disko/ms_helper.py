@@ -131,6 +131,8 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         # Now report the recommended resolution from the data.
         # 1.0 / 2*np.sin(theta) = limit_u
         limit_uvw = np.max(np.abs(uvw), 0)
+        logger.info("Maximum UVW: {}".format(limit_uvw))
+
         res_limit = get_baseline_resolution(limit_uvw[0], frequency)
         logger.info("Nyquist resolution: {:g} arcmin".format(np.degrees(res_limit)*60.0))
         

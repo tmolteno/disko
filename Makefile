@@ -16,9 +16,14 @@ test2:
 	#	python3 -m unittest  disko.tests.test_subsphere
 	pytest-3 -k test_multivariate
 
+svd:
+	rm -f *.npz
+	/usr/bin/time -v disko_svd  --file test_data/test_data.json  --nside 16
+
 bayes:
-	/usr/bin/time -v disko_bayes --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'bayes'
-# 	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart'
+	rm -f *.npz
+	/usr/bin/time -v disko_bayes --fov 155 --file test_data/test_data.json  --SVG --arcmin=120  --title 'bayes'
+#	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
 
 ngc1194:
 	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000

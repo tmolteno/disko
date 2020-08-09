@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
+SVD_TOL=1e-9
 
 def plot_spectrum(s, n_s, n_v, rank, name):
     plt.figure(num=None, figsize=(6, 4), dpi=300, facecolor='w', edgecolor='k')
@@ -47,7 +48,7 @@ def plot_uv(to, name):
     plt.close()
 
 
-def tf_svd(x, tol=1e-4):
+def tf_svd(x, tol=SVD_TOL):
     import tensorflow as tf
     s, u, v = tf.linalg.svd(x, full_matrices=True, compute_uv=True)
 
@@ -63,7 +64,7 @@ def tf_svd(x, tol=1e-4):
         
     return  [U, s, Vh], rank
 
-def normal_svd(x, tol=1e-4):
+def normal_svd(x, tol=SVD_TOL):
     n_v = x.shape[0]
     n_s = x.shape[1]
 
@@ -84,7 +85,7 @@ def normal_svd(x, tol=1e-4):
     return [U, s, Vh], rank
 
 
-def dask_svd(x, tol=1e-4):
+def dask_svd(x, tol=SVD_TOL):
     # Try and use a tall and thin svd computation. Will need to be done on the hermitian transpose of the telescope operator.
     import dask.array as da
     import dask
@@ -189,7 +190,7 @@ class TelescopeOperator:
     def __init__(self, grid, sphere, use_cache=True):
         self.grid = grid
         self.sphere = sphere
-        self.gamma = grid.make_gamma(sphere)
+        self.gamma = grid.make_gamma(sphere) #, makecomplex=True)
         
         logger.info("Gamma = {}".format(self.gamma.shape))
         self.n_v = self.gamma.shape[0]
@@ -457,13 +458,13 @@ class TelescopeOperator:
         logger.info("y_m = {}".format(y_m.shape))
         
         s = self.s[0:self.rank]
-        Sigma_r = np.diag(s / (s**2 + 1e-4)) # np.diag(1.0/self.s[0:self.rank])
+        Sigma_r = np.diag(s / (s**2 + 1e-2)) # np.diag(1.0/self.s[0:self.rank])
         x_r = Sigma_r @ y_m #np.linalg.solve(Sigma_r, y_m)
         
         logger.info("x_r = {}".format(x_r.shape))
 
         x = np.zeros(sphere.npix)
         x[0:self.rank] = x_r
-        sky = self.natural_to_sky(x) # self.V_1 @ x_r
+        sky = self.V_1 @ x_r
         sphere.set_visible_pixels(sky, scale=True)
         return sky

@@ -447,7 +447,7 @@ class DiSkO(object):
         sphere.set_visible_pixels(sky, scale)
         return sky.reshape(-1,1)
 
-    def make_gamma(self, sphere):
+    def make_gamma(self, sphere, makecomplex=False):
 
         logger.info("Making Gamma Matrix npix={}".format(sphere.npix))
 
@@ -460,6 +460,9 @@ class DiSkO(object):
         gamma = gamma.reshape((n_v, n_s))
         gamma = gamma.conj()
 
+        if makecomplex:
+            return gamma
+        
         g_real = np.real(gamma).astype(REAL_DATATYPE)
         g_imag = np.imag(gamma).astype(REAL_DATATYPE)
         ret = np.block([[g_real], [g_imag]])

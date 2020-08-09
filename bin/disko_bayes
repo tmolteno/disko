@@ -20,7 +20,7 @@ from tart_tools import api_imaging
 from tart.imaging import elaz
 
 
-from disko import DiSkO, get_source_list, TelescopeOperator, HealpixSubSphere, vis_to_real, MultivariateGaussian
+from disko import DiSkO, get_source_list, TelescopeOperator, HealpixSubSphere, HealpixSphere, vis_to_real, MultivariateGaussian
 
 def handle_image(args, img, title, time_repr, src_list=None):
     """ This function manages the output of an image, drawing sources e.t.c."""
@@ -49,6 +49,7 @@ if __name__ == '__main__':
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--ms', required=False, default=None, help="visibility file")
+    parser.add_argument('--file', required=True, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
 
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
     parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter. (this is divided by the sqrt of the number of pixels.")
@@ -91,28 +92,57 @@ if __name__ == '__main__':
     logger.addHandler(ch)
     logger.addHandler(fh)
     
-    logger.info("Getting Data from MS file: {}".format(ARGS.ms))
-    disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel)
-    # Convert from reduced Julian Date to timestamp.
-    timestamp = disko.timestamp
+    if ARGS.file:
+        logger.info("Getting Data from file: {}".format(ARGS.file))
+        # Load data from a JSON file
+        with open(ARGS.file, 'r') as json_file:
+            calib_info = json.load(json_file)
+
+        info = calib_info['info']
+        ant_pos = calib_info['ant_pos']
+        config = settings.from_api_json(info['info'], ant_pos)
+
+        flag_list = [] # [4, 5, 14, 22]
+
+        original_positions = deepcopy(config.get_antenna_positions())
+
+        gains_json = calib_info['gains']
+        gains = np.asarray(gains_json['gain'])
+        phase_offsets = np.asarray(gains_json['phase_offset'])
+        config = settings.from_api_json(info['info'], ant_pos)
+    
+        measurements = []
+        for d in calib_info['data']:
+            vis_json, source_json = d
+            cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains, phase_offsets, flag_list)
+            src_list = elaz.from_json(source_json, 0.0)
+        disko = DiSkO.from_cal_vis(cv)
+    else:
+        logger.info("Getting Data from MS file: {}".format(ARGS.ms))
+        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel)
+        # Convert from reduced Julian Date to timestamp.
+        timestamp = disko.timestamp
         
 
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
 
     # Processing
     
-    nside = ARGS.nside
-    radius = np.radians(ARGS.fov / 2.0)
-    sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
+    if False:
+        nside = ARGS.nside
+        sphere = HealpixSphere(nside)
+        real_vis = disko.vis_arr # vis_to_real(disko.vis_arr)
+    else:
+        radius = np.radians(ARGS.fov / 2.0)
+        sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
+        real_vis = vis_to_real(disko.vis_arr)
     
     to = TelescopeOperator(disko, sphere)
 
-    real_vis = vis_to_real(disko.vis_arr)
-    
     prior = MultivariateGaussian(np.zeros(sphere.npix), np.diag(np.ones(sphere.npix)))
     
-    #sky = to.sequential_inference(real_vis, sphere, prior)
-    sky = to.image_tikhonov(real_vis, sphere, alpha=0.5)
+    sky = to.sequential_inference(real_vis, sphere, prior)
+    #sky = to.image_tikhonov(real_vis, sphere, alpha=5e-6)
 
     image_title = '{}_{}'.format(ARGS.title, time_repr)
     src_list = None
