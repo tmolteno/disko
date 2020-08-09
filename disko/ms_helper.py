@@ -154,7 +154,10 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         
         n_max = len(good_vis)
         
-        indices = np.random.choice(good_data, min(num_vis, n_max))
+        if (n_max == num_vis):
+            indices = np.arange(num_vis)
+        else:
+            indices = np.random.choice(good_data, min(num_vis, n_max), replace=False)
              
         hdr = {
             'CTYPE1': ('RA---SIN', "Right ascension angle cosine"),
@@ -179,9 +182,9 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         #wcs = celestial_frame_to_wcs(frame)
         #wcs.to_header()
 
-        u_arr = uvw[indices,0]
-        v_arr = uvw[indices,1]
-        w_arr = uvw[indices,2]
+        u_arr = uvw[indices,0].T
+        v_arr = uvw[indices,1].T
+        w_arr = uvw[indices,2].T
         
         cv_vis = cv_vis[indices]
         
