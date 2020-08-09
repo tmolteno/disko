@@ -451,15 +451,13 @@ class TelescopeOperator:
        
         # project visibility vectors onto the range space of gamma
         logger.info("vis_arr = {}".format(vis_arr.shape))
-        y_m = (self.U.conj().T @ vis_arr)[0:self.rank]
-        logger.info("y_m = {}".format(y_m.shape))
 
         y_m = (self.U_1.T @ vis_arr)
         logger.info("y_m = {}".format(y_m.shape))
         
         s = self.s[0:self.rank]
-        Sigma_r = np.diag(s / (s**2 + 1e-2)) # np.diag(1.0/self.s[0:self.rank])
-        x_r = Sigma_r @ y_m #np.linalg.solve(Sigma_r, y_m)
+        Sigma_r = np.diag(s / (s**2 + 0.001)) # np.diag(1.0/self.s[0:self.rank])
+        x_r = Sigma_r @ y_m
         
         logger.info("x_r = {}".format(x_r.shape))
 

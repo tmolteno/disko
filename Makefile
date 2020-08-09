@@ -22,9 +22,7 @@ svd:
 
 bayes:
 	rm -f *.npz
-	/usr/bin/time -v disko_bayes --fov 155 --file test_data/test_data.json  --SVG --arcmin=120  --title 'bayes_json'
-	rm -f *.npz
-	/usr/bin/time -v disko_bayes --fov 155 --ms ../tart2ms/test.ms  --SVG --arcmin=120  --title 'bayes_ms'
+	/usr/bin/time -v disko_bayes --fov 155 --ms test_data/test.ms  --SVG --arcmin=120  --title 'bayes_ms'
 #	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
 
 ngc1194:
@@ -58,7 +56,7 @@ tart:
 	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=0.0025 --tikhonov  --title 'tart' # --adaptive 3
 
 mf:
-	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --arcmax=190 --alpha=0.25 --fista --matrix-free
+	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --arcmax=190 --alpha=-0.25 --fista --matrix-free --title 'mf'
 	
 profile:
 	python3 -m cProfile -o disko.prof ./bin/disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --alpha=0.25 --matrix-free --lsqr
