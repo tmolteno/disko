@@ -39,7 +39,7 @@ class MultivariateGaussian:
         return self._sigma_inv
 
 
-    def bayes_update(self, likelihood, measurements):
+    def bayes_update(self, likelihood):
         '''
             Return a new MultivariateGaussian, after update by measurements, 
             
@@ -50,7 +50,7 @@ class MultivariateGaussian:
             See section 3.1 of the documentation
         '''
         sigma_1 = np.linalg.inv(likelihood.sigma_inv() + self.sigma_inv())
-        mu_1 = sigma_1 @ (self.sigma_inv() @ self.mu + likelihood.sigma_inv() @ measurements)
+        mu_1 = sigma_1 @ (self.sigma_inv() @ self.mu + likelihood.sigma_inv() @ likelihood.mu)
         return MultivariateGaussian(mu_1, sigma_1)
     
     

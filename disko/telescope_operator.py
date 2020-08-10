@@ -398,7 +398,7 @@ class TelescopeOperator:
         return sky
 
 
-    def sequential_inference(self, vis_arr, sphere, prior):
+    def sequential_inference(self, prior, vis_arr, sigma_vis):
         '''
             Perform the Bayesian Update of the prior sky. Return the posterior.
             
@@ -460,18 +460,18 @@ class TelescopeOperator:
         logger.info("Bayesian Inference of sky (n_s = {})".format(sphere.npix))
         t0 = time.time()
        
-        # project visibility vectors onto the range space of gamma
-        logger.info("vis_arr = {}".format(vis_arr.shape))
-
-        y_m = (self.U_1.T @ vis_arr)
-        logger.info("y_m = {}".format(y_m.shape))
-        
         s = self.s[0:self.rank]
         Sigma_r = np.diag(s / (s**2 + 0.001)) # np.diag(1.0/self.s[0:self.rank])
-        x_r = Sigma_r @ y_m
-        
-        logger.info("x_r = {}".format(x_r.shape))
 
-        sky = self.V_1 @ x_r
-        sphere.set_visible_pixels(sky, scale=True)
-        return sky
+        lh = MultivariateGaussian(vis_arr, sigma_vis)
+        lh.linear_transform(self.U_1.T)
+        lh.linear_transform(Sigma_r)
+        
+        logger.info("y_m = {}".format(lh.mu.shape))
+
+        posterior = prior.bayes_update(lh)
+        
+        sky = self.V_1 @ posterior.mu
+
+        logger.info("Elapsed {}s".format(time.time() - t0))
+        return posterior, sky
