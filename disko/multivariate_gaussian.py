@@ -38,16 +38,20 @@ class MultivariateGaussian:
             self._sigma_inv = np.linalg.inv(self.sigma)
         return self._sigma_inv
 
-    def bayes_update(self, lh, prior, measurements):
+
+    def bayes_update(self, likelihood, measurements):
         '''
-            Return a new MultivariateGaussian, after update by likelihood, and measurements
+            Return a new MultivariateGaussian, after update by measurements, 
             
-            @param lh, prior
+            @param likelihood, measurements
+            
+            The self variable is the prior.
             
             See section 3.1 of the documentation
         '''
-        sigma_1 = np.linalg.inv(lh.sigma_inv() + prior.sigma_inv())
-        mu_1 = sigma_1 @ (prior.sigma_inv() @ self.mu + lh.sigma_inv() @ measurements)
+        sigma_1 = np.linalg.inv(likelihood.sigma_inv() + self.sigma_inv())
+        mu_1 = sigma_1 @ (self.sigma_inv() @ self.mu + likelihood.sigma_inv() @ measurements)
+        return MultivariateGaussian(mu_1, sigma_1)
     
     
     def linear_transform(self, A, b):

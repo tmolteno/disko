@@ -56,7 +56,7 @@ tart:
 	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=0.0025 --tikhonov  --title 'tart' # --adaptive 3
 
 mf:
-	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --arcmax=190 --alpha=-0.25 --fista --matrix-free --title 'mf'
+	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=30 --arcmax=190 --alpha=0.56 --fista --matrix-free --title 'mf'
 	
 profile:
 	python3 -m cProfile -o disko.prof ./bin/disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --alpha=0.25 --matrix-free --lsqr

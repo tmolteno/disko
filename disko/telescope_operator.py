@@ -445,6 +445,17 @@ class TelescopeOperator:
                  U_1^H v =  Sigma_1 x_r
                  
                  x_r = inv(Sigma_1) y
+                 
+        Bayesian Approach:
+        
+            lh = MultivariateGaussian(A_r^-1 @ v_m, sigma_m) # Measurement Likelihood
+            
+            lh = N(v_m, sigma_m).
+            lh_natural_range = lh.linear_transform(inv(Sigma_1))
+            
+            prior = MultivariateGaussian(np.zeros(, sigma_0) 
+            prior.bayes_update(lh, v_m)
+            
         '''
         logger.info("Bayesian Inference of sky (n_s = {})".format(sphere.npix))
         t0 = time.time()
@@ -461,8 +472,6 @@ class TelescopeOperator:
         
         logger.info("x_r = {}".format(x_r.shape))
 
-        x = np.zeros(sphere.npix)
-        x[0:self.rank] = x_r
         sky = self.V_1 @ x_r
         sphere.set_visible_pixels(sky, scale=True)
         return sky
