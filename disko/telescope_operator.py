@@ -457,21 +457,27 @@ class TelescopeOperator:
             prior.bayes_update(lh, v_m)
             
         '''
-        logger.info("Bayesian Inference of sky (n_s = {})".format(sphere.npix))
+        logger.info("Bayesian Inference of sky (n_s = {})".format(prior.D))
         t0 = time.time()
        
         s = self.s[0:self.rank]
-        Sigma_r = np.diag(s / (s**2 + 0.001)) # np.diag(1.0/self.s[0:self.rank])
+        Sigma_r = np.diag(s / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
 
         lh = MultivariateGaussian(vis_arr, sigma_vis)
-        lh.linear_transform(self.U_1.T)
-        lh.linear_transform(Sigma_r)
+        lh = lh.linear_transform(self.U_1.T)
+        lh = lh.linear_transform(Sigma_r)
         
         logger.info("y_m = {}".format(lh.mu.shape))
 
         posterior = prior.bayes_update(lh)
         
-        sky = self.V_1 @ posterior.mu
-
         logger.info("Elapsed {}s".format(time.time() - t0))
-        return posterior, sky
+        return posterior
+
+    def get_natural_prior(self):
+        prior = MultivariateGaussian(0.05*np.ones(self.n_s), np.identity(self.n_s))
+        natural_prior = prior.linear_transform(self.Vh)
+        
+        # Pull the block from the natural_prior that is the range_space prior
+        
+        return natural_prior

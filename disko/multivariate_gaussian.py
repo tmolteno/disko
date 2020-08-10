@@ -54,15 +54,21 @@ class MultivariateGaussian:
         return MultivariateGaussian(mu_1, sigma_1)
     
     
-    def linear_transform(self, A, b):
+    def linear_transform(self, A, b=None):
         '''
             Linear transform
             y = A x + b
         '''
-        sigma_1 = A @ self.sigma @ self.sigma.T
-        mu_1 = A @ self.mu + b
+        sigma_1 = A @ self.sigma @ A.T
+        if b is None:
+            mu_1 = A @ self.mu
+        else:
+            mu_1 = A @ self.mu + b
+
         return MultivariateGaussian(mu_1, sigma_1)
     
+    def block(self, start, stop):
+        return MultivariateGaussian(self.mu[start:stop], self.sigma[start:stop, start:stop])
     
     def sample(self):
         '''

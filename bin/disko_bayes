@@ -58,6 +58,8 @@ if __name__ == '__main__':
     parser.add_argument('--arcmin', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
     parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
 
+    parser.add_argument('--sigma-v', type=float, default=0.001, help="Diagonal components of the visibility covariance")
+
     parser.add_argument('--display', action="store_true", help="Display Image to the user.")
 
     parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
@@ -139,10 +141,30 @@ if __name__ == '__main__':
     
     to = TelescopeOperator(disko, sphere)
 
-    prior = MultivariateGaussian(np.zeros(sphere.npix), np.diag(np.ones(sphere.npix)))
+    if True:
+        prior = to.get_natural_prior()
     
-    posterior, sky = to.sequential_inference(prior, real_vis)
-    #sky = to.image_tikhonov(real_vis, sphere, alpha=5e-6)
+        prior_r = prior.block(0,to.rank)
+        prior_n = prior.block(to.rank,to.n_s)
+        
+        n_v = real_vis.shape[0]
+        
+        sigma_vis = ARGS.sigma_v*np.identity(n_v)
+        
+        posterior_r = to.sequential_inference(prior_r, real_vis, sigma_vis)
+        posterior_n = prior_n
+        
+        natural_sky = np.block([posterior_r.mu, posterior_n.mu])
+        # natural_sky = np.block([np.diagonal(posterior_r.sigma), np.diagonal(posterior_n.sigma)])
+        
+        
+        sky = to.natural_to_sky(natural_sky)
+        
+        logger.info("sky {}, mu={}".format(sky.shape, np.mean(sky)))
+        
+        sphere.set_visible_pixels(sky, scale=False)
+    else:
+        sky = to.image_tikhonov(real_vis, sphere, alpha=5e-1, scale=False)
 
     image_title = '{}_{}'.format(ARGS.title, time_repr)
     src_list = None

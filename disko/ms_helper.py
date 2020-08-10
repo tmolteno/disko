@@ -154,8 +154,8 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         
         n_max = len(good_vis)
         
-        if (n_max == num_vis):
-            indices = np.arange(num_vis)
+        if (n_max <= num_vis):
+            indices = np.arange(n_max)
         else:
             indices = np.random.choice(good_data, min(num_vis, n_max), replace=False)
              
