@@ -39,7 +39,7 @@ class MultivariateGaussian:
         return self._sigma_inv
 
 
-    def bayes_update(self, likelihood):
+    def bayes_update(self, likelihood, A):
         '''
             Return a new MultivariateGaussian, after update by measurements, 
             
@@ -47,10 +47,10 @@ class MultivariateGaussian:
             
             The self variable is the prior.
             
-            See section 3.1 of the documentation
+            See https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf p92
         '''
-        sigma_1 = np.linalg.inv(likelihood.sigma_inv() + self.sigma_inv())
-        mu_1 = sigma_1 @ (self.sigma_inv() @ self.mu + likelihood.sigma_inv() @ likelihood.mu)
+        sigma_1 = np.linalg.inv(self.sigma_inv() + A.T @ likelihood.sigma_inv() @ A)
+        mu_1 = sigma_1 @ (self.sigma_inv() @ self.mu + A.T @ likelihood.sigma_inv() @ likelihood.mu)
         return MultivariateGaussian(mu_1, sigma_1)
     
     

@@ -461,15 +461,14 @@ class TelescopeOperator:
         t0 = time.time()
        
         s = self.s[0:self.rank]
-        Sigma_r = np.diag(s / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
+        A = s # np.diag(s / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
 
         lh = MultivariateGaussian(vis_arr, sigma_vis)
         lh = lh.linear_transform(self.U_1.T)
-        lh = lh.linear_transform(Sigma_r)
         
         logger.info("y_m = {}".format(lh.mu.shape))
 
-        posterior = prior.bayes_update(lh)
+        posterior = prior.bayes_update(lh, A)
         
         logger.info("Elapsed {}s".format(time.time() - t0))
         return posterior
