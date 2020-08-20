@@ -40,6 +40,7 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
+0.9.0b3 Full Bayesian Inference is workin.
 0.9.0b2 Add a multivariate gaussian object. Fix ms_helper. Handle the case where the rank of the telescope operator is not full.
 0.9.0b1 Move to a real telescope operator.
 0.8.0b5 Allow FISTA to calculate its own largest eigenvalue if negative values are passed in.

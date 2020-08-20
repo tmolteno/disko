@@ -480,7 +480,7 @@ class TelescopeOperator:
 
         A = self.U_1 @ D 
         
-        posterior_r = prior_r.bayes_update(precision, vis_arr, A)
+        posterior_r = prior_r.bayes_update(precision, vis_arr, self.A_r)
         posterior_n = prior_n
         
         posterior = MultivariateGaussian.outer(posterior_r, posterior_n)
