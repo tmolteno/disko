@@ -367,16 +367,19 @@ class TelescopeOperator:
         logger.info("Imaging Natural nside={}".format(sphere.nside))
         t0 = time.time()
 
-        x_r = np.linalg.solve(self.A_r, vis_arr)
-        #x_n = to_column(np.zeros(self.n_n()))
-        #logging.info("x_r = {}".format(x_r.shape))
-        #logging.info("x_n = {}".format(x_n.shape))
+        s = self.s[0:self.rank]
+        D = np.diag(s / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
 
-        #x = np.concatenate((x_r, x_n)).reshape([-1,1])
-        #logging.info("x = {}".format(x.shape))
+        x_r = D @ self.U_1.T @ vis_arr # np.linalg.solve(self.A_r, vis_arr)
+        x_n = np.zeros(self.n_n())
+        logging.info("x_r = {}".format(x_r.shape))
+        logging.info("x_n = {}".format(x_n.shape))
+
+        x = np.block([x_r, x_n])
+        logging.info("x = {}".format(x.shape))
         
-        #sphere.set_visible_pixels(self.natural_to_sky(x))
-        sky = self.V_1 @ x_r
+        sky = self.natural_to_sky(x)
+        #sky = self.V_1 @ x_r
         sphere.set_visible_pixels(sky, scale)
         
         logger.info("Elapsed {}s".format(time.time() - t0))
@@ -460,23 +463,35 @@ class TelescopeOperator:
         logger.info("Bayesian Inference of sky (n_s = {})".format(prior.D))
         t0 = time.time()
        
-        s = self.s[0:self.rank]
-        A = s # np.diag(s / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
+        #s = self.s[0:self.rank]
+        #A = self.U_1.T @ s # np.diag(s / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
 
-        lh = MultivariateGaussian(vis_arr, sigma_vis)
-        lh = lh.linear_transform(self.U_1.T)
+        precision = np.linalg.inv(sigma_vis)
         
-        logger.info("y_m = {}".format(lh.mu.shape))
+        logger.info("y_m = {}".format(vis_arr.shape))
 
-        posterior = prior.bayes_update(lh, A)
+
+        # Pull the block from the natural_prior that is the range_space prior
+        prior_r = prior.block(0,self.rank)
+        prior_n = prior.block(self.rank,self.n_s)
+
+        s = self.s[0:self.rank]
+        D = np.diag(s / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
+
+        A = self.U_1 @ D 
+        
+        posterior_r = prior_r.bayes_update(precision, vis_arr, A)
+        posterior_n = prior_n
+        
+        posterior = MultivariateGaussian.outer(posterior_r, posterior_n)
+        posterior = posterior.linear_transform(self.V)
         
         logger.info("Elapsed {}s".format(time.time() - t0))
         return posterior
 
     def get_natural_prior(self):
-        prior = MultivariateGaussian(0.05*np.ones(self.n_s), np.identity(self.n_s))
+        prior = MultivariateGaussian(np.zeros(self.n_s), np.identity(self.n_s))
         natural_prior = prior.linear_transform(self.Vh)
         
-        # Pull the block from the natural_prior that is the range_space prior
-        
+
         return natural_prior

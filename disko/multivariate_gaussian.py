@@ -1,4 +1,11 @@
+import scipy
+import logging
+
 import numpy as np
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
+logger.setLevel(logging.INFO)
 
 class MultivariateGaussian:
     '''
@@ -28,8 +35,10 @@ class MultivariateGaussian:
         self.dtype = np.float64
         
         if (sigma.shape[0] != self.D) or (sigma.shape[1] != self.D):
-            raise ValueError('Covariance sigma {} must be a {}x{} square matrix'.format(sigma.shape, self.D))
+            raise ValueError('Covariance sigma {} must be a {}x{} square matrix'.format(sigma.shape, self.D, self.D))
     
+        logger.info("MultivariateGaussian({}, {})".format(mu.shape, sigma.shape))
+        
         self._sigma_inv = None
         self._A = None
     
@@ -39,7 +48,7 @@ class MultivariateGaussian:
         return self._sigma_inv
 
 
-    def bayes_update(self, likelihood, A):
+    def bayes_update(self, precision_y, y, A):
         '''
             Return a new MultivariateGaussian, after update by measurements, 
             
@@ -49,8 +58,11 @@ class MultivariateGaussian:
             
             See https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf p92
         '''
-        sigma_1 = np.linalg.inv(self.sigma_inv() + A.T @ likelihood.sigma_inv() @ A)
-        mu_1 = sigma_1 @ (self.sigma_inv() @ self.mu + A.T @ likelihood.sigma_inv() @ likelihood.mu)
+        L = precision_y
+        atl = A.T @ L
+        
+        sigma_1 = np.linalg.inv(self.sigma_inv() + atl @ A)
+        mu_1 = sigma_1 @ (self.sigma_inv() @ self.mu + atl @ y)
         return MultivariateGaussian(mu_1, sigma_1)
     
     
@@ -70,6 +82,12 @@ class MultivariateGaussian:
     def block(self, start, stop):
         return MultivariateGaussian(self.mu[start:stop], self.sigma[start:stop, start:stop])
     
+    @classmethod
+    def outer(self, a, b):
+        mu = np.block([a.mu, b.mu])
+        sigma = scipy.linalg.block_diag(a.sigma, b.sigma)
+        return MultivariateGaussian(mu, sigma)
+
     def sample(self):
         '''
             Return a sample from this multivariate distribution

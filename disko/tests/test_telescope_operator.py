@@ -198,7 +198,12 @@ class TestTelescopeOperator(unittest.TestCase):
             self.assertAlmostEqual(v1[0], v2[0])
             
 
-
+    def test_A(self):
+    
+        Ar = self.to.U_1 @ self.to.sigma[0:self.to.rank, 0:self.to.rank] # The new telescope operator.
+        self.assertEqual(Ar.shape[0], self.to.A_r.shape[0])
+        self.assertEqual(Ar.shape[1], self.to.A_r.shape[1])
+        
 
     def test_imaging_vs_natural(self):
         ### Check that v = A_r x_r is the same as Gamma s
@@ -218,3 +223,15 @@ class TestTelescopeOperator(unittest.TestCase):
             self.assertAlmostEqual(v1[0], v2[0])
             
 
+    def test_bayes(self):
+        sky = self.get_point_sky()
+        vis = self.to.gamma @ sky
+        
+        prior_r, prior_n = self.to.get_natural_prior()
+        
+        sigma_vis = 1e-6*np.identity(self.to.n_v)
+
+        posterior_r = to.sequential_inference(prior_r, vis, sigma_vis)
+
+        
+        

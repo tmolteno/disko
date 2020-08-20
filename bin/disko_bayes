@@ -144,27 +144,19 @@ if __name__ == '__main__':
     if True:
         prior = to.get_natural_prior()
     
-        prior_r = prior.block(0,to.rank)
-        prior_n = prior.block(to.rank,to.n_s)
-        
         n_v = real_vis.shape[0]
         
         sigma_vis = ARGS.sigma_v*np.identity(n_v)
         
-        posterior_r = to.sequential_inference(prior_r, real_vis, sigma_vis)
-        posterior_n = prior_n
+        posterior = to.sequential_inference(prior, real_vis, sigma_vis)
         
-        natural_sky = np.block([posterior_r.mu, posterior_n.mu])
-        # natural_sky = np.block([np.diagonal(posterior_r.sigma), np.diagonal(posterior_n.sigma)])
-        
-        
-        sky = to.natural_to_sky(natural_sky)
+        sky = posterior.mu # posterior.sigma.diagonal()
         
         logger.info("sky {}, mu={}".format(sky.shape, np.mean(sky)))
         
         sphere.set_visible_pixels(sky, scale=False)
     else:
-        sky = to.image_tikhonov(real_vis, sphere, alpha=5e-1, scale=False)
+        sky = to.image_natural(real_vis, sphere, scale=False)
 
     image_title = '{}_{}'.format(ARGS.title, time_repr)
     src_list = None
