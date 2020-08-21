@@ -250,7 +250,9 @@ class TelescopeOperator:
         self.U_2 = self.U[:, self.rank:]
 
         self.A = self.U @ self.sigma # The new telescope operator.
-        self.A_r = self.A[0:self.rank, 0:self.rank]
+        self.sigma_1 = self.sigma[0:self.rank, 0:self.rank]
+        #self.A_r = self.A[0:self.rank, 0:self.rank] # This is the mistake. It is not square if m > n (system is overdetermined)
+        self.A_r = self.U_1 @ self.sigma_1 # 
 
         logger.info("V_1 = {}".format(self.V_1.shape))
         logger.info("V_2 = {}".format(self.V_2.shape))
