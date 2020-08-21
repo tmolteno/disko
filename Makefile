@@ -22,7 +22,7 @@ svd:
 
 bayes:
 	#rm -f *.npz
-	/usr/bin/time -v disko_bayes --fov 155 --ms test_data/test.ms  --SVG --arcmin=120  --title 'bayes_tart' --sigma-v=0.1 --PNG
+	/usr/bin/time -v disko_bayes --fov 155 --ms test_data/test.ms  --SVG --arcmin=120  --title 'bayes_tart' --sigma-v=0.1 
 #	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
 
 ngc1194:
@@ -34,7 +34,7 @@ adaptive:
 	
 
 cygnus:
-	/usr/bin/time -v disko_bayes --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.05 --nvis 6000 --sigma-v 0.0025 --title 'cygnus'
+	/usr/bin/time -v disko_bayes --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.1 --nvis 6000 --sigma-v 0.0025 --title 'cygnus'
 #Mem 4G for 22260 x 3000
 #Mem 16G 90000 x 3000
 #Mem 160G 90000 x 30000
