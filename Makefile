@@ -22,7 +22,7 @@ svd:
 
 bayes:
 	#rm -f *.npz
-	/usr/bin/time -v disko_bayes --fov 155 --ms test_data/test.ms  --SVG --arcmin=120  --title 'bayes_tart' --sigma-v=0.001 --PNG
+	/usr/bin/time -v disko_bayes --fov 180 --ms test_data/test.ms  --SVG --arcmin=120  --title 'bayes_tart' --sigma-v=0.1 --PNG
 #	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
 
 ngc1194:
@@ -30,11 +30,11 @@ ngc1194:
 
 adaptive:
 	rm -f round*.vtk
-	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.007 --arcmax=0.1 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus' --adaptive 50
+	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.07 --arcmax=0.1 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus' --adaptive 50
 	
 
 cygnus:
-	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.1 --arcmax=0.1 --matrix-free --nvis 6000 --alpha 0.0025 --title 'cygnus'
+	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.1 --arcmax=0.1 --tikhonov --nvis 6000 --alpha 0.0025 --title 'cygnus'
 #Mem 4G for 22260 x 3000
 #Mem 16G 90000 x 3000
 #Mem 160G 90000 x 30000

@@ -143,50 +143,52 @@ if __name__ == '__main__':
 
     n_v = real_vis.shape[0]
     
-    sigma_vis = ARGS.sigma_v*np.identity(n_v)
+    sigma_vis = np.identity(n_v)*(ARGS.sigma_v)**2
     
     posterior = to.sequential_inference(prior, real_vis, sigma_vis)
     
-    image_title = '{}_{}'.format(ARGS.title, time_repr)
     src_list = None
 
     # Now save the files.
-    def path(ending):
+
+    def path(ending, image_title):
         fname = '{}.{}'.format(image_title, ending)
         return os.path.join(ARGS.dir, fname)
 
-    def save_images():
+    def save_images(image_title):
         # Save as a FITS file
-        sphere.to_fits(fname=path('fits'), fov=ARGS.fov, info=disko.info)
+        sphere.to_fits(fname=path('fits', image_title), fov=ARGS.fov, info=disko.info)
         
         if ARGS.SVG:
-            fname = path('svg')
+            fname = path('svg', image_title)
             sphere.to_svg(fname=fname, show_grid=True, src_list=src_list, fov=ARGS.fov, title=image_title)
             logger.info("Generating {}".format(fname))
         if ARGS.PNG:
-            fname = path('png')
+            fname = path('png', image_title)
             sphere.plot(plt, src_list)
             plt.title(image_title)
             plt.savefig(fname, dpi=300)
             plt.close()
             logger.info("Generating {}".format(fname))
         if ARGS.PDF:
-            fname = path('pdf')
+            fname = path('pdf', image_title)
             sphere.plot(plt, src_list)
             plt.title(image_title)
             plt.savefig(fname, dpi=600)
             plt.close()
             logger.info("Generating {}".format(fname))
 
-    image_title = '{}_{}_mu'.format(ARGS.title, time_repr)
     sphere.set_visible_pixels(posterior.mu, scale=False)
-    save_images()
+    save_images('{}_{}_mu'.format(ARGS.title, time_repr))
     
-    image_title = '{}_{}_cov'.format(ARGS.title, time_repr)
-    sphere.set_visible_pixels(posterior.sigma.diagonal(), scale=False)
-    save_images()
+    sphere.set_visible_pixels(np.sqrt(posterior.sigma.diagonal()), scale=False)
+    save_images('{}_{}_cov'.format(ARGS.title, time_repr))
+    
+    pix_cov=posterior.sigma[0,:]
+    pix_cov=np.clip(pix_cov, -1.0e-1, 1.0e-1)
+    sphere.set_visible_pixels(pix_cov, scale=False)
+    save_images('{}_{}_pix'.format(ARGS.title, time_repr))
     
     for i in range(4):
-        image_title = '{}_{}_s{}'.format(ARGS.title, time_repr, i)
         sphere.set_visible_pixels(posterior.sample(), scale=False)
-        save_images()
+        save_images(image_title = '{}_{}_s{}'.format(ARGS.title, time_repr, i))
