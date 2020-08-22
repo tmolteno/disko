@@ -27,7 +27,7 @@ class TestMultivariate(unittest.TestCase):
 
         y = x.linear_transform(sigma*3, mu+2)
         
-        self.assertAlmostEqual(y.sigma[0,0], 3)
+        self.assertAlmostEqual(y.sigma[0,0], 9)
         self.assertAlmostEqual(y.mu[0], 5)
 
     def test_sampling(self):

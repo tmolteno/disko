@@ -187,7 +187,7 @@ class TelescopeOperator:
             
                  s = V_1 A_r^{-1} v
     '''
-    def __init__(self, grid, sphere, use_cache=True):
+    def __init__(self, grid, sphere, use_cache=False):
         self.grid = grid
         self.sphere = sphere
         self.gamma = grid.make_gamma(sphere) #, makecomplex=True)
@@ -211,7 +211,6 @@ class TelescopeOperator:
             self.s = npzfile['s']
             self.sigma = npzfile['sigma']
             self.rank = npzfile['rank']
-            self.P_r = npzfile['P_r']
             self.V = self.Vh.conj().T
             self.V_1 = self.V[:, 0:self.rank]
             self.V_2 = self.V[:, self.rank:]
@@ -231,11 +230,11 @@ class TelescopeOperator:
             self.V_1 = self.V[:, 0:self.rank]
             self.V_2 = self.V[:, self.rank:]
             self.V_1h = self.V_1.conj().T
-            logger.info("Calculating orthogonal projections")
+            #logger.info("Calculating orthogonal projections")
 
-            self.P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
+            #self.P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
 
-            np.savez_compressed(fname, U=self.U, Vh=self.Vh, s=self.s, sigma=self.sigma, rank=rank, P_r=self.P_r)
+            np.savez_compressed(fname, U=self.U, Vh=self.Vh, s=self.s, sigma=self.sigma, rank=rank)
             logger.info("Cache file {} saved".format(fname))
 
         logger.info("    U  {} bytes".format(self.U.nbytes))
@@ -261,7 +260,7 @@ class TelescopeOperator:
         logger.info("A = {}".format(self.A.shape))
         logger.info("A_r = {}".format(self.A_r.shape))
         
-        logger.info("P_r = {}".format(self.P_r.shape)) # Projection onto the range space of A
+        #logger.info("P_r = {}".format(self.P_r.shape)) # Projection onto the range space of A
         #self.P_n = self.V_2 @ self.V_2.conj().T  # Projection onto the null-space of AA^H
         #logger.info("P_n = {}".format(self.P_n.shape))
 
@@ -476,11 +475,6 @@ class TelescopeOperator:
         # Pull the block from the natural_prior that is the range_space prior
         prior_r = prior.block(0,self.rank)
         prior_n = prior.block(self.rank,self.n_s)
-
-        s = self.s[0:self.rank]
-        D = np.diag(s / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
-
-        A = self.U_1 @ D 
         
         posterior_r = prior_r.bayes_update(precision, vis_arr, self.A_r)
         posterior_n = prior_n
