@@ -132,6 +132,8 @@ class AdaptiveMeshSphere(HealpixSphere):
         
     def refine_adding(self, gradr, pairs):
         
+        logger.info("gradr {}".format(gradr.shape))
+        
         grad = gradr[:,0]
         rlist = gradr[:,1]
         
@@ -214,8 +216,8 @@ class AdaptiveMeshSphere(HealpixSphere):
         #plt.show()
 
         # and write it to a file
-        meshio.write_points_cells(fname, self.tri.points, {"triangle": self.tri.simplices}, 
-                                  cell_data={'triangle': {'flux': self.pixels}})
+        meshio.write_points_cells(fname, self.tri.points, [("triangle", self.tri.simplices)], 
+                                  cell_data={'flux': [self.pixels]})
 
         
     def set_lmn(self):

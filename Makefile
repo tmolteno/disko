@@ -53,10 +53,10 @@ cygnus_center:
 	disko --fov 0.02 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.012 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
 	
 tart:
-	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=190 --alpha=0.0025 --tikhonov  --title 'tart' # --adaptive 3
+	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=30 --arcmax=90 --alpha=0.0025 --tikhonov  --title 'tart'
 
 mf:
-	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=30 --arcmax=190 --alpha=0.56 --fista --matrix-free --title 'mf'
+	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=30 --arcmax=190 --alpha=-0.56 --fista --matrix-free --title 'mf'
 	
 profile:
 	python3 -m cProfile -o disko.prof ./bin/disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --alpha=0.25 --matrix-free --lsqr
