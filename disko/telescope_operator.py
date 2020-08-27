@@ -217,7 +217,7 @@ class TelescopeOperator:
             self.V_1h = self.V_1.conj().T
             
         else:
-            logger.info("Performing SVD. Writing to cache: {}".format(fname))
+            logger.info("Performing SVD.")
             
             ### Take the SVD of the gamma matrix.
             [self.U, self.s, self.Vh], rank = normal_svd(np.array(self.gamma))
@@ -234,8 +234,10 @@ class TelescopeOperator:
 
             #self.P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
 
-            np.savez_compressed(fname, U=self.U, Vh=self.Vh, s=self.s, sigma=self.sigma, rank=rank)
-            logger.info("Cache file {} saved".format(fname))
+            if use_cache:
+                logger.info("Writing to cache: {}".format(fname))
+                np.savez_compressed(fname, U=self.U, Vh=self.Vh, s=self.s, sigma=self.sigma, rank=rank)
+                logger.info("Cache file {} saved".format(fname))
 
         logger.info("    U  {} bytes".format(self.U.nbytes))
         logger.info("    Sigma {} bytes".format(self.sigma.nbytes))
