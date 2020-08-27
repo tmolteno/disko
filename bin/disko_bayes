@@ -67,6 +67,9 @@ if __name__ == '__main__':
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
+    parser.add_argument('--FITS', action="store_true", help="Generate a FITS format image.")
+
+    parser.add_argument('--nsamples', type=int, default=3, help="Number of samples to save from the posterior.")
 
     parser.add_argument('--title', required=False, default="disko", help="Prefix the output files.")
 
@@ -160,7 +163,8 @@ if __name__ == '__main__':
 
     def save_images(image_title):
         # Save as a FITS file
-        sphere.to_fits(fname=path('fits', image_title), fov=ARGS.fov, info=disko.info)
+        if ARGS.FITS:
+            sphere.to_fits(fname=path('fits', image_title), fov=ARGS.fov, info=disko.info)
         
         if ARGS.SVG:
             fname = path('svg', image_title)
@@ -185,12 +189,12 @@ if __name__ == '__main__':
     save_images('{}_{}_mu'.format(ARGS.title, time_repr))
     
     sphere.set_visible_pixels(np.sqrt(posterior.sigma.diagonal()), scale=False)
-    save_images('{}_{}_cov'.format(ARGS.title, time_repr))
+    save_images('{}_{}_var'.format(ARGS.title, time_repr))
     
     pix_cov=posterior.sigma[0,:]
     sphere.set_visible_pixels(pix_cov, scale=False)
     save_images('{}_{}_pcf'.format(ARGS.title, time_repr))
     
-    for i in range(4):
+    for i in range(ARGS.nsamples):
         sphere.set_visible_pixels(posterior.sample(), scale=False)
-        save_images(image_title = '{}_{}_s{}'.format(ARGS.title, time_repr, i))
+        save_images(image_title = '{}_{}_s{:0>5}'.format(ARGS.title, time_repr, i))
