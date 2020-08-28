@@ -61,7 +61,7 @@ if __name__ == '__main__':
     parser.add_argument('--arcmin', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
     parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
 
-    parser.add_argument('--sigma-v', type=float, default=0.001, help="Diagonal components of the visibility covariance")
+    parser.add_argument('--sigma-v', type=float, default=None, help="Diagonal components of the visibility covariance. If not supplied use measurement set values")
 
     parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     ARGS = parser.parse_args()
 
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     fh = logging.FileHandler('disko.log')
     fh.setLevel(logging.INFO)
@@ -149,7 +149,14 @@ if __name__ == '__main__':
 
     n_v = real_vis.shape[0]
     
-    sigma_vis = np.identity(n_v)*(ARGS.sigma_v)**2
+    # TODO create a proper covariance that ensures the real and imaginary components are linked.
+    if ARGS.sigma_v is None:
+        diag = np.diagflat(disko.rms)
+        
+        sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]])
+        logger.info("Using measurement set sigma {}".format(np.percentile(disko.rms, [5,50,95])))
+    else:
+        sigma_vis = np.identity(n_v)*(ARGS.sigma_v)**2
     
     posterior = to.sequential_inference(prior, real_vis, sigma_vis)
     

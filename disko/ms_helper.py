@@ -103,8 +103,10 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         for ds in datasets:
             logger.info("DATA shape: {}".format(ds.DATA.data.shape))
             logger.info("UVW shape: {}".format(ds.UVW.data.shape))
+            logger.info("SIGMA shape: {}".format(ds.SIGMA.data.shape))
 
             uvw = np.array(ds.UVW.data)   # UVW is stored in meters!
+            sigma = np.array(ds.SIGMA.data)[:,pol]   # UVW is stored in meters!
             ant1 = np.array(ds.ANTENNA1.data)
             ant2 = np.array(ds.ANTENNA2.data)
             flags = np.array(ds.FLAG.data)
@@ -186,12 +188,14 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         v_arr = uvw[indices,1].T
         w_arr = uvw[indices,2].T
         
+        rms_arr = sigma[indices].T
+        
         cv_vis = cv_vis[indices]
         
         # Convert from reduced Julian Date to timestamp.
         timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,
                                       tzinfo=datetime.timezone.utc) + datetime.timedelta(seconds=epoch_seconds)
 
-        return u_arr, v_arr, w_arr, frequency, cv_vis, hdr, timestamp
+        return u_arr, v_arr, w_arr, frequency, cv_vis, hdr, timestamp, rms_arr
         
 

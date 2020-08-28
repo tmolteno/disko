@@ -69,7 +69,6 @@ def normal_svd(x, tol=SVD_TOL):
     n_s = x.shape[1]
 
     [U, s, Vh] = scipy.linalg.svd(np.array(x), full_matrices=True)
-    logger.info("s = {}".format(s))
     try:
         rank = np.min(np.argwhere(s < tol))
     except:
@@ -223,7 +222,6 @@ class TelescopeOperator:
             [self.U, self.s, self.Vh], rank = normal_svd(np.array(self.gamma))
             self.rank = rank
             
-            logger.info("S = {}".format(self.s))
             self.sigma = scipy.linalg.diagsvd(self.s, self.n_v, self.n_s)
 
             self.V = self.Vh.conj().T
