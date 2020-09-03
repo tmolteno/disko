@@ -1,3 +1,5 @@
+*lock
+*.prof
 *.fits
 *.svg
 *.pdf
