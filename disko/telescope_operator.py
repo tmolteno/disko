@@ -492,7 +492,11 @@ class TelescopeOperator:
         return posterior
 
     def get_natural_prior(self):
-        prior = MultivariateGaussian(np.zeros(self.n_s), sigma=np.identity(self.n_s))
+        
+        # What range should the image have.
+        p05, p50, p95, p100 = self.grid.vis_stats()
+        
+        prior = MultivariateGaussian(np.zeros(self.n_s) + p50, sigma=p50*np.identity(self.n_s))
         natural_prior = prior.linear_transform(self.Vh)
         
 

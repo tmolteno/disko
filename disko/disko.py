@@ -307,17 +307,19 @@ class DiSkO(object):
         ret.rms = rms
         ret.info = hdr
 
-        vabs = np.abs(ret.vis_arr)
+        return ret
+
+
+    def vis_stats(self):
+        vabs = np.abs(self.vis_arr)
 
         p05, p50, p95, p100 = np.percentile(vabs, [5, 50, 95, 100])
         logger.info("Vis Range: [{:5.4g} {:5.4g} {:5.4g} {:5.4g}]".format(p05, p50, p95, p100))
 
-        
         logger.info("Vis Energy: {:5.4g}".format(np.sum(vabs)))
-
-        return ret
-
-
+        
+        return p05, p50, p95, p100
+    
     @classmethod
     def from_cal_vis(cls, cal_vis):
 
