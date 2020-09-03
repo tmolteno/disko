@@ -196,10 +196,10 @@ if __name__ == '__main__':
     sphere.set_visible_pixels(mu_positive, scale=False)
     save_images('{}_{}_mu'.format(ARGS.title, time_repr))
     
-    sphere.set_visible_pixels(np.sqrt(posterior.sigma.diagonal()), scale=False)
+    sphere.set_visible_pixels(np.sqrt(posterior.sigma().diagonal()), scale=False)
     save_images('{}_{}_var'.format(ARGS.title, time_repr))
     
-    pix_cov=posterior.sigma[0,:]
+    pix_cov=posterior.sigma()[0,:]
     sphere.set_visible_pixels(pix_cov, scale=False)
     save_images('{}_{}_pcf'.format(ARGS.title, time_repr))
     
