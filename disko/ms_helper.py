@@ -133,7 +133,6 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         # Now report the recommended resolution from the data.
         # 1.0 / 2*np.sin(theta) = limit_u
         limit_uvw = np.max(np.abs(uvw), 0)
-        logger.info("Maximum UVW: {}".format(limit_uvw))
 
         res_limit = get_baseline_resolution(limit_uvw[0], frequency)
         logger.info("Nyquist resolution: {:g} arcmin".format(np.degrees(res_limit)*60.0))
@@ -149,6 +148,10 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
 
         logger.info("Maximum UVW: {}".format(limit_uvw))
         logger.info("Minimum UVW: {}".format(np.min(np.abs(uvw), 0)))
+        
+        for i in range(3):
+            p05, p50, p95 = np.percentile(np.abs(uvw[:,i]), [5, 50, 95])
+            logger.info("U[{}]: {} {} {}".format(i, p05, p50, p95))
 
         n_ant = len(ant_p)
         
@@ -191,6 +194,9 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         rms_arr = sigma[indices].T
         
         cv_vis = cv_vis[indices]
+        
+
+        logger.info("Max vis {}".format(np.max(np.abs(cv_vis))))
         
         # Convert from reduced Julian Date to timestamp.
         timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,
