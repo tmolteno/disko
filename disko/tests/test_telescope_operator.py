@@ -139,15 +139,15 @@ class TestTelescopeOperator(unittest.TestCase):
         sky = self.get_point_sky()
         
         vis = self.to.gamma @ sky 
-        logger.info("vis = {}".format(vis[:,0]))
+        #logger.info("vis = {}".format(vis[:,0]))
 
         x = self.to.sky_to_natural(sky)
         vis2 = self.to.A @ x
-        logger.info("vis2 = {}".format(vis2[:,0]))
+        #logger.info("vis2 = {}".format(vis2[:,0]))
         
         x_r = x[0:self.to.rank]
         vis3 = self.to.A_r @ x_r
-        logger.info("vis3 = {}".format(vis3[:,0]))
+        #logger.info("vis3 = {}".format(vis3[:,0]))
         
         for v1, v2, v3 in zip(vis[:,0], vis2[:,0], vis3[:,0]):
             logger.info("{},{},{}".format(v1, v2, v3))
@@ -162,11 +162,11 @@ class TestTelescopeOperator(unittest.TestCase):
         sky = self.get_point_sky()
         
         vis = self.to.gamma @ sky 
-        logger.info("vis = {}".format(vis))
+        #logger.info("vis = {}".format(vis))
 
-        sky_r = self.to.P_r @ sky 
+        sky_r = self.to.P_r() @ sky 
         vis2 = self.to.gamma @ sky_r 
-        logger.info("vis2 = {}".format(vis2))
+        #logger.info("vis2 = {}".format(vis2))
 
         self.assertTrue(np.allclose(vis, vis2))
 
@@ -178,7 +178,7 @@ class TestTelescopeOperator(unittest.TestCase):
         # This sky contains null space components, so lets  project those out.
         vis_orig = self.to.gamma @ sky
         
-        sky_r = self.to.P_r @ sky
+        sky_r = self.to.P_r() @ sky
         
         vis = self.to.gamma @ sky_r
         logger.info("vis = {}".format(np.real(vis)[0:10]))

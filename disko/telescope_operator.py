@@ -197,7 +197,7 @@ class TelescopeOperator:
         logger.info("n_v = {}".format(self.n_v))
         logger.info("n_s = {}".format(self.n_s))
 
-
+        self.P_r = None
         
         fname = 'svd_{}_{}.npz'.format(self.n_s, self.n_v)
         cache = Path(fname)
@@ -283,6 +283,11 @@ class TelescopeOperator:
         return self.gamma[h,:]
 
 
+    def P_r(self):
+        if self.P_r is None:
+            self.P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
+            logger.info("P_r = {}".format(self.P_r.shape)) # Projection onto the range space of A
+        return self.P_r
 
     def range_harmonic(self, h):
         # The column vector of V_. These are the basis vectors of the Measurable Sky (in the sky space)
@@ -486,7 +491,7 @@ class TelescopeOperator:
         return posterior
 
     def get_natural_prior(self):
-        prior = MultivariateGaussian(np.zeros(self.n_s), np.identity(self.n_s))
+        prior = MultivariateGaussian(np.zeros(self.n_s), sigma=np.identity(self.n_s))
         natural_prior = prior.linear_transform(self.Vh)
         
 

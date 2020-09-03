@@ -23,11 +23,11 @@ class TestMultivariate(unittest.TestCase):
         mu = np.zeros((1))
         sigma = np.zeros((1,1))
         sigma[0,0] = 1
-        x = mg.MultivariateGaussian(mu+1, sigma)
+        x = mg.MultivariateGaussian(mu+1, sigma=sigma)
 
         y = x.linear_transform(sigma*3, mu+2)
         
-        self.assertAlmostEqual(y.sigma[0,0], 9)
+        self.assertAlmostEqual(y.sigma()[0,0], 9)
         self.assertAlmostEqual(y.mu[0], 5)
 
     def test_sampling(self):
@@ -36,7 +36,7 @@ class TestMultivariate(unittest.TestCase):
         mu = np.zeros((1))
         sigma = np.zeros((1,1))
         sigma[0,0] = 2
-        x = mg.MultivariateGaussian(mu+1, sigma)
+        x = mg.MultivariateGaussian(mu+1, sigma=sigma)
 
         samples = []
         N = 25000
@@ -49,6 +49,6 @@ class TestMultivariate(unittest.TestCase):
     
         precision = 1
         self.assertAlmostEqual(np.mean(samples), x.mu[0], precision)
-        self.assertAlmostEqual(np.std(samples)**2, x.sigma[0,0], precision)
+        self.assertAlmostEqual(np.std(samples)**2, x.sigma()[0,0], precision)
         
     

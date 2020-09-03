@@ -192,7 +192,8 @@ if __name__ == '__main__':
             plt.close()
             logger.info("Generating {}".format(fname))
 
-    sphere.set_visible_pixels(posterior.mu, scale=False)
+    mu_positive = np.clip(posterior.mu, 0, None)
+    sphere.set_visible_pixels(mu_positive, scale=False)
     save_images('{}_{}_mu'.format(ARGS.title, time_repr))
     
     sphere.set_visible_pixels(np.sqrt(posterior.sigma.diagonal()), scale=False)

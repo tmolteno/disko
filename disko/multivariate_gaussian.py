@@ -22,30 +22,44 @@ class MultivariateGaussian:
         posterior = bayes_update(lh, prior)
         
     '''
-    def __init__(self, mu, sigma):
+    def __init__(self, mu, sigma=None, sigma_inv=None):
         '''
             Create a D-dimensional multivariate Gaussian with known mean and standard deviation
         '''
+        self.dtype = np.float64
         try:
             self.D = mu.shape[0]
         except:
             raise ValueError('Mean mu {} must be a vector'.format(mu.shape))
+        
+        if (sigma is None) and (sigma_inv is None):
+            raise ValueError('Either sigma or sigma_inv must be provided')
+            
         self.mu = mu
-        self.sigma = sigma
-        self.dtype = np.float64
+        self._sigma = sigma
+        self._sigma_inv = sigma_inv
         
-        if (sigma.shape[0] != self.D) or (sigma.shape[1] != self.D):
-            raise ValueError('Covariance sigma {} must be a {}x{} square matrix'.format(sigma.shape, self.D, self.D))
+        if sigma is not None:
+            d = sigma.shape
+        else:
+            d = sigma_inv.shape
+            
+        if (d[0] != self.D) or (d[1] != self.D):
+            raise ValueError('Covariance {} must be a {}x{} square matrix'.format(d, self.D, self.D))
     
-        logger.info("MultivariateGaussian({}, {})".format(mu.shape, sigma.shape))
+        logger.info("MultivariateGaussian({}, {})".format(mu.shape, d))
         
-        self._sigma_inv = None
         self._A = None
     
     def sigma_inv(self):
         if self._sigma_inv is None:
             self._sigma_inv = np.linalg.inv(self.sigma)
         return self._sigma_inv
+
+    def sigma(self):
+        if self._sigma is None:
+            self._sigma = np.linalg.inv(self._sigma_inv)
+        return self._sigma
 
 
     def bayes_update(self, precision_y, y, A):
@@ -63,7 +77,7 @@ class MultivariateGaussian:
         
         sigma_1 = np.linalg.inv(self.sigma_inv() + atl @ A)
         mu_1 = sigma_1 @ (self.sigma_inv() @ self.mu + atl @ y)
-        return MultivariateGaussian(mu_1, sigma_1)
+        return MultivariateGaussian(mu_1, sigma=sigma_1)
     
     
     def linear_transform(self, A, b=None):
@@ -71,7 +85,7 @@ class MultivariateGaussian:
             Linear transform
             y = A x + b
         '''
-        sigma_1 = A @ self.sigma @ A.T
+        sigma_1 = A @ self.sigma() @ A.T
         if b is None:
             mu_1 = A @ self.mu
         else:
@@ -80,13 +94,14 @@ class MultivariateGaussian:
         return MultivariateGaussian(mu_1, sigma_1)
     
     def block(self, start, stop):
-        return MultivariateGaussian(self.mu[start:stop], self.sigma[start:stop, start:stop])
+        sig = self.sigma()
+        return MultivariateGaussian(self.mu[start:stop], sigma=sig[start:stop, start:stop])
     
     @classmethod
     def outer(self, a, b):
         mu = np.block([a.mu, b.mu])
         sigma = scipy.linalg.block_diag(a.sigma, b.sigma)
-        return MultivariateGaussian(mu, sigma)
+        return MultivariateGaussian(mu, sigma=sigma)
 
     def sample(self):
         '''
@@ -94,7 +109,7 @@ class MultivariateGaussian:
         '''
         z = np.random.normal(0, 1, self.D)
         if self._A is None:
-            self._A = np.linalg.cholesky(self.sigma)
+            self._A = np.linalg.cholesky(self.sigma())
         
         return self.mu + self._A @ z
         
