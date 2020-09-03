@@ -35,7 +35,7 @@ class MultivariateGaussian:
         if (sigma is None) and (sigma_inv is None):
             raise ValueError('Either sigma or sigma_inv must be provided')
             
-        self.mu = mu
+        self.mu = mu.flatten()
         self._sigma = sigma
         self._sigma_inv = sigma_inv
         
@@ -53,7 +53,7 @@ class MultivariateGaussian:
     
     def sigma_inv(self):
         if self._sigma_inv is None:
-            self._sigma_inv = np.linalg.inv(self.sigma)
+            self._sigma_inv = np.linalg.inv(self._sigma)
         return self._sigma_inv
 
     def sigma(self):
@@ -72,6 +72,8 @@ class MultivariateGaussian:
             
             See https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf p92
         '''
+        logger.info("bayes_update({}, {}, {})".format(precision_y.shape, y.shape, A.shape))
+        
         L = precision_y
         atl = A.T @ L
         
@@ -99,8 +101,9 @@ class MultivariateGaussian:
     
     @classmethod
     def outer(self, a, b):
-        mu = np.block([a.mu, b.mu])
-        sigma = scipy.linalg.block_diag(a.sigma, b.sigma)
+        logger.info("outer({}, {})".format(a.mu.shape, b.mu.shape))
+        mu = np.block([a.mu.flatten(), b.mu.flatten()])
+        sigma = scipy.linalg.block_diag(a.sigma(), b.sigma())
         return MultivariateGaussian(mu, sigma=sigma)
 
     def sample(self):

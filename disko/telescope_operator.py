@@ -197,7 +197,7 @@ class TelescopeOperator:
         logger.info("n_v = {}".format(self.n_v))
         logger.info("n_s = {}".format(self.n_s))
 
-        self.P_r = None
+        self._P_r = None
         
         fname = 'svd_{}_{}.npz'.format(self.n_s, self.n_v)
         cache = Path(fname)
@@ -230,7 +230,7 @@ class TelescopeOperator:
             self.V_1h = self.V_1.conj().T
             #logger.info("Calculating orthogonal projections")
 
-            #self.P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
+            #self._P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
 
             if use_cache:
                 logger.info("Writing to cache: {}".format(fname))
@@ -260,7 +260,7 @@ class TelescopeOperator:
         logger.info("A = {}".format(self.A.shape))
         logger.info("A_r = {}".format(self.A_r.shape))
         
-        #logger.info("P_r = {}".format(self.P_r.shape)) # Projection onto the range space of A
+        #logger.info("P_r = {}".format(self._P_r.shape)) # Projection onto the range space of A
         #self.P_n = self.V_2 @ self.V_2.conj().T  # Projection onto the null-space of AA^H
         #logger.info("P_n = {}".format(self.P_n.shape))
 
@@ -284,10 +284,10 @@ class TelescopeOperator:
 
 
     def P_r(self):
-        if self.P_r is None:
-            self.P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
-            logger.info("P_r = {}".format(self.P_r.shape)) # Projection onto the range space of A
-        return self.P_r
+        if self._P_r is None:
+            self._P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
+            logger.info("P_r = {}".format(self._P_r.shape)) # Projection onto the range space of A
+        return self._P_r
 
     def range_harmonic(self, h):
         # The column vector of V_. These are the basis vectors of the Measurable Sky (in the sky space)
@@ -374,18 +374,19 @@ class TelescopeOperator:
         t0 = time.time()
 
         s = self.s[0:self.rank]
-        D = np.diag(s / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
+        D = np.diag(s)  # / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
 
-        x_r = D @ self.U_1.T @ vis_arr # np.linalg.solve(self.A_r, vis_arr)
-        x_n = np.zeros(self.n_n())
-        logging.info("x_r = {}".format(x_r.shape))
-        logging.info("x_n = {}".format(x_n.shape))
+        #x_r = D @ self.U_1.T @ vis_arr # np.linalg.solve(self.A_r, vis_arr)
+        x_r = np.linalg.solve(self.A_r, vis_arr)
+        #x_n = np.zeros(self.n_n())
+        #logging.info("x_r = {}".format(x_r.shape))
+        #logging.info("x_n = {}".format(x_n.shape))
 
-        x = np.block([x_r, x_n])
-        logging.info("x = {}".format(x.shape))
+        #x = np.block([x_r.flatten(), x_n])
+        #logging.info("x = {}".format(x.shape))
         
-        sky = self.natural_to_sky(x)
-        #sky = self.V_1 @ x_r
+        #sky = self.natural_to_sky(x)
+        sky = self.V_1 @ x_r
         sphere.set_visible_pixels(sky, scale)
         
         logger.info("Elapsed {}s".format(time.time() - t0))
