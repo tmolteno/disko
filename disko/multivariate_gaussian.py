@@ -116,3 +116,7 @@ class MultivariateGaussian:
         
         return self.mu + self._A @ z
         
+
+    def variance(self):
+        var = self.sigma().diagonal()
+        return np.sqrt(var)

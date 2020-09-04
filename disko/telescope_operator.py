@@ -495,8 +495,9 @@ class TelescopeOperator:
         
         # What range should the image have.
         p05, p50, p95, p100 = self.grid.vis_stats()
-        
-        prior = MultivariateGaussian(np.zeros(self.n_s) + p50, sigma=p50*np.identity(self.n_s))
+        var = p95*p95
+        logger.info("Sky Prior variance={}".format(var))
+        prior = MultivariateGaussian(np.zeros(self.n_s) + p50, sigma=var*np.identity(self.n_s))
         natural_prior = prior.linear_transform(self.Vh)
         
 
