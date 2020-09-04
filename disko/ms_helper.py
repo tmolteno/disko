@@ -74,12 +74,10 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         # Create a dataset representing the field
         field_table = '::'.join((ms, 'FIELD'))
         for field_ds in xds_from_table(field_table):
-            #print(ant_ds)
-            #print(dask.compute(ant_ds.NAME.data,
-                                #ant_ds.POSITION.data, 
-                                #ant_ds.DISH_DIAMETER.data))
+            print(field_ds)
             phase_dir = np.array(field_ds.PHASE_DIR.data)[0].flatten()
-        logger.info("Phase Dir {}".format(np.degrees(phase_dir)))
+            name = field_ds.NAME.data
+            logger.info("Field {}: Phase Dir {}".format(name, np.degrees(phase_dir)))
         
         # Create datasets representing each row of the spw table
         spw_table = '::'.join((ms, 'SPECTRAL_WINDOW'))
@@ -97,6 +95,7 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
 
         # Create datasets from a partioning of the MS
         datasets = list(xds_from_ms(ms, chunks={'row': chunks}))
+        logger.info("DataSets: N={}".format(len(datasets)))
 
         pol = 0
         
@@ -106,11 +105,11 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
             logger.info("SIGMA shape: {}".format(ds.SIGMA.data.shape))
 
             uvw = np.array(ds.UVW.data)   # UVW is stored in meters!
-            sigma = np.array(ds.SIGMA.data)[:,pol]   # UVW is stored in meters!
+            sigma = np.array(ds.SIGMA.data[:,pol])
             ant1 = np.array(ds.ANTENNA1.data)
             ant2 = np.array(ds.ANTENNA2.data)
             flags = np.array(ds.FLAG.data)
-            cv_vis = np.array(ds.DATA.data)[:,channel,pol]
+            cv_vis = np.array(ds.DATA.data[:,channel,pol])
             epoch_seconds = np.array(ds.TIME.data)[0]
             
             # Try write the STATE_ID column back
