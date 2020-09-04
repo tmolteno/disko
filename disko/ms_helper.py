@@ -108,14 +108,15 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
             sigma = np.array(ds.SIGMA.data[:,pol])
             ant1 = np.array(ds.ANTENNA1.data)
             ant2 = np.array(ds.ANTENNA2.data)
-            flags = np.array(ds.FLAG.data)
+            flags = np.array(ds.FLAG.data[:,channel,pol])
             cv_vis = np.array(ds.DATA.data[:,channel,pol])
             epoch_seconds = np.array(ds.TIME.data)[0]
             
+            break
             # Try write the STATE_ID column back
-            write = xds_to_table(ds, ms, 'STATE_ID')
-            with ProgressBar(), Profiler() as prof:
-                write.compute()
+            #write = xds_to_table(ds, ms, 'STATE_ID')
+            #with ProgressBar(), Profiler() as prof:
+                #write.compute()
 
             # Profile
             #prof.visualize(file_path="chunked.html")
@@ -140,9 +141,9 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         #logger.info(np.random.choice(maxuvw, 100))
         
         if False:
-            good_data = np.array(np.where(flags[:,channel,pol] == 0)).T.reshape((-1,))
+            good_data = np.array(np.where(flags == 0)).T.reshape((-1,))
         else:
-            good_data = np.array(np.where((flags[:,channel,pol] == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
+            good_data = np.array(np.where((flags == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
         logger.info("Good Data {}".format(good_data.shape))
 
         logger.info("Maximum UVW: {}".format(limit_uvw))
