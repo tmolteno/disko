@@ -108,11 +108,11 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0, field_id=0):
             logger.info("SIGMA shape: {}".format(ds.SIGMA.data.shape))
             if (int(field_id) == int(ds.FIELD_ID)):
                 uvw = np.array(ds.UVW.data, dtype=np.float32)   # UVW is stored in meters!
-                sigma = np.array(ds.SIGMA.data[:,pol], dtype=np.float32)
+                sigma = ds.SIGMA.data[:,pol]
                 ant1 = np.array(ds.ANTENNA1.data)
                 ant2 = np.array(ds.ANTENNA2.data)
                 flags = np.array(ds.FLAG.data[:,channel,pol])
-                cv_vis = np.array(ds.DATA.data[:,channel,pol], dtype=np.complex64)
+                cv_vis = ds.DATA.data[:,channel,pol]
                 epoch_seconds = np.array(ds.TIME.data)[0]
             
             # Try write the STATE_ID column back
@@ -158,10 +158,8 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0, field_id=0):
             logger.info("U[{}]: {} {} {}".format(i, p05, p50, p95))
 
         n_ant = len(ant_p)
-        
-        good_vis = cv_vis[good_data]
-        
-        n_max = len(good_vis)
+                
+        n_max = len(good_data)
         
         if (n_max <= num_vis):
             indices = np.arange(n_max)
@@ -195,9 +193,9 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0, field_id=0):
         v_arr = uvw[indices,1].T
         w_arr = uvw[indices,2].T
         
-        rms_arr = sigma[indices].T
+        rms_arr = np.array(sigma[indices], dtype=np.float32).T
         
-        cv_vis = cv_vis[indices]
+        cv_vis = np.array(cv_vis[indices], dtype=np.complex64)
         
 
         logger.info("Max vis {}".format(np.max(np.abs(cv_vis))))
