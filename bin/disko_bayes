@@ -54,6 +54,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--ms', required=False, default=None, help="visibility file")
     parser.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
+    parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
+    parser.add_argument('--field', type=int, default=0, help="Use this FIELD_ID from the measurement set.")
 
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
     parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
@@ -63,7 +65,6 @@ if __name__ == '__main__':
 
     parser.add_argument('--sigma-v', type=float, default=None, help="Diagonal components of the visibility covariance. If not supplied use measurement set values")
 
-    parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
@@ -95,7 +96,7 @@ if __name__ == '__main__':
     fh.setFormatter(formatter)
 
     # add ch to logger
-    logger.addHandler(ch)
+    #logger.addHandler(ch)
     logger.addHandler(fh)
     
     if ARGS.file:
@@ -125,7 +126,7 @@ if __name__ == '__main__':
         disko = DiSkO.from_cal_vis(cv)
     else:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
-        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel)
+        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel, field_id=ARGS.field)
         # Convert from reduced Julian Date to timestamp.
         timestamp = disko.timestamp
         

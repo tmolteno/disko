@@ -40,7 +40,7 @@ class RadioObservation(object):
         pass
     
 
-def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
+def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0, field_id=0):
     '''
         Use dask-ms to load the necessary data to create a telescope operator
         (will use uvw positions, and antenna positions)
@@ -65,7 +65,6 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
                  "with address '{}'".format(address))
     client = distributed.Client(address)
 
-    #with scheduler_context():
     try:
         # Create a dataset representing the entire antenna table
         ant_table = '::'.join((ms, 'ANTENNA'))
@@ -104,21 +103,18 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
         pol = 0
         
         for i, ds in enumerate(datasets):
-            field_id = ds.FIELD_ID
-
-            logger.info("DATASET field={} shape: {}".format(field_id, ds.DATA.data.shape))
+            logger.info("DATASET field_id={} shape: {}".format(ds.FIELD_ID, ds.DATA.data.shape))
             logger.info("UVW shape: {}".format(ds.UVW.data.shape))
             logger.info("SIGMA shape: {}".format(ds.SIGMA.data.shape))
-
-            uvw = np.array(ds.UVW.data)   # UVW is stored in meters!
-            sigma = np.array(ds.SIGMA.data[:,pol])
-            ant1 = np.array(ds.ANTENNA1.data)
-            ant2 = np.array(ds.ANTENNA2.data)
-            flags = np.array(ds.FLAG.data[:,channel,pol])
-            cv_vis = np.array(ds.DATA.data[:,channel,pol])
-            epoch_seconds = np.array(ds.TIME.data)[0]
+            if (int(field_id) == int(ds.FIELD_ID)):
+                uvw = np.array(ds.UVW.data, dtype=np.float32)   # UVW is stored in meters!
+                sigma = np.array(ds.SIGMA.data[:,pol], dtype=np.float32)
+                ant1 = np.array(ds.ANTENNA1.data)
+                ant2 = np.array(ds.ANTENNA2.data)
+                flags = np.array(ds.FLAG.data[:,channel,pol])
+                cv_vis = np.array(ds.DATA.data[:,channel,pol], dtype=np.complex64)
+                epoch_seconds = np.array(ds.TIME.data)[0]
             
-            break
             # Try write the STATE_ID column back
             #write = xds_to_table(ds, ms, 'STATE_ID')
             #with ProgressBar(), Profiler() as prof:
@@ -130,6 +126,8 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
         
         ### NOW REMOVE DATA THAT DOESN'T FIT THE IMAGE RESOLUTION
         
+        if 'uvw' not in locals():
+            raise RuntimeError("FIELD_ID ({}) is invalid".format(field_id))
         
         u_max = get_resolution_max_baseline(res_arcmin, frequency)
         

@@ -52,6 +52,9 @@ if __name__ == '__main__':
 
     parser.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
     parser.add_argument('--ms', required=False, default=None, help="visibility file")
+    parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
+    parser.add_argument('--field', type=int, default=0, help="Use this FIELD_ID from the measurement set.")
+
     parser.add_argument('--vis', required=False, default=None, help="Use a local JSON file containing the visibilities to create the image.")
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
     parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter. (this is divided by the sqrt of the number of pixels.")
@@ -64,7 +67,6 @@ if __name__ == '__main__':
     parser.add_argument('--elevation', type=float, default=20.0, help="Elevation limit for displaying sources (degrees).")
     parser.add_argument('--display', action="store_true", help="Display Image to the user.")
     parser.add_argument('--adaptive', type=int, default=0, help="Use adaptive mesh.")
-    parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
@@ -133,7 +135,7 @@ if __name__ == '__main__':
         disko = DiSkO.from_cal_vis(cv)
     elif ARGS.ms:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
-        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel)
+        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel, field_id=ARGS.field)
         # Convert from reduced Julian Date to timestamp.
         timestamp = disko.timestamp
         
