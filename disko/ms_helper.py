@@ -1,12 +1,11 @@
-from .scheduler_context import scheduler_context
 import dask
+import distributed
 import logging
 import datetime
 
 import numpy as np
 
 from daskms import xds_from_table, xds_from_ms, xds_to_table, TableProxy
-
 from dask.diagnostics import Profiler, ProgressBar
 
 logger = logging.getLogger(__name__)
@@ -41,7 +40,7 @@ class RadioObservation(object):
         pass
     
 
-def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
+def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0):
     '''
         Use dask-ms to load the necessary data to create a telescope operator
         (will use uvw positions, and antenna positions)
@@ -59,7 +58,15 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
                        
                        
     '''
-    with scheduler_context():
+    
+    local_cluster = distributed.LocalCluster(processes=False)
+    address = local_cluster.scheduler_address
+    logging.info("Using distributed scheduler "
+                 "with address '{}'".format(address))
+    client = distributed.Client(address)
+
+    #with scheduler_context():
+    try:
         # Create a dataset representing the entire antenna table
         ant_table = '::'.join((ms, 'ANTENNA'))
 
@@ -74,17 +81,14 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         # Create a dataset representing the field
         field_table = '::'.join((ms, 'FIELD'))
         for field_ds in xds_from_table(field_table):
-            print(field_ds)
             phase_dir = np.array(field_ds.PHASE_DIR.data)[0].flatten()
-            name = field_ds.NAME.data
+            name = field_ds.NAME.data.compute()
             logger.info("Field {}: Phase Dir {}".format(name, np.degrees(phase_dir)))
         
         # Create datasets representing each row of the spw table
         spw_table = '::'.join((ms, 'SPECTRAL_WINDOW'))
 
         for spw_ds in xds_from_table(spw_table, group_cols="__row__"):
-            #print(spw_ds)
-            #print(spw_ds.NUM_CHAN.values)
             logger.info("CHAN_FREQ.values: {}".format(spw_ds.CHAN_FREQ.values.shape))
             frequencies = dask.compute(spw_ds.CHAN_FREQ.values)[0].flatten()
             frequency=frequencies[channel]
@@ -99,8 +103,10 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
 
         pol = 0
         
-        for ds in datasets:
-            logger.info("DATA shape: {}".format(ds.DATA.data.shape))
+        for i, ds in enumerate(datasets):
+            field_id = ds.FIELD_ID
+
+            logger.info("DATASET field={} shape: {}".format(field_id, ds.DATA.data.shape))
             logger.info("UVW shape: {}".format(ds.UVW.data.shape))
             logger.info("SIGMA shape: {}".format(ds.SIGMA.data.shape))
 
@@ -202,6 +208,10 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0):
         timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,
                                       tzinfo=datetime.timezone.utc) + datetime.timedelta(seconds=epoch_seconds)
 
-        return u_arr, v_arr, w_arr, frequency, cv_vis, hdr, timestamp, rms_arr
+    finally:
+        client.close()
+        local_cluster.close()
+
+    return u_arr, v_arr, w_arr, frequency, cv_vis, hdr, timestamp, rms_arr
         
 
