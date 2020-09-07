@@ -298,7 +298,7 @@ class DiSkO(object):
         return ret
 
     @classmethod
-    def from_ms(cls, ms, num_vis, res_arcmin, chunks=1000, channel=0, field_id=0):
+    def from_ms(cls, ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
         u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms = read_ms(ms, num_vis, res_arcmin, chunks, channel, field_id)
         
         ret = cls(u_arr, v_arr, w_arr, frequency)

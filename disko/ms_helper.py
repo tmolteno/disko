@@ -43,7 +43,7 @@ class RadioObservation(object):
         pass
     
 
-def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0, field_id=0):
+def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
     '''
         Use dask-ms to load the necessary data to create a telescope operator
         (will use uvw positions, and antenna positions)
@@ -157,6 +157,8 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0, field_id=0):
                 else:
                     indices = np.random.choice(good_data, min(num_vis, n_max), replace=False)
                 
+                #sort the indices to keep them in order (speeds up IO)
+                indices = np.sort(indices)
                 #
                 #
                 #   Now read the remaining data
