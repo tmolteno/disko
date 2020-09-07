@@ -2,11 +2,14 @@ import dask
 import distributed
 import logging
 import datetime
+import time
 
 import numpy as np
 
 from daskms import xds_from_table, xds_from_ms, xds_to_table, TableProxy
-from dask.diagnostics import Profiler, ProgressBar
+
+from dask.diagnostics import ProgressBar
+from dask.distributed import progress
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
@@ -102,70 +105,76 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0, field_id=0):
 
         pol = 0
         
+        def read_np_array(da, title, dtype=np.float32):
+            tic = time.perf_counter()
+            logger.info("Reading {}...".format(title))
+            ret = np.array(da, dtype=dtype)
+            toc = time.perf_counter()
+            logger.info("Elapsed {:04f} seconds".format(toc-tic))
+            return ret
+        
         for i, ds in enumerate(datasets):
             logger.info("DATASET field_id={} shape: {}".format(ds.FIELD_ID, ds.DATA.data.shape))
             logger.info("UVW shape: {}".format(ds.UVW.data.shape))
             logger.info("SIGMA shape: {}".format(ds.SIGMA.data.shape))
             if (int(field_id) == int(ds.FIELD_ID)):
-                uvw = np.array(ds.UVW.data, dtype=np.float32)   # UVW is stored in meters!
-                sigma = ds.SIGMA.data[:,pol]
-                ant1 = np.array(ds.ANTENNA1.data)
-                ant2 = np.array(ds.ANTENNA2.data)
-                flags = np.array(ds.FLAG.data[:,channel,pol])
-                cv_vis = ds.DATA.data[:,channel,pol]
+                uvw = read_np_array(ds.UVW.data, "UVW")
+                flags = read_np_array(ds.FLAG.data[:,channel,pol], "FLAGS", dtype=np.int32)
+
+                #
+                #
+                #   Now calculate which indices we should use to get the required number of
+                #   visibilities.
+                #
+                u_max = get_resolution_max_baseline(res_arcmin, frequency)
+                
+                logger.info("Resolution Max UVW: {:g} meters".format(u_max))
+                logger.info("Flags: {}".format(flags.shape))
+
+                # Now report the recommended resolution from the data.
+                # 1.0 / 2*np.sin(theta) = limit_u
+                limit_uvw = np.max(np.abs(uvw), 0)
+
+                res_limit = get_baseline_resolution(limit_uvw[0], frequency)
+                logger.info("Nyquist resolution: {:g} arcmin".format(np.degrees(res_limit)*60.0))
+                
+                good_data = np.array(np.where((flags == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
+                logger.info("Good Data {}".format(good_data.shape))
+
+                logger.info("Maximum UVW: {}".format(limit_uvw))
+                logger.info("Minimum UVW: {}".format(np.min(np.abs(uvw), 0)))
+                
+                for i in range(3):
+                    p05, p50, p95 = np.percentile(np.abs(uvw[:,i]), [5, 50, 95])
+                    logger.info("       U[{}]: {:5.2f} {:5.2f} {:5.2f}".format(i, p05, p50, p95))
+
+                n_ant = len(ant_p)
+                        
+                n_max = len(good_data)
+                
+                if (n_max <= num_vis):
+                    indices = np.arange(n_max)
+                else:
+                    indices = np.random.choice(good_data, min(num_vis, n_max), replace=False)
+                
+                #
+                #
+                #   Now read the remaining data
+                #
+                sigma  = read_np_array(ds.SIGMA.data[indices,pol], "SIGMA")
+                #ant1   = read_np_array(ds.ANTENNA1.data[indices], "ANTENNA1")
+                #ant12  = read_np_array(ds.ANTENNA1.data[indices], "ANTENNA2")
+                cv_vis = read_np_array(ds.DATA.data[indices,channel,pol], "DATA", dtype=np.complex64)
+
                 epoch_seconds = np.array(ds.TIME.data)[0]
             
-            # Try write the STATE_ID column back
-            #write = xds_to_table(ds, ms, 'STATE_ID')
-            #with ProgressBar(), Profiler() as prof:
-                #write.compute()
-
-            # Profile
-            #prof.visualize(file_path="chunked.html")
         
         
-        ### NOW REMOVE DATA THAT DOESN'T FIT THE IMAGE RESOLUTION
         
         if 'uvw' not in locals():
             raise RuntimeError("FIELD_ID ({}) is invalid".format(field_id))
         
-        u_max = get_resolution_max_baseline(res_arcmin, frequency)
-        
-        logger.info("Resolution Max UVW: {:g} meters".format(u_max))
-        logger.info("Flags: {}".format(flags.shape))
 
-        # Now report the recommended resolution from the data.
-        # 1.0 / 2*np.sin(theta) = limit_u
-        limit_uvw = np.max(np.abs(uvw), 0)
-
-        res_limit = get_baseline_resolution(limit_uvw[0], frequency)
-        logger.info("Nyquist resolution: {:g} arcmin".format(np.degrees(res_limit)*60.0))
-        
-        #maxuvw = np.max(np.abs(uvw), 1)
-        #logger.info(np.random.choice(maxuvw, 100))
-        
-        if False:
-            good_data = np.array(np.where(flags == 0)).T.reshape((-1,))
-        else:
-            good_data = np.array(np.where((flags == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
-        logger.info("Good Data {}".format(good_data.shape))
-
-        logger.info("Maximum UVW: {}".format(limit_uvw))
-        logger.info("Minimum UVW: {}".format(np.min(np.abs(uvw), 0)))
-        
-        for i in range(3):
-            p05, p50, p95 = np.percentile(np.abs(uvw[:,i]), [5, 50, 95])
-            logger.info("U[{}]: {} {} {}".format(i, p05, p50, p95))
-
-        n_ant = len(ant_p)
-                
-        n_max = len(good_data)
-        
-        if (n_max <= num_vis):
-            indices = np.arange(n_max)
-        else:
-            indices = np.random.choice(good_data, min(num_vis, n_max), replace=False)
-             
         hdr = {
             'CTYPE1': ('RA---SIN', "Right ascension angle cosine"),
             'CRVAL1': np.degrees(phase_dir)[0],
@@ -193,10 +202,8 @@ def read_ms(ms, num_vis, res_arcmin, chunks=10000, channel=0, field_id=0):
         v_arr = uvw[indices,1].T
         w_arr = uvw[indices,2].T
         
-        rms_arr = np.array(sigma[indices], dtype=np.float32).T
-        
-        cv_vis = np.array(cv_vis[indices], dtype=np.complex64)
-        
+        rms_arr = sigma.T
+                
 
         logger.info("Max vis {}".format(np.max(np.abs(cv_vis))))
         
