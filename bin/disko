@@ -70,6 +70,7 @@ if __name__ == '__main__':
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
+    parser.add_argument('--FITS', action="store_true", help="Generate a FITS format image.")
 
     parser.add_argument('--cv', action="store_true", help="Use Cross Validation")
     parser.add_argument('--dask', action="store_true", help="Use dask")
@@ -208,9 +209,11 @@ if __name__ == '__main__':
     # Save as a FITS file
     if ARGS.adaptive:
         sphere.write_mesh("{}.vtk".format(image_title))
-    fname = '{}.fits'.format(image_title)
-    fpath = os.path.join(ARGS.dir, fname)
-    sphere.to_fits(fname=fpath, fov=ARGS.fov, info=disko.info)
+    
+    if ARGS.FITS:
+        fname = '{}.fits'.format(image_title)
+        fpath = os.path.join(ARGS.dir, fname)
+        sphere.to_fits(fname=fpath, fov=ARGS.fov, info=disko.info)
     
     if ARGS.SVG:
         fname = '{}.svg'.format(image_title)
