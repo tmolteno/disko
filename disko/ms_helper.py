@@ -17,11 +17,11 @@ logger.setLevel(logging.INFO)
 
 def get_baseline_resolution(bl, frequency):
     # Period of fringes is bl*sin(theta)
-    # resolution is then theta_min = b / lambda
+    # resolution is then theta_min = lambda / b
     c = 2.99793e8
     wavelength = c/frequency
 
-    res_limit = np.arcsin(wavelength / bl)
+    res_limit = np.arcsin(wavelength / bl) # approx wavelength/bl
     return res_limit
 
 def get_resolution_max_baseline(res_arcmin, frequency):
