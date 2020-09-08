@@ -456,16 +456,6 @@ class TelescopeOperator:
                  
                  x_r = inv(Sigma_1) y
                  
-        Bayesian Approach:
-        
-            lh = MultivariateGaussian(A_r^-1 @ v_m, sigma_m) # Measurement Likelihood
-            
-            lh = N(v_m, sigma_m).
-            lh_natural_range = lh.linear_transform(inv(Sigma_1))
-            
-            prior = MultivariateGaussian(np.zeros(, sigma_0) 
-            prior.bayes_update(lh, v_m)
-            
         '''
         logger.info("Bayesian Inference of sky (n_s = {})".format(prior.D))
         t0 = time.time()

@@ -28,6 +28,7 @@ from tart.util import constants
 
 from .sphere import HealpixSphere
 from .ms_helper import read_ms
+from .multivariate_gaussian import MultivariateGaussian
 
 '''
     Little helper function to get the UVW positions from the antennas positions.
@@ -514,7 +515,46 @@ class DiSkO(object):
         sphere.set_visible_pixels(sky, scale)
         return sky.reshape(-1,1)
 
+    def sequential_inference(self, sphere, real_vis):
+        '''
+            
+            posterior = to.sequential_inference(prior=prior, real_vis=vis_to_real(disko.vis_arr), sigma_vis=sigma_vis)
+            
+            # The image is now at posterior.mu
+            sphere.set_visible_pixels(sky, scale)
+
+        '''
+        gamma = self.make_gamma(sphere)
+        n_s = sphere.pixels.shape[0]
+
+        logger.info("Bayesian Inference of sky (n_s = {})".format(n_s))
+        t0 = time.time()
+       
+        #
+        # Create a prior (Using some indication of the expected range of the image)
+        #
+
+        p05, p50, p95, p100 = self.vis_stats()
+        var = p95*p95
+        logger.info("Sky Prior variance={}".format(var))
+        prior = MultivariateGaussian(np.zeros(n_s) + p50, sigma=var*np.identity(n_s))
+    
+        #
+        # Create a likelihood covariance
+        #
+        diag = np.diagflat(self.rms**2)
+        sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]])
+       
+
+        precision = np.linalg.inv(sigma_vis)
         
+        logger.info("y_m = {}".format(real_vis.shape))
+
+        posterior = prior.bayes_update(precision, real_vis, gamma)
+                
+        logger.info("Elapsed {}s".format(time.time() - t0))
+        return posterior
+
     def image_tikhonov(self, vis_arr, sphere, alpha, scale=True, usedask=False):
         n_s = sphere.pixels.shape[0]
         n_v = self.u_arr.shape[0]

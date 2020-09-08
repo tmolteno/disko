@@ -34,7 +34,7 @@ adaptive:
 	
 
 cygnus:
-	/usr/bin/time -v disko_bayes --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.05 --nvis 2000 --title 'cygnus'
+	/usr/bin/time -v disko_bayes --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --FITS --arcmin 0.05 --nvis 2000 --title 'cygnus'
 #Mem 4G for 22260 x 3000
 #Mem 16G 90000 x 3000
 #Mem 160G 90000 x 30000

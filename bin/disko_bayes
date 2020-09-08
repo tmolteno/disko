@@ -144,22 +144,34 @@ if __name__ == '__main__':
         sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
         real_vis = vis_to_real(disko.vis_arr)
     
-    to = TelescopeOperator(disko, sphere)
-
-    prior = to.get_natural_prior()
-
-    n_v = real_vis.shape[0]
+    USE_SVD = True
     
-    # TODO create a proper covariance that ensures the real and imaginary components are linked.
-    if ARGS.sigma_v is None:
-        diag = np.diagflat(disko.rms**2)
+    if not USE_SVD:
+        # Try without SVD
+    
+        posterior = disko.sequential_inference(sphere, real_vis)
         
-        sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]])
-        logger.info("Using measurement set sigma {}".format(np.percentile(disko.rms, [5,50,95])))
-    else:
-        sigma_vis = np.identity(n_v)*(ARGS.sigma_v)**2
+        plt.imshow(posterior.sigma())
+        plt.show()
     
-    posterior = to.sequential_inference(prior, real_vis, sigma_vis)
+    else:
+        # With SVD
+        to = TelescopeOperator(disko, sphere)
+
+        prior = to.get_natural_prior()
+
+        n_v = real_vis.shape[0]
+        
+        # TODO create a proper covariance that ensures the real and imaginary components are linked.
+        if ARGS.sigma_v is None:
+            diag = np.diagflat(disko.rms**2)
+            
+            sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]])
+            logger.info("Using measurement set sigma {}".format(np.percentile(disko.rms, [5,50,95])))
+        else:
+            sigma_vis = np.identity(n_v)*(ARGS.sigma_v)**2
+        
+        posterior = to.sequential_inference(prior, real_vis, sigma_vis)
     
     src_list = None
 

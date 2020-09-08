@@ -16,11 +16,12 @@ logger.addHandler(logging.NullHandler()) # Add other handlers if you're using th
 logger.setLevel(logging.INFO)
 
 def get_baseline_resolution(bl, frequency):
-    # d sin(theta) = \lambda / 2
+    # Period of fringes is bl*sin(theta)
+    # resolution is then theta_min = b / lambda
     c = 2.99793e8
     wavelength = c/frequency
 
-    res_limit = np.arcsin(wavelength / (2*bl))
+    res_limit = np.arcsin(wavelength / bl)
     return res_limit
 
 def get_resolution_max_baseline(res_arcmin, frequency):
@@ -28,7 +29,7 @@ def get_resolution_max_baseline(res_arcmin, frequency):
     theta = np.radians(res_arcmin / 60.0)
     c = 2.99793e8
     wavelength = c/frequency
-    u_max = wavelength / (2 * np.sin(theta))
+    u_max = wavelength / (np.sin(theta))
     return u_max
     
 #def get_visibility(vis_arr, baselines, i,j):
@@ -138,7 +139,10 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
                 res_limit = get_baseline_resolution(limit_uvw[0], frequency)
                 logger.info("Nyquist resolution: {:g} arcmin".format(np.degrees(res_limit)*60.0))
                 
-                good_data = np.array(np.where((flags == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
+                if True:
+                    good_data = np.array(np.where((flags == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
+                else:
+                    good_data = np.array(np.where(flags == 0)).T.reshape((-1,))
                 logger.info("Good Data {}".format(good_data.shape))
 
                 logger.info("Maximum UVW: {}".format(limit_uvw))
