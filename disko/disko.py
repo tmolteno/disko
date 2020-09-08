@@ -442,9 +442,13 @@ class DiSkO(object):
                 alpha = None
             sky, niter =  pylops.optimization.sparsity.FISTA(A, d, tol=1e-3, niter=2500, alpha=alpha, show=True)
         if lsqr:
+            if alpha < 0:
+                alpha = np.mean(self.rms)
             sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=alpha)
             logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))      
         if lsmr:
+            if alpha < 0:
+                alpha = np.mean(self.rms)
             x0 = Apre*d
 
             sky, info = pylops.optimization.leastsquares.NormalEquationsInversion(A, Regs=None, data=d, x0=x0,
