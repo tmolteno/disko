@@ -52,3 +52,19 @@ class TestMultivariate(unittest.TestCase):
         self.assertAlmostEqual(np.std(samples)**2, x.sigma()[0,0], precision)
         
     
+    def test_hdf(self):
+        
+        D = 10
+        mu = np.random.normal(0,1,(D))
+        a = np.random.normal(0,1,(D,D))
+        sigma = a @ a.T
+        
+        x = mg.MultivariateGaussian(mu+1, sigma=sigma)
+
+        x.to_hdf5('test.hdf')
+        
+        y = mg.MultivariateGaussian.from_hdf5('test.hdf')
+        
+        self.assertTrue(np.allclose(y.mu, x.mu))
+
+        self.assertTrue(np.allclose(y.sigma(), x.sigma()))
