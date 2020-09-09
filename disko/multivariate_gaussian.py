@@ -77,9 +77,10 @@ class MultivariateGaussian:
         L = precision_y
         atl = A.T @ L
         
-        sigma_1 = np.linalg.inv(self.sigma_inv() + atl @ A)
+        sigma_1_inv = self.sigma_inv() + atl @ A
+        sigma_1 = np.linalg.inv(sigma_1_inv)
         mu_1 = sigma_1 @ (self.sigma_inv() @ self.mu + atl @ y)
-        return MultivariateGaussian(mu_1, sigma=sigma_1)
+        return MultivariateGaussian(mu_1, sigma=sigma_1, sigma_inv = sigma_1_inv)
     
     
     def linear_transform(self, A, b=None):
@@ -120,3 +121,32 @@ class MultivariateGaussian:
     def variance(self):
         var = self.sigma().diagonal()
         return np.sqrt(var)
+
+
+    def to_hdf5(self, filename):
+        ''' Save the MultivariateGaussian object,
+            to a portable HDF5 format
+        '''
+                
+        with h5py.File(filename, "w") as h5f:
+            dt = h5py.special_dtype(vlen=str)
+            conftype = h5py.special_dtype(vlen=bytes)
+            
+            conf_dset = h5f.create_dataset('config', (1,), dtype=conftype)
+            conf_dset[0] = vis0.config.to_json()
+            h5f.create_dataset('phase_elaz', data=[vis0.phase_el.to_degrees(), vis0.phase_az.to_degrees()])
+            h5f.create_dataset('baselines', data=vis0.baselines)
+            
+            h5f.create_dataset('vis', data=np.array(vis_data))
+            h5f.create_dataset('gains', data=np.array(cal_gain))
+            h5f.create_dataset('phases', data=np.array(cal_ph))
+
+            h5f.create_dataset('antenna_positions', data=np.array(ant_pos))
+
+            h5f.create_dataset("timestamp", data=np.array(vis_ts, dtype=object), dtype=dt)
+            
+            #ts_dset = h5f.create_dataset('timestamp', (len(vis_ts),), dtype=dt)
+            #for i,ts in enumerate(vis_ts):
+                #print(ts)
+                #ts_dset[i] = ts
+
