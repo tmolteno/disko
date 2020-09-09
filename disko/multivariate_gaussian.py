@@ -136,9 +136,9 @@ class MultivariateGaussian:
             conf_dset = h5f.create_dataset('info', (1,), dtype=conftype)
             conf_dset[0] = json_info
 
-            h5f.create_dataset('sigma', data=self.sigma())
-            h5f.create_dataset('sigma_inv', data=self.sigma_inv())
-            h5f.create_dataset('mu', data=self.mu)
+            h5f.create_dataset('sigma', data=self.sigma(), compression="gzip", compression_opts=9)
+            h5f.create_dataset('sigma_inv', data=self.sigma_inv(), compression="gzip", compression_opts=9)
+            h5f.create_dataset('mu', data=self.mu, compression="gzip", compression_opts=9)
 
 
     @classmethod
