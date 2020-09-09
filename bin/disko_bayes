@@ -69,6 +69,9 @@ if __name__ == '__main__':
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
     parser.add_argument('--FITS', action="store_true", help="Generate a FITS format image.")
+    
+    parser.add_argument('--prior', type=str, default=None, help="Load the from an HDF5 file.")
+    parser.add_argument('--posterior', type=str, default=None, help="Store the posterior in HDF5 format file.")
 
     parser.add_argument('--nsamples', type=int, default=3, help="Number of samples to save from the posterior.")
 
@@ -129,6 +132,7 @@ if __name__ == '__main__':
         disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel, field_id=ARGS.field)
         # Convert from reduced Julian Date to timestamp.
         timestamp = disko.timestamp
+        src_list = None
         
 
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
@@ -144,38 +148,38 @@ if __name__ == '__main__':
         sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
         real_vis = vis_to_real(disko.vis_arr)
     
-    USE_SVD = True
     
-    if not USE_SVD:
-        # Try without SVD
-    
-        posterior = disko.sequential_inference(sphere, real_vis)
-        
-        plt.imshow(posterior.sigma())
-        plt.show()
-    
+    ##
+    #
+    # Do the inference, get the SVD.
+    #
+    ##
+    to = TelescopeOperator(disko, sphere)
+
+    if ARGS.prior is not None:
+        prior = MultivariateGaussian.from_hdf5(ARGS.prior)
     else:
-        # With SVD
-        to = TelescopeOperator(disko, sphere)
-
-        prior = to.get_natural_prior()
-
-        n_v = real_vis.shape[0]
-        
-        # TODO create a proper covariance that ensures the real and imaginary components are linked.
-        if ARGS.sigma_v is None:
-            diag = np.diagflat(disko.rms**2)
-            
-            sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]])
-            logger.info("Using measurement set sigma {}".format(np.percentile(disko.rms, [5,50,95])))
-        else:
-            sigma_vis = np.identity(n_v)*(ARGS.sigma_v)**2
-        
-        posterior = to.sequential_inference(prior, real_vis, sigma_vis)
+        prior = to.get_prior() # in the image space.
     
-    src_list = None
+    natural_prior =  prior.linear_transform(to.Vh)
+
+    n_v = real_vis.shape[0]
+    
+    # TODO create a proper covariance that ensures the real and imaginary components are linked.
+    if ARGS.sigma_v is None:
+        diag = np.diagflat(disko.rms**2)
+        
+        sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]])
+        logger.info("Using measurement set sigma {}".format(np.percentile(disko.rms, [5,50,95])))
+    else:
+        sigma_vis = np.identity(n_v)*(ARGS.sigma_v)**2
+    
+    posterior = to.sequential_inference(natural_prior, real_vis, sigma_vis)
+    
 
     # Now save the files.
+    if ARGS.posterior is not None:
+        posterior.to_hdf5(ARGS.posterior)
 
     def path(ending, image_title):
         fname = '{}.{}'.format(image_title, ending)
@@ -205,17 +209,18 @@ if __name__ == '__main__':
             plt.close()
             logger.info("Generating {}".format(fname))
 
-    mu_positive = np.clip(posterior.mu, 0, None)
-    sphere.set_visible_pixels(mu_positive, scale=False)
-    save_images('{}_{}_mu'.format(ARGS.title, time_repr))
-    
-    sphere.set_visible_pixels(posterior.variance(), scale=False)
-    save_images('{}_{}_var'.format(ARGS.title, time_repr))
-    
-    pix_cov=posterior.sigma()[0,:]
-    sphere.set_visible_pixels(pix_cov, scale=False)
-    save_images('{}_{}_pcf'.format(ARGS.title, time_repr))
-    
-    for i in range(ARGS.nsamples):
-        sphere.set_visible_pixels(posterior.sample(), scale=False)
-        save_images(image_title = '{}_{}_s{:0>5}'.format(ARGS.title, time_repr, i))
+    if ARGS.PDF or ARGS.PNG or ARGS.SVG or ARGS.FITS:    
+        mu_positive = np.clip(posterior.mu, 0, None)
+        sphere.set_visible_pixels(mu_positive, scale=False)
+        save_images('{}_{}_mu'.format(ARGS.title, time_repr))
+        
+        sphere.set_visible_pixels(posterior.variance(), scale=False)
+        save_images('{}_{}_var'.format(ARGS.title, time_repr))
+        
+        pix_cov=posterior.sigma()[0,:]
+        sphere.set_visible_pixels(pix_cov, scale=False)
+        save_images('{}_{}_pcf'.format(ARGS.title, time_repr))
+        
+        for i in range(ARGS.nsamples):
+            sphere.set_visible_pixels(posterior.sample(), scale=False)
+            save_images(image_title = '{}_{}_s{:0>5}'.format(ARGS.title, time_repr, i))

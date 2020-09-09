@@ -63,11 +63,11 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
                        
     '''
     
-    local_cluster = distributed.LocalCluster(processes=False)
-    address = local_cluster.scheduler_address
-    logging.info("Using distributed scheduler "
-                 "with address '{}'".format(address))
-    client = distributed.Client(address)
+    #local_cluster = distributed.LocalCluster(processes=False)
+    #address = local_cluster.scheduler_address
+    #logging.info("Using distributed scheduler "
+                 #"with address '{}'".format(address))
+    client = distributed.Client()
 
     try:
         # Create a dataset representing the entire antenna table
@@ -217,9 +217,12 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
         timestamp = datetime.datetime(1858, 11, 17, 0, 0, 0,
                                       tzinfo=datetime.timezone.utc) + datetime.timedelta(seconds=epoch_seconds)
 
-    finally:
-        client.close()
-        local_cluster.close()
+    except Exception as e:
+        logger.info("Exception {}".format(e))
+        
+    #finally:
+        #client.close()
+        #local_cluster.close()
 
     return u_arr, v_arr, w_arr, frequency, cv_vis, hdr, timestamp, rms_arr
         

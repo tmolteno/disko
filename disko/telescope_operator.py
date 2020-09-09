@@ -481,14 +481,13 @@ class TelescopeOperator:
         logger.info("Elapsed {}s".format(time.time() - t0))
         return posterior
 
-    def get_natural_prior(self):
+    def get_prior(self):
         
         # What range should the image have.
         p05, p50, p95, p100 = self.grid.vis_stats()
         var = p95*p95
         logger.info("Sky Prior variance={}".format(var))
         prior = MultivariateGaussian(np.zeros(self.n_s) + p50, sigma=var*np.identity(self.n_s))
-        natural_prior = prior.linear_transform(self.Vh)
-        
+        #natural_prior = prior.linear_transform(self.Vh)
 
-        return natural_prior
+        return prior

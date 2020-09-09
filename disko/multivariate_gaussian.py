@@ -28,7 +28,7 @@ class MultivariateGaussian:
         '''
             Create a D-dimensional multivariate Gaussian with known mean and standard deviation
         '''
-        self.dtype = np.float64
+        self.dtype = np.float32
         try:
             self.D = mu.shape[0]
         except:
@@ -37,13 +37,15 @@ class MultivariateGaussian:
         if (sigma is None) and (sigma_inv is None):
             raise ValueError('Either sigma or sigma_inv must be provided')
             
-        self.mu = mu.flatten()
+        self.mu = np.array(mu.flatten(), dtype=self.dtype)
         self._sigma = sigma
         self._sigma_inv = sigma_inv
         
         if sigma is not None:
             d = sigma.shape
+            self._sigma = np.array(sigma, dtype=self.dtype)
         else:
+            self._sigma_inv = np.array(sigma_inv, dtype=self.dtype)
             d = sigma_inv.shape
             
         if (d[0] != self.D) or (d[1] != self.D):
@@ -129,7 +131,7 @@ class MultivariateGaussian:
         ''' Save the MultivariateGaussian object,
             to a portable HDF5 format
         '''
-        logger.info("Writing PDF to HDF5 {}".format(filename))
+        logger.info("Writing MultivariateGaussian to HDF5 {} {}".format(filename, self.sigma().dtype))
         with h5py.File(filename, "w") as h5f:
             conftype = h5py.special_dtype(vlen=bytes)
             
@@ -143,6 +145,7 @@ class MultivariateGaussian:
 
     @classmethod
     def from_hdf5(cls, filename):
+        logger.info("Loading MultivariateGaussian from HDF5 {}".format(filename))
         
         with h5py.File(filename, "r") as h5f:
 
