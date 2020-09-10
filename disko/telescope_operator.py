@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
-SVD_TOL=1e-9
+SVD_TOL=1e-6
 
 def plot_spectrum(s, n_s, n_v, rank, name):
     plt.figure(num=None, figsize=(6, 4), dpi=300, facecolor='w', edgecolor='k')
@@ -57,10 +57,13 @@ def normal_svd(x, tol=SVD_TOL):
     n_s = x.shape[1]
 
     [U, s, Vh] = scipy.linalg.svd(np.array(x), full_matrices=True)
+    logger.info("s = {}".format(s[0:10]))
+
     try:
         rank = np.min(np.argwhere(s < tol))
     except:
-        rank = n_v
+        # OK its full rank.
+        rank = s.shape[0]
         
     logger.info("rank = {}".format(rank))
 
