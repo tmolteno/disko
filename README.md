@@ -40,7 +40,10 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
-0.9.0b4 Improve measurement set reading. Use the mean RMS value for a single noise estimate on visibilities
+0.9.0b4 Improve measurement set reading. 
+        Use the mean RMS value for a single noise estimate on visibilities.
+        Use the correct rank value in overdetermined skies.
+        Truncate the SVD to keep the condition number of the telescope less than 50.
 0.9.0b3 Full Bayesian Inference is workin. Fix bug in meshio (after upgrade beyond 4)
 0.9.0b2 Add a multivariate gaussian object. Fix ms_helper. Handle the case where the rank of the telescope operator is not full.
 0.9.0b1 Move to a real telescope operator.
