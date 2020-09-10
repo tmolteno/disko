@@ -28,7 +28,7 @@ class MultivariateGaussian:
         '''
             Create a D-dimensional multivariate Gaussian with known mean and standard deviation
         '''
-        self.dtype = np.float64
+        self.dtype = np.float32
         try:
             self.D = mu.shape[0]
         except:
