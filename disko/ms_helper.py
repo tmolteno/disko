@@ -29,8 +29,8 @@ def get_resolution_max_baseline(res_arcmin, frequency):
     theta = np.radians(res_arcmin / 60.0)
     c = 2.99793e8
     wavelength = c/frequency
-    u_max = wavelength / (np.sin(theta))
-    return u_max
+    bl_max = wavelength / (np.sin(theta))
+    return bl_max
     
 #def get_visibility(vis_arr, baselines, i,j):
     #if (i > j):
@@ -54,11 +54,11 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
                        pix_res > fringe / 2
                        
                        u sin(theta) = n (for nth fringe)
-                       at small angles: theta = 1/u, or u_max = 1 / theta
+                       at small angles: theta = 1/u, or bl_max = 1 / theta
                        
                        d sin(theta) = lambda / 2
                        d / lambda = 1 / (2 sin(theta))
-                       u_max = lambda / 2sin(theta)
+                       bl_max = lambda / 2sin(theta)
                        
                        
     '''
@@ -127,9 +127,9 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
                 #   Now calculate which indices we should use to get the required number of
                 #   visibilities.
                 #
-                u_max = get_resolution_max_baseline(res_arcmin, frequency)
+                bl_max = get_resolution_max_baseline(res_arcmin, frequency)
                 
-                logger.info("Resolution Max UVW: {:g} meters".format(u_max))
+                logger.info("Resolution Max UVW: {:g} meters".format(bl_max))
                 logger.info("Flags: {}".format(flags.shape))
 
                 # Now report the recommended resolution from the data.
@@ -140,7 +140,9 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
                 logger.info("Nyquist resolution: {:g} arcmin".format(np.degrees(res_limit)*60.0))
                 
                 if True:
-                    good_data = np.array(np.where((flags == 0) & (np.max(np.abs(uvw), 1) < u_max))).T.reshape((-1,))
+                    bl  = np.sqrt(uvw[:,0]**2 + uvw[:,1]**2 + uvw[:,2]**2)
+                    #good_data = np.array(np.where((flags == 0) & (np.max(np.abs(uvw), 1) < bl_max))).T.reshape((-1,))
+                    good_data = np.array(np.where((flags == 0) & (bl < bl_max))).T.reshape((-1,))
                 else:
                     good_data = np.array(np.where(flags == 0)).T.reshape((-1,))
                 logger.info("Good Data {}".format(good_data.shape))

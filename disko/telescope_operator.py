@@ -34,19 +34,7 @@ def plot_spectrum(s, n_s, n_v, rank, name):
     plt.close()
 
 def plot_uv(to, name):
-    uv = []
-    
-    plt.figure(num=None, figsize=(4, 4), dpi=300, facecolor='w', edgecolor='k')
-    for u, v, w in zip(to.grid.u_arr, to.grid.v_arr, to.grid.w_arr):
-        plt.plot(u,v, '.', color='black')
-    
-    plt.grid(True)
-    plt.title('{} U-V Coverage'.format(name))
-    plt.xlabel('u (wavelengths)')
-    plt.ylabel('v (wavelengths)')
-    plt.savefig('{}_UV.pdf'.format(name))
-    plt.close()
-
+    to.plot_uv(name)
 
 def tf_svd(x, tol=SVD_TOL):
     import tensorflow as tf
@@ -491,3 +479,18 @@ class TelescopeOperator:
         #natural_prior = prior.linear_transform(self.Vh)
 
         return prior
+
+
+    def plot_uv(self, name):
+        uv = []
+        
+        plt.figure(num=None, figsize=(5, 4), dpi=300, facecolor='w', edgecolor='k')
+        for u, v, w in zip(self.grid.u_arr, self.grid.v_arr, self.grid.w_arr):
+            plt.plot(u,v, '.', color='black')
+        
+        plt.grid(True)
+        plt.title('{} U-V Coverage'.format(name))
+        plt.xlabel('u (m)')
+        plt.ylabel('v (m)')
+        plt.savefig('{}_UV.pdf'.format(name))
+        plt.close()

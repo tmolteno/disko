@@ -176,7 +176,7 @@ if __name__ == '__main__':
     
     posterior = to.sequential_inference(natural_prior, real_vis, sigma_vis)
     
-
+    to.plot_uv(ARGS.title)
     # Now save the files.
     if ARGS.posterior is not None:
         posterior.to_hdf5(ARGS.posterior)

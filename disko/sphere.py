@@ -610,14 +610,14 @@ class HexagonGenerator(object):
 
     @property
     def row_height(self):
-        return math.sin(math.pi / 3) * self.edge_length
+        return np.sin(np.pi / 3) * self.edge_length
 
     def __call__(self, row, col):
         x = (col + 0.5 * (row % 2)) * self.col_width
         y = row * self.row_height
         for angle in range(0, 360, 60):
-            x += math.cos(math.radians(angle)) * self.edge_length
-            y += math.sin(math.radians(angle)) * self.edge_length
+            x += np.cos(np.radians(angle)) * self.edge_length
+            y += np.sin(np.radians(angle)) * self.edge_length
         yield x
         yield y
 
