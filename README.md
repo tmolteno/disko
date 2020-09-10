@@ -38,6 +38,10 @@ Then in CASA
     
 This should generate a suitable measurement set to image.
 
+## TODO
+
+* Add a --full-sphere option which fixes the sphere in celestial coordinates, and then points the phase center of an observation correctly. Requires a beam pattern to be specified (or at least a hemispherical beam). A beam is a sky vector mask. I.e., should fall to zero 'outside' the beam.
+
 ## Changelog
 
 0.9.0b4 Improve measurement set reading. 
