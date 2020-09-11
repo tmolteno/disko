@@ -229,9 +229,9 @@ class TelescopeOperator:
                 np.savez_compressed(fname, U=self.U, Vh=self.Vh, s=self.s, sigma=self.sigma, rank=rank)
                 logger.info("Cache file {} saved".format(fname))
 
-        logger.info("    U  {} bytes".format(self.U.nbytes))
-        logger.info("    Sigma {} bytes".format(self.sigma.nbytes))
-        logger.info("    Vh {} bytes".format(self.Vh.nbytes))
+        logger.info("    U  {:5.2f} GB".format(self.U.nbytes/1e9))
+        logger.info("    Sigma {:5.2f} GB".format(self.sigma.nbytes/1e9))
+        logger.info("    Vh {:5.2f} GB".format(self.Vh.nbytes/1e9))
         logger.info("U = {}".format(self.U.shape))
         logger.info("sigma = {}".format(self.sigma.shape))
         logger.info("V = {}".format(self.Vh.shape))

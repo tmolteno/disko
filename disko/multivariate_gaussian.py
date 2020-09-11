@@ -41,17 +41,21 @@ class MultivariateGaussian:
         self._sigma = sigma
         self._sigma_inv = sigma_inv
         
+        storage = 0
+        
         if sigma is not None:
             d = sigma.shape
             self._sigma = sigma
+            storage += self._sigma.nbytes
         else:
             self._sigma_inv = sigma_inv
             d = sigma_inv.shape
+            storage += self._sigma_inv.nbytes
             
         if (d[0] != self.D) or (d[1] != self.D):
             raise ValueError('Covariance {} must be a {}x{} square matrix'.format(d, self.D, self.D))
     
-        logger.info("MultivariateGaussian({}, {})".format(mu.shape, d))
+        logger.info("MultivariateGaussian({}, {}): {:.2f} GB".format(mu.shape, d, storage/1e9))
         
         self._A = None
     
