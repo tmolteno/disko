@@ -37,11 +37,11 @@ class MultivariateGaussian:
         if (sigma is None) and (sigma_inv is None):
             raise ValueError('Either sigma or sigma_inv must be provided')
             
-        self.mu = np.array(mu.flatten(), dtype=self.dtype)
+        self.mu = mu.flatten()
         self._sigma = sigma
         self._sigma_inv = sigma_inv
         
-        storage = 0
+        storage = self.mu.nbytes
         
         if sigma is not None:
             d = sigma.shape
