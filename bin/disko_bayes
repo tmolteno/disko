@@ -162,7 +162,10 @@ if __name__ == '__main__':
         prior = to.get_prior() # in the image space.
     
     natural_prior =  prior.linear_transform(to.Vh)
-
+    # New free memory in the prior
+    del prior
+    
+    
     n_v = real_vis.shape[0]
     
     # TODO create a proper covariance that ensures the real and imaginary components are linked.

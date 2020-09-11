@@ -59,7 +59,7 @@ def normal_svd(x, tol=SVD_TOL):
     [U, s, Vh] = scipy.linalg.svd(np.array(x), full_matrices=True)
     logger.info("Cond(A) = {}".format(s[0]/s[-1]))
 
-    tol = s[0]/50.0
+    tol = s[0]/150.0
     try:
         rank = np.min(np.argwhere(s < tol))
     except:
@@ -240,16 +240,13 @@ class TelescopeOperator:
         self.U_1 = self.U[:, 0:self.rank]
         self.U_2 = self.U[:, self.rank:]
 
-        self.A = self.U @ self.sigma # The new telescope operator.
         self.sigma_1 = self.sigma[0:self.rank, 0:self.rank]
-        #self.A_r = self.A[0:self.rank, 0:self.rank] # This is the mistake. It is not square if m > n (system is overdetermined)
+
         self.A_r = self.U_1 @ self.sigma_1 # 
 
         logger.info("V_1 = {}".format(self.V_1.shape))
         logger.info("V_2 = {}".format(self.V_2.shape))
 
-
-        logger.info("A = {}".format(self.A.shape))
         logger.info("A_r = {}".format(self.A_r.shape))
         
         #logger.info("P_r = {}".format(self._P_r.shape)) # Projection onto the range space of A
@@ -292,7 +289,9 @@ class TelescopeOperator:
         
     def natural_A_row(self, h):
         # The row vector of the natural-basis telescope operator A = U @ Sigma 
-        return self.A[h, :]
+        A = self.U @ self.sigma # The new telescope operator.
+
+        return A[h, :]
         
 
     

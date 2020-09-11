@@ -43,9 +43,9 @@ class MultivariateGaussian:
         
         if sigma is not None:
             d = sigma.shape
-            self._sigma = np.array(sigma, dtype=self.dtype)
+            self._sigma = sigma
         else:
-            self._sigma_inv = np.array(sigma_inv, dtype=self.dtype)
+            self._sigma_inv = sigma_inv
             d = sigma_inv.shape
             
         if (d[0] != self.D) or (d[1] != self.D):
@@ -98,7 +98,7 @@ class MultivariateGaussian:
         else:
             mu_1 = A @ self.mu + b
 
-        return MultivariateGaussian(mu_1, sigma_1)
+        return MultivariateGaussian(mu_1, sigma=sigma_1)
     
     def block(self, start, stop):
         sig = self.sigma()

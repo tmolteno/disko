@@ -142,7 +142,9 @@ class TestTelescopeOperator(unittest.TestCase):
         #logger.info("vis = {}".format(vis[:,0]))
 
         x = self.to.sky_to_natural(sky)
-        vis2 = self.to.A @ x
+        
+        A = self.to.U @ self.to.sigma
+        vis2 = A @ x
         #logger.info("vis2 = {}".format(vis2[:,0]))
         
         x_r = x[0:self.to.rank]
@@ -227,8 +229,10 @@ class TestTelescopeOperator(unittest.TestCase):
         sky = self.get_point_sky()
         vis = self.to.gamma @ sky
         
-        prior_r = self.to.get_natural_prior()
-        
+        prior = to.get_prior() # in the image space.
+    
+        prior_r =  prior.linear_transform(self.to.Vh)
+
         sigma_vis = 1e-6*np.identity(self.to.n_v)
 
         posterior_r = self.to.sequential_inference(prior_r, vis.flatten(), sigma_vis)
