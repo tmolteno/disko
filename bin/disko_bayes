@@ -45,63 +45,7 @@ def handle_image(args, img, title, time_repr, src_list=None):
     if args.display:
         plt.show()
 
-if __name__ == '__main__':
-    
-    np.random.seed(42)
-    
-    parser = argparse.ArgumentParser(description='DiSkO: Bayesian inference of a posterior sky', 
-                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-    parser.add_argument('--ms', required=False, default=None, help="visibility file")
-    parser.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
-    parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
-    parser.add_argument('--field', type=int, default=0, help="Use this FIELD_ID from the measurement set.")
-
-    parser.add_argument('--dir', required=False, default='.', help="Output directory.")
-    parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
-    parser.add_argument('--nvis', type=int, default=1000, help="Number of visibilities to use.")
-    parser.add_argument('--arcmin', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
-    parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
-
-    parser.add_argument('--sigma-v', type=float, default=None, help="Diagonal components of the visibility covariance. If not supplied use measurement set values")
-
-    parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
-    parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
-    parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
-    parser.add_argument('--FITS', action="store_true", help="Generate a FITS format image.")
-    
-    parser.add_argument('--prior', type=str, default=None, help="Load the from an HDF5 file.")
-    parser.add_argument('--posterior', type=str, default=None, help="Store the posterior in HDF5 format file.")
-
-    parser.add_argument('--nsamples', type=int, default=3, help="Number of samples to save from the posterior.")
-
-    parser.add_argument('--title', required=False, default="disko", help="Prefix the output files.")
-
-    source_json = None
-
-    ARGS = parser.parse_args()
-
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-
-    fh = logging.FileHandler('disko.log')
-    fh.setLevel(logging.INFO)
-    
-    # create console handler and set level to debug
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-
-    # create formatter
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-    # add formatter to ch
-    ch.setFormatter(formatter)
-    fh.setFormatter(formatter)
-
-    # add ch to logger
-    #logger.addHandler(ch)
-    logger.addHandler(fh)
-    
+def handle_bayes(ARGS, logger):
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
         # Load data from a JSON file
@@ -161,9 +105,7 @@ if __name__ == '__main__':
     else:
         prior = to.get_prior() # in the image space.
     
-    natural_prior =  prior.linear_transform(to.Vh)
-    # New free memory in the prior
-    del prior
+    prior =  prior.linear_transform(to.Vh)
     
     
     n_v = real_vis.shape[0]
@@ -177,9 +119,16 @@ if __name__ == '__main__':
     else:
         sigma_vis = np.identity(n_v)*(ARGS.sigma_v)**2
     
-    posterior = to.sequential_inference(natural_prior, real_vis, sigma_vis)
+    posterior = to.sequential_inference(prior, real_vis, sigma_vis)
+
+    # Free memory
+    del prior
+    del sigma_vis
     
     to.plot_uv(ARGS.title)
+    
+    del to
+    
     # Now save the files.
     if ARGS.posterior is not None:
         posterior.to_hdf5(ARGS.posterior)
@@ -227,3 +176,62 @@ if __name__ == '__main__':
         for i in range(ARGS.nsamples):
             sphere.set_visible_pixels(posterior.sample(), scale=False)
             save_images(image_title = '{}_{}_s{:0>5}'.format(ARGS.title, time_repr, i))
+
+if __name__ == '__main__':
+    
+    np.random.seed(42)
+    
+    parser = argparse.ArgumentParser(description='DiSkO: Bayesian inference of a posterior sky', 
+                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('--ms', required=False, default=None, help="visibility file")
+    parser.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
+    parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
+    parser.add_argument('--field', type=int, default=0, help="Use this FIELD_ID from the measurement set.")
+
+    parser.add_argument('--dir', required=False, default='.', help="Output directory.")
+    parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
+    parser.add_argument('--nvis', type=int, default=1000, help="Number of visibilities to use.")
+    parser.add_argument('--arcmin', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
+    parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
+
+    parser.add_argument('--sigma-v', type=float, default=None, help="Diagonal components of the visibility covariance. If not supplied use measurement set values")
+
+    parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
+    parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
+    parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
+    parser.add_argument('--FITS', action="store_true", help="Generate a FITS format image.")
+    
+    parser.add_argument('--prior', type=str, default=None, help="Load the from an HDF5 file.")
+    parser.add_argument('--posterior', type=str, default=None, help="Store the posterior in HDF5 format file.")
+
+    parser.add_argument('--nsamples', type=int, default=3, help="Number of samples to save from the posterior.")
+
+    parser.add_argument('--title', required=False, default="disko", help="Prefix the output files.")
+
+    source_json = None
+
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    fh = logging.FileHandler('disko.log')
+    fh.setLevel(logging.INFO)
+    
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+
+    # create formatter
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # add formatter to ch
+    ch.setFormatter(formatter)
+    fh.setFormatter(formatter)
+
+    # add ch to logger
+    #logger.addHandler(ch)
+    logger.addHandler(fh)
+
+    handle_bayes(parser.parse_args(), logger)
+

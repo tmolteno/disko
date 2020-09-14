@@ -11,6 +11,7 @@ import scipy
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 from pathlib import Path
 
 from .sphere import HealpixSphere
@@ -205,7 +206,6 @@ class TelescopeOperator:
             self.V = self.Vh.conj().T
             self.V_1 = self.V[:, 0:self.rank]
             self.V_2 = self.V[:, self.rank:]
-            self.V_1h = self.V_1.conj().T
             
         else:
             logger.info("Performing SVD.")
@@ -219,7 +219,6 @@ class TelescopeOperator:
             self.V = self.Vh.conj().T
             self.V_1 = self.V[:, 0:self.rank]
             self.V_2 = self.V[:, self.rank:]
-            self.V_1h = self.V_1.conj().T
             #logger.info("Calculating orthogonal projections")
 
             #self._P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
@@ -274,7 +273,8 @@ class TelescopeOperator:
 
     def P_r(self):
         if self._P_r is None:
-            self._P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
+            V_1h = self.V_1.conj().T
+            self._P_r = self.V_1 @ V_1h # Projection onto the range space of A
             logger.info("P_r = {}".format(self._P_r.shape)) # Projection onto the range space of A
         return self._P_r
 
@@ -454,8 +454,6 @@ class TelescopeOperator:
         #s = self.s[0:self.rank]
         #A = self.U_1.T @ s # np.diag(s / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
 
-        precision = np.linalg.inv(sigma_vis)
-        
         logger.info("y_m = {}".format(vis_arr.shape))
 
 
@@ -463,7 +461,7 @@ class TelescopeOperator:
         prior_r = prior.block(0,self.rank)
         prior_n = prior.block(self.rank,self.n_s)
         
-        posterior_r = prior_r.bayes_update(precision, vis_arr, self.A_r)
+        posterior_r = prior_r.bayes_update(np.linalg.inv(sigma_vis), vis_arr, self.A_r)
         posterior_n = prior_n
         
         posterior = MultivariateGaussian.outer(posterior_r, posterior_n)
