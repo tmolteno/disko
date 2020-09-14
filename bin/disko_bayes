@@ -99,6 +99,7 @@ def handle_bayes(ARGS, logger):
     #
     ##
     to = TelescopeOperator(disko, sphere)
+    to.plot_uv(ARGS.title)
 
     if ARGS.prior is not None:
         prior = MultivariateGaussian.from_hdf5(ARGS.prior)
@@ -119,15 +120,30 @@ def handle_bayes(ARGS, logger):
     else:
         sigma_vis = np.identity(n_v)*(ARGS.sigma_v)**2
     
-    posterior = to.sequential_inference(prior, real_vis, sigma_vis)
+    
+    # Pull the block from the natural_prior that is the range_space prior
+    if True:
+        prior_r = prior.block(0,to.rank)
+        prior_n = prior.block(to.rank,to.n_s)
+
+        A_r = to.A_r
+        V = to.V
+        
+        del to
+        posterior_r = prior_r.bayes_update(np.linalg.inv(sigma_vis), real_vis, A_r)
+        posterior_n = prior_n
+        
+        posterior = MultivariateGaussian.outer(posterior_r, posterior_n)
+        posterior = posterior.linear_transform(V)
+    else:
+        posterior = to.sequential_inference(prior, real_vis, sigma_vis)
+        del to
 
     # Free memory
     del prior
     del sigma_vis
     
-    to.plot_uv(ARGS.title)
     
-    del to
     
     # Now save the files.
     if ARGS.posterior is not None:
