@@ -136,6 +136,7 @@ def handle_bayes(ARGS, logger):
         posterior_r = prior_r.bayes_update(sigma_precision, real_vis, A_r)
         posterior_n = prior_n
         
+        del A_r
         del sigma_precision
         del prior_r
         del prior_n
@@ -147,6 +148,8 @@ def handle_bayes(ARGS, logger):
         del posterior_n
         
         posterior = posterior.linear_transform(V)
+        
+        del V
     else:
         posterior = to.sequential_inference(prior, real_vis, sigma_precision)
         del to
