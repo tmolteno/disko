@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
+
+    
 class MultivariateGaussian:
     '''
         Handle a multivariate gaussian with D dimensions, and real entries.
@@ -58,15 +60,24 @@ class MultivariateGaussian:
         logger.info("MultivariateGaussian({}, {}): {:.2f} GB".format(mu.shape, d, storage/1e9))
         
         self._A = None
-    
+
+    def sp_inv(self, A):
+        '''
+            Find the inverse of a postitive definite matrix
+        '''
+        logger.info("Inverting {} matrix".format(A.shape))
+        D = A.shape[0]
+        Ainv = scipy.linalg.solve(A, np.identity(D), assume_a = 'pos')
+        return Ainv
+
     def sigma_inv(self):
         if self._sigma_inv is None:
-            self._sigma_inv = np.linalg.inv(self._sigma)
+            self._sigma_inv = self.sp_inv(self._sigma)
         return self._sigma_inv
 
     def sigma(self):
         if self._sigma is None:
-            self._sigma = np.linalg.inv(self._sigma_inv)
+            self._sigma = self.sp_inv(self._sigma_inv)
         return self._sigma
 
 
@@ -86,7 +97,7 @@ class MultivariateGaussian:
         atl = A.T @ L
         
         sigma_1_inv = self.sigma_inv() + atl @ A
-        sigma_1 = np.linalg.inv(sigma_1_inv)
+        sigma_1 = self.sp_inv(sigma_1_inv)
         mu_1 = sigma_1 @ (self.sigma_inv() @ self.mu + atl @ y)
         return MultivariateGaussian(mu_1, sigma=sigma_1, sigma_inv = sigma_1_inv)
     
