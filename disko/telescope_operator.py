@@ -399,7 +399,7 @@ class TelescopeOperator:
         return sky
 
 
-    def sequential_inference(self, prior, vis_arr, sigma_vis):
+    def sequential_inference(self, prior, vis_arr, sigma_precision):
         '''
             Perform the Bayesian Update of the prior sky. Return the posterior.
             
@@ -461,7 +461,7 @@ class TelescopeOperator:
         prior_r = prior.block(0,self.rank)
         prior_n = prior.block(self.rank,self.n_s)
         
-        posterior_r = prior_r.bayes_update(np.linalg.inv(sigma_vis), vis_arr, self.A_r)
+        posterior_r = prior_r.bayes_update(sigma_precision, vis_arr, self.A_r)
         posterior_n = prior_n
         
         posterior = MultivariateGaussian.outer(posterior_r, posterior_n)

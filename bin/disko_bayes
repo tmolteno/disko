@@ -120,6 +120,9 @@ def handle_bayes(ARGS, logger):
     else:
         sigma_vis = np.identity(n_v)*(ARGS.sigma_v)**2
     
+    # now invert sigma_vis
+    sigma_precision = np.linalg.inv(sigma_vis)
+    del sigma_vis
     
     # Pull the block from the natural_prior that is the range_space prior
     if True:
@@ -130,18 +133,26 @@ def handle_bayes(ARGS, logger):
         V = to.V
         
         del to
-        posterior_r = prior_r.bayes_update(np.linalg.inv(sigma_vis), real_vis, A_r)
+        posterior_r = prior_r.bayes_update(sigma_precision, real_vis, A_r)
         posterior_n = prior_n
         
+        del sigma_precision
+        del prior_r
+        del prior_n
+        del prior
+
         posterior = MultivariateGaussian.outer(posterior_r, posterior_n)
+        
+        del posterior_r
+        del posterior_n
+        
         posterior = posterior.linear_transform(V)
     else:
-        posterior = to.sequential_inference(prior, real_vis, sigma_vis)
+        posterior = to.sequential_inference(prior, real_vis, sigma_precision)
         del to
+        del sigma_precision
+        del prior
 
-    # Free memory
-    del prior
-    del sigma_vis
     
     
     

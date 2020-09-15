@@ -35,7 +35,7 @@ adaptive:
 
 # Requires memory_profiler pip3 install memory_profiler
 cygnus:
-	/usr/bin/time -v disko_bayes --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --FITS --arcmin 0.025 --nvis 2000 --title 'cygnus'
+	mprof run disko_bayes --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --FITS --arcmin 0.05 --nvis 2000 --title 'cygnus'
 	
 	
 # Mem 2520  (0.1 arcmin)   1726672
