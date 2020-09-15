@@ -22,7 +22,7 @@ svd:
 
 bayes:
 	#rm -f *.npz
-	/usr/bin/time -v disko_bayes --fov 155 --ms test_data/test.ms  --PNG --SVG --arcmin=120  --title 'bayes_tart' --sigma-v=0.1
+	/usr/bin/time -v disko_bayes --fov 155 --ms test_data/test.ms  --PNG --SVG --arcmin=90  --title 'bayes_tart' --sigma-v=0.2
 #	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
 
 ngc1194:
@@ -35,7 +35,7 @@ adaptive:
 
 # Requires memory_profiler pip3 install memory_profiler
 cygnus:
-	/usr/bin/time -v disko_bayes --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --FITS --arcmin 0.05 --nvis 2000 --title 'cygnus'
+	/usr/bin/time -v disko_bayes --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --FITS --arcmin 0.025 --nvis 2000 --title 'cygnus'
 	
 	
 # Mem 2520  (0.1 arcmin)   1726672
