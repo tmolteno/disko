@@ -146,7 +146,7 @@ if __name__ == '__main__':
         fun_plot(to, s, "batman")
         null_batman = to.sky_to_null(s)
         print(null_batman)
-        fun_plot(to, null_batman, "null-space batman")
+        fun_plot(to, null_batman, "null_space_batman")
         dut = to.gamma @ null_batman
         print("Null Batman Vis = {}".format(dut))
         

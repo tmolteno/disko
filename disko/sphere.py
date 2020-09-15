@@ -508,13 +508,20 @@ class HealpixSubSphere(HealpixSphere):
         # Phi is [0..2pi]
 
         if nside is None: # Calculate nside to the appropriate resolution
-            nside = 1
+            nside = 2
+            prev_res = hp.nside2resol(1, arcmin = True)
             while True:
                 res = hp.nside2resol(nside, arcmin = True)
-                logger.info("nside={} res={} arcmin".format(nside, res))
+                dres = (prev_res-res)/resolution
+                logger.info("nside={} res={} arcmin dres={}".format(nside, res, dres))
                 if res < resolution:
                     break
-                nside = nside * 2
+                if (res > 1.1*resolution):
+                    nside = int(nside * dres)
+                else:
+                    nside = nside + 1
+                prev_res = res
+                
 
         ret = cls(nside)
         
