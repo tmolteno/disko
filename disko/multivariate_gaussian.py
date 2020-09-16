@@ -4,13 +4,21 @@ import h5py
 import json
 
 import numpy as np
+import dask.array as da
+
+from .util import log_array, da_identity, da_block_diag
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
 
-    
+def factors(n):
+    return np.sort(list(set(
+        factor for i in range(1, int(n**0.5) + 1) if n % i == 0
+        for factor in (i, n//i)
+    )))
+
 class MultivariateGaussian:
     '''
         Handle a multivariate gaussian with D dimensions, and real entries.
@@ -43,15 +51,20 @@ class MultivariateGaussian:
         self._sigma = sigma
         self._sigma_inv = sigma_inv
         
+        log_array("mu", self.mu)
+        
         storage = self.mu.nbytes
         
         if sigma is not None:
             d = sigma.shape
+            
             self._sigma = sigma
+            log_array("sigma", sigma)
             storage += self._sigma.nbytes
         else:
             self._sigma_inv = sigma_inv
             d = sigma_inv.shape
+            log_array("sigma_inv", sigma_inv)
             storage += self._sigma_inv.nbytes
             
         if (d[0] != self.D) or (d[1] != self.D):
@@ -66,17 +79,21 @@ class MultivariateGaussian:
             Find the inverse of a postitive definite matrix
         '''
         logger.info("Inverting {} matrix".format(A.shape))
+        log_array("A", A)
+        
         D = A.shape[0]
-        Ainv = scipy.linalg.solve(A, np.identity(D), assume_a = 'pos')
+        Ainv = da.linalg.solve(A, da_identity(D), sym_pos=True)
         return Ainv
 
     def sigma_inv(self):
         if self._sigma_inv is None:
+            self.rechunk()
             self._sigma_inv = self.sp_inv(self._sigma)
         return self._sigma_inv
 
     def sigma(self):
         if self._sigma is None:
+            self.rechunk()
             self._sigma = self.sp_inv(self._sigma_inv)
         return self._sigma
 
@@ -122,23 +139,52 @@ class MultivariateGaussian:
     @classmethod
     def outer(self, a, b):
         logger.info("outer({}, {})".format(a.mu.shape, b.mu.shape))
-        mu = np.block([a.mu.flatten(), b.mu.flatten()])
-        sigma = scipy.linalg.block_diag(a.sigma(), b.sigma())
+        mu = da.block([a.mu.flatten(), b.mu.flatten()])
+        
+        a_s = a.sigma().shape
+        b_s = b.sigma().shape
+        
+        data = [
+                [a.sigma(), da.zeros((a_s[0], b_s[1]))],
+                [da.zeros((b_s[0], a_s[1])), b.sigma()]
+            ]
+        sigma = da.block(data)
         return MultivariateGaussian(mu, sigma=sigma)
+
+    @classmethod
+    def diagonal(self, mu, diag):
+        logger.info("diagonal({}, {})".format(mu.shape, diag.shape))
+        sigma = da.diag(diag)
+        return MultivariateGaussian(mu, sigma=sigma)
+
+    def rechunk(self, mem_limit=1e8):
+        fact = factors(self.D)
+        mem = 16 * (fact**2)
+        reason = fact[np.argwhere(mem < 1e8)].flatten()
+    
+        if self._sigma is not None:
+            self._sigma = self._sigma.rechunk('auto')
+
+        if self._sigma_inv is not None:
+            self._sigma_inv = self._sigma_inv.rechunk('auto')
 
     def sample(self):
         '''
             Return a sample from this multivariate distribution
         '''
-        z = np.random.normal(0, 1, self.D)
+        z = da.random.normal(0, 1, self.D)
         if self._A is None:
-            self._A = np.linalg.cholesky(self.sigma())
-        
-        return self.mu + self._A @ z
+            self.rechunk()
+            logger.info("Cholesky factoring...")
+            self._A = da.linalg.cholesky(self.sigma())
+            logger.info("          ...done")
+            self._A.persist()
+            
+        return np.array(self.mu + self._A @ z)
         
 
     def variance(self):
-        var = self.sigma().diagonal()
+        var = np.diagonal(self.sigma())
         return np.sqrt(var)
 
 

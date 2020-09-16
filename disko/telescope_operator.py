@@ -11,6 +11,11 @@ import scipy
 import numpy as np
 import matplotlib.pyplot as plt
 
+import dask.array as da
+import dask
+dask.config.set({"optimization.fuse.ave-width": 5})
+
+import h5py
 
 from pathlib import Path
 
@@ -23,6 +28,8 @@ logger.addHandler(logging.NullHandler()) # Add other handlers if you're using th
 logger.setLevel(logging.INFO)
 
 SVD_TOL=1e-3
+
+from .util import log_array, da_identity, da_diagsvd
 
 def plot_spectrum(s, n_s, n_v, rank, name):
     plt.figure(num=None, figsize=(6, 4), dpi=300, facecolor='w', edgecolor='k')
@@ -79,49 +86,48 @@ def normal_svd(x, tol=SVD_TOL):
 
 def dask_svd(x, tol=SVD_TOL):
     # Try and use a tall and thin svd computation. Will need to be done on the hermitian transpose of the telescope operator.
-    import dask.array as da
-    import dask
+
     n_v = x.shape[0]
-    T = np.array(x, dtype=np.complex128)
-    rows, cols = T.shape
+    n_s = x.shape[1]
 
-    A = da.from_array(T, chunks=(cols, rows))
-
-    # Use the transpose uT ST V
-    v, s, uT = da.linalg.svd(A.conj().T)
+    if False:
+        A = x.rechunk('auto', n_v)
+        log_array("A", A)
+        ns = min(n_v, n_s)
+        U, s, Vh = da.linalg.svd_compressed(A, k=ns, n_power_iter=4)
+    else:
+        A = x.rechunk(('auto', -1))
+        log_array("A", A)
+        U, s, Vh = da.linalg.svd(A)
     
     s = s.compute()
-    u = uT.conj().T.compute()
-    v = v.compute()
     
-    logger.info("dask u = {}".format(u.shape))
-    logger.info("dask s = {}".format(s))
-    logger.info("dask v = {}".format(v.shape))
+    tol = s[0]/150.0
+    cond = s[0]/s[-1]
+        
+    logger.info("tol = {}".format(tol))
+    logger.info("Cond(A) = {}".format(cond))
+
+    log_array("U", U)
+    log_array("s", s)
+    log_array("Vh", Vh)
 
     try:
         rank = np.min(np.argwhere(s < tol))
     except:
-        logger.exception("Error in rank")
+        # OK its full rank.
         rank = s.shape[0]
-    logger.info("rank = {}".format(rank))
-        
-    # Now do QR decomposition to get the full U matrix (it is the u from svd with Q2 added)
-    # (1) Add zeros to the sigma matrix
-    # (2) Complete V to the full V matrix by Gram-Schmidt Process
+            
+    U = U.rechunk('auto')
+    Vh = Vh.rechunk('auto')
     
-    q, r = np.linalg.qr(T.conj().T, mode='complete')
-    logger.info("dask q = {}".format(q.shape))
-    logger.info("dask r = {}".format(r.shape))
-    
-    return [u, s, q], rank
+    return [U, np.array(s), Vh], rank
             
 
 def to_column(x):
     return x.reshape([-1,1])
 '''
     The TelescopeOperator class contains all the methods to convert to and from the natural basis.
-    
-    
 '''
 class TelescopeOperator:
     r'''
@@ -182,11 +188,22 @@ class TelescopeOperator:
     def __init__(self, grid, sphere, use_cache=False):
         self.grid = grid
         self.sphere = sphere
-        self.gamma = grid.make_gamma(sphere) #, makecomplex=True)
         
-        logger.info("Gamma = {}".format(self.gamma.shape))
-        self.n_v = self.gamma.shape[0]
-        self.n_s = self.gamma.shape[1]
+        _gamma = grid.make_gamma(sphere) #, makecomplex=True)
+        self.n_v = _gamma.shape[0]
+        self.n_s = _gamma.shape[1]
+
+        ## Create temporary file for gamma
+        #with h5py.File('gamma.hdf', "w") as h5f:
+            #log_array("_gamma", _gamma)
+            #h5f.create_dataset('gamma',data=_gamma, chunks=(10, self.n_v))
+        
+        
+        #f = h5py.File('gamma.hdf')
+        self.gamma = da.from_array(_gamma)
+
+        log_array("Gamma", self.gamma)
+        
         logger.info("n_v = {}".format(self.n_v))
         logger.info("n_s = {}".format(self.n_s))
 
@@ -211,10 +228,12 @@ class TelescopeOperator:
             logger.info("Performing SVD.")
             
             ### Take the SVD of the gamma matrix.
-            [self.U, self.s, self.Vh], rank = normal_svd(np.array(self.gamma))
+            [self.U, self.s, self.Vh], rank = dask_svd(self.gamma)
+
+            #[self.U, self.s, self.Vh], rank = normal_svd(np.array(self.gamma))
             self.rank = rank
             
-            self.sigma = scipy.linalg.diagsvd(self.s, self.n_v, self.n_s)
+            self.sigma = da_diagsvd(self.s, self.n_v, self.n_s)
 
             self.V = self.Vh.conj().T
             self.V_1 = self.V[:, 0:self.rank]
@@ -228,12 +247,10 @@ class TelescopeOperator:
                 np.savez_compressed(fname, U=self.U, Vh=self.Vh, s=self.s, sigma=self.sigma, rank=rank)
                 logger.info("Cache file {} saved".format(fname))
 
-        logger.info("    U  {:5.2f} GB".format(self.U.nbytes/1e9))
-        logger.info("    Sigma {:5.2f} GB".format(self.sigma.nbytes/1e9))
-        logger.info("    Vh {:5.2f} GB".format(self.Vh.nbytes/1e9))
-        logger.info("U = {}".format(self.U.shape))
-        logger.info("sigma = {}".format(self.sigma.shape))
-        logger.info("V = {}".format(self.Vh.shape))
+        log_array("U", self.U)
+        log_array("Sigma", self.sigma)
+        log_array("Vh", self.Vh)
+        
         logger.info("rank = {}".format(self.rank))
 
         self.U_1 = self.U[:, 0:self.rank]
@@ -243,10 +260,10 @@ class TelescopeOperator:
 
         self.A_r = self.U_1 @ self.sigma_1 # 
 
-        logger.info("V_1 = {}".format(self.V_1.shape))
-        logger.info("V_2 = {}".format(self.V_2.shape))
+        log_array("V_1", self.V_1)
+        log_array("V_2", self.V_2)
+        log_array("A_r", self.A_r)
 
-        logger.info("A_r = {}".format(self.A_r.shape))
         
         #logger.info("P_r = {}".format(self._P_r.shape)) # Projection onto the range space of A
         #self.P_n = self.V_2 @ self.V_2.conj().T  # Projection onto the null-space of AA^H
@@ -476,7 +493,7 @@ class TelescopeOperator:
         p05, p50, p95, p100 = self.grid.vis_stats()
         var = p95*p95
         logger.info("Sky Prior variance={}".format(var))
-        prior = MultivariateGaussian(np.zeros(self.n_s) + p50, sigma=var*np.identity(self.n_s))
+        prior = MultivariateGaussian(da.zeros(self.n_s) + p50, sigma=var*da_identity(self.n_s))
         #natural_prior = prior.linear_transform(self.Vh)
 
         return prior

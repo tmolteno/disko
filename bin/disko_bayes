@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 import matplotlib
 import os
-if os.name == 'posix' and "DISPLAY" not in os.environ:
-    matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import argparse
 import datetime
 import json
 import logging
+import time
+
 from copy import deepcopy
 
 import numpy as np
@@ -20,8 +21,15 @@ from tart_tools import api_handler
 from tart_tools import api_imaging
 from tart.imaging import elaz
 
+import dask.array as da
 
 from disko import DiSkO, get_source_list, TelescopeOperator, HealpixSubSphere, HealpixSphere, vis_to_real, MultivariateGaussian
+
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
+logger.setLevel(logging.INFO)
+
 
 def handle_image(args, img, title, time_repr, src_list=None):
     """ This function manages the output of an image, drawing sources e.t.c."""
@@ -45,7 +53,7 @@ def handle_image(args, img, title, time_repr, src_list=None):
     if args.display:
         plt.show()
 
-def handle_bayes(ARGS, logger):
+def handle_bayes(ARGS):
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
         # Load data from a JSON file
@@ -115,10 +123,10 @@ def handle_bayes(ARGS, logger):
     if ARGS.sigma_v is None:
         diag = np.diagflat(disko.rms**2)
         
-        sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]])
+        sigma_vis = da.block([[diag, 0.5*diag],[0.5*diag, diag]])
         logger.info("Using measurement set sigma {}".format(np.percentile(disko.rms, [5,50,95])))
     else:
-        sigma_vis = np.identity(n_v)*(ARGS.sigma_v)**2
+        sigma_vis = da.diag(np.ones(n_v)*(ARGS.sigma_v)**2)
     
     # now invert sigma_vis
     sigma_precision = np.linalg.inv(sigma_vis)
@@ -147,8 +155,10 @@ def handle_bayes(ARGS, logger):
         del posterior_r
         del posterior_n
         
-        posterior = posterior.linear_transform(V)
+        logger.info("Transforming posterior")
         
+        posterior = posterior.linear_transform(V)
+                
         del V
     else:
         posterior = to.sequential_inference(prior, real_vis, sigma_precision)
@@ -156,7 +166,6 @@ def handle_bayes(ARGS, logger):
         del sigma_precision
         del prior
 
-    
     
     
     # Now save the files.
@@ -191,21 +200,50 @@ def handle_bayes(ARGS, logger):
             plt.close()
             logger.info("Generating {}".format(fname))
 
-    if ARGS.PDF or ARGS.PNG or ARGS.SVG or ARGS.FITS:    
-        mu_positive = np.clip(posterior.mu, 0, None)
+    if ARGS.PDF or ARGS.PNG or ARGS.SVG or ARGS.FITS: 
+
+        if True:
+            
+            #posterior.mu.persist()
+            
+            logger.info("Computing pixels")
+            tic = time.perf_counter()    
+            mu_positive = np.array(da.clip(posterior.mu, 0, None))
+            logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
+
+
+            tic = time.perf_counter()    
+            logger.info("Computing variance...")
+            variance = np.array(posterior.variance())
+            logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
+            
+            tic = time.perf_counter()    
+            logger.info("Computing point covariance...")
+            pix_cov=np.array(posterior.sigma()[0,:])
+            logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
+        else:
+            logger.info("Computing everything...")
+            mu_positive, variance, pix_cov = \
+                da.compute(
+                    da.clip(posterior.mu, 0, None),
+                    posterior.variance(),
+                    posterior.sigma()[0,:]
+                    )
+            
         sphere.set_visible_pixels(mu_positive, scale=False)
         save_images('{}_{}_mu'.format(ARGS.title, time_repr))
-        
-        sphere.set_visible_pixels(posterior.variance(), scale=False)
+
+        sphere.set_visible_pixels(variance, scale=False)
         save_images('{}_{}_var'.format(ARGS.title, time_repr))
         
-        pix_cov=posterior.sigma()[0,:]
         sphere.set_visible_pixels(pix_cov, scale=False)
         save_images('{}_{}_pcf'.format(ARGS.title, time_repr))
         
         for i in range(ARGS.nsamples):
             sphere.set_visible_pixels(posterior.sample(), scale=False)
             save_images(image_title = '{}_{}_s{:0>5}'.format(ARGS.title, time_repr, i))
+
+from dask.distributed import Client, progress
 
 if __name__ == '__main__':
     
@@ -242,26 +280,31 @@ if __name__ == '__main__':
     source_json = None
 
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(format=log_fmt, level=logging.INFO)
 
+    root = logging.getLogger()
+    
     fh = logging.FileHandler('disko.log')
-    fh.setLevel(logging.INFO)
+    #fh.setLevel(logging.INFO)
     
     # create console handler and set level to debug
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    #ch.setLevel(logging.INFO)
 
     # create formatter
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     # add formatter to ch
-    ch.setFormatter(formatter)
     fh.setFormatter(formatter)
 
     # add ch to logger
-    #logger.addHandler(ch)
-    logger.addHandler(fh)
+    #root.addHandler(ch)
+    root.addHandler(fh)
 
-    handle_bayes(parser.parse_args(), logger)
+    #client = Client()
 
+    handle_bayes(parser.parse_args())
+
+    #client.close()
+    #local_cluster.close()
