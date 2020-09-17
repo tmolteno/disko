@@ -22,7 +22,7 @@ svd:
 
 bayes:
 	#rm -f *.npz
-	/usr/bin/time -v disko_bayes --fov 155 --ms test_data/test.ms  --PNG --SVG --arcmin=100  --title 'bayes_tart' --sigma-v=0.2
+	/usr/bin/time -v disko_bayes --fov 155 --ms test_data/test.ms  --PNG --SVG --arcmin=90  --title 'bayes_tart' --sigma-v=0.2
 #	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
 
 ngc1194:

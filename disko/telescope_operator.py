@@ -90,16 +90,22 @@ def dask_svd(x, tol=SVD_TOL):
     n_v = x.shape[0]
     n_s = x.shape[1]
 
+    log_array("x", x)
+
     if False:
         A = x.rechunk('auto', n_v)
         log_array("A", A)
         ns = min(n_v, n_s)
         U, s, Vh = da.linalg.svd_compressed(A, k=ns, n_power_iter=4)
     else:
-        A = x.rechunk(('auto', -1))
+        # A = x.rechunk(('auto', -1))
+        A = x.rechunk((n_v, 'auto'))
         log_array("A", A)
-        U, s, Vh = da.linalg.svd(A)
+        v, s, uT = da.linalg.svd(A.T)
     
+        U = uT.T
+        Vh = v.T
+
     s = s.compute()
     
     tol = s[0]/150.0
@@ -121,7 +127,7 @@ def dask_svd(x, tol=SVD_TOL):
     U = U.rechunk('auto')
     Vh = Vh.rechunk('auto')
     
-    return [U, np.array(s), Vh], rank
+    return [U, s, Vh], rank
             
 
 def to_column(x):

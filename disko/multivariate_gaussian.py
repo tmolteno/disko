@@ -163,10 +163,12 @@ class MultivariateGaussian:
         reason = fact[np.argwhere(mem < 1e8)].flatten()
     
         if self._sigma is not None:
-            self._sigma = self._sigma.rechunk('auto')
+            self._sigma = self._sigma.rechunk(reason[-1])
+            log_array("sigma", self._sigma)
 
         if self._sigma_inv is not None:
-            self._sigma_inv = self._sigma_inv.rechunk('auto')
+            self._sigma_inv = self._sigma_inv.rechunk(reason[-1])
+            log_array("sigma_inv", self._sigma_inv)
 
     def sample(self):
         '''
@@ -176,7 +178,33 @@ class MultivariateGaussian:
         if self._A is None:
             self.rechunk()
             logger.info("Cholesky factoring...")
-            self._A = da.linalg.cholesky(self.sigma())
+
+            sigma = self.sigma() + da_identity(self.D)*1e-9
+            
+            self._A = da.linalg.cholesky(sigma)
+            logger.info("          ...done")
+            self._A.persist()
+            
+        return np.array(self.mu + self._A @ z)
+        
+
+
+    def cg_sample(self, epsilon=1e-9):
+        '''
+            Return a sample from this multivariate distribution using the algorithm of Fox and Parker
+            
+            http://www.physics.otago.ac.nz/data/fox/publications/ParkerFox_CG_Sampling.pdf
+        '''
+
+        self.rechunk()
+        A = self.sigma()
+        
+        logger.info("CG sampling...")
+
+        while True:
+            
+
+            self._A = da.linalg.cholesky()
             logger.info("          ...done")
             self._A.persist()
             
