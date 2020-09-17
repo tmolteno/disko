@@ -321,19 +321,25 @@ class HealpixSphere(object):
                              (x, y), text_anchor='start', font_size="{}px".format(font_size)))
 
             y = font_size*2
-            if (self.res_arcmin < 1.0):
-                dwg.add(dwg.text("Res: {:.5f} mas".format(self.res_arcmin*60*1000), 
+            if (self.res_arcmin/60 < 1.0):
+                dwg.add(dwg.text("Res: {:5.2f} mas".format(self.res_arcmin*60*1000), 
+                             (x, y), text_anchor='start', font_size="{}px".format(font_size)))
+            elif (self.res_arcmin < 1.0):
+                dwg.add(dwg.text("Res: {:5.2f} \"".format(self.res_arcmin*60), 
                              (x, y), text_anchor='start', font_size="{}px".format(font_size)))
             else:
-                dwg.add(dwg.text("Res: {:.5f} '".format(self.res_arcmin), 
+                dwg.add(dwg.text("Res: {:5.2f} '".format(self.res_arcmin), 
                              (x, y), text_anchor='start', font_size="{}px".format(font_size)))
 
             y = font_size*3
             if (fov_arcmin < 1.0):
                 dwg.add(dwg.text("FOV: {:.4f} mas".format(fov_arcmin*60*1000), 
                              (x, y), text_anchor='start', font_size="{}px".format(font_size)))
+            elif (fov_arcmin < 180):
+                dwg.add(dwg.text("FOV: {:4.2f} '".format(fov_arcmin), 
+                             (x, y), text_anchor='start', font_size="{}px".format(font_size)))
             else:
-                dwg.add(dwg.text("FOV: {:.4f} '".format(fov_arcmin), 
+                dwg.add(dwg.text("FOV: {:4.2f} deg".format(fov_arcmin/60), 
                              (x, y), text_anchor='start', font_size="{}px".format(font_size)))
 
             y = font_size*4

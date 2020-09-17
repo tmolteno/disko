@@ -60,6 +60,8 @@ def tf_svd(x, tol=SVD_TOL):
         
     return  [U, s, Vh], rank
 
+MAX_COND=150.0
+
 def normal_svd(x, tol=SVD_TOL):
     n_v = x.shape[0]
     n_s = x.shape[1]
@@ -67,7 +69,7 @@ def normal_svd(x, tol=SVD_TOL):
     [U, s, Vh] = scipy.linalg.svd(np.array(x), full_matrices=True)
     logger.info("Cond(A) = {}".format(s[0]/s[-1]))
 
-    tol = s[0]/150.0
+    tol = s[0]/MAX_COND
     try:
         rank = np.min(np.argwhere(s < tol))
     except:
@@ -100,44 +102,31 @@ def dask_svd(x, tol=SVD_TOL):
         #ns = min(n_v, n_s)
         #U, s, Vh = da.linalg.svd_compressed(A, k=ns, n_power_iter=4)
     #else:
-    # A = x.rechunk(('auto', -1))
+
     A = x.rechunk((n_v, 'auto'))
     log_array("A", A)
-    v, s, uT = scipy.linalg.svd(A.T, full_matrices=True)
+    
+    # Do the SVD
+    U, s, Vh = scipy.linalg.svd(A, full_matrices=True)
     
     sigma = da_diagsvd(s, n_v, n_s)
     
-    v = da.from_array(v)
-    uT = da.from_array(uT)
+    U = da.from_array(U, chunks='auto')
+    Vh = da.from_array(Vh, chunks='auto')
+
+    # Clean up by condition number
+    s_0 = np.amax(s)
+    tol = s_0 / MAX_COND
+    rank = np.sum(s > tol, dtype=int)
     
-    tol = s[0]/150.0
-    cond = s[0]/s[-1]
-        
     logger.info("tol = {}".format(tol))
-    logger.info("Cond(A) = {}".format(cond))
+    logger.info("Cond(A) = {}".format(s_0/ np.amin(s)))
 
+    s[s < tol] = 0  # All low values set to 0
 
-    try:
-        rank = np.min(np.argwhere(s < tol))
-    except:
-        # OK its full rank.
-        rank = s.shape[0]
-
-    range_ranks = s >= tol  # Where values are significant
-    null_ranks = s < tol  # Where values are top be truncated
-    
-    s[null_ranks] = 0  # All low values set to 0
-
-
-    U = uT.T
-    Vh = v.T
-    
     log_array("U", U)
     log_array("s", s)
     log_array("Vh", Vh)
-
-    U = U.rechunk('auto')
-    Vh = Vh.rechunk('auto')
     
     return [U, sigma, Vh], s, rank
             

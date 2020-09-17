@@ -47,7 +47,7 @@ class MultivariateGaussian:
         if (sigma is None) and (sigma_inv is None):
             raise ValueError('Either sigma or sigma_inv must be provided')
             
-        logger.info("MultivariateGaussian({}, sigma={}, inv={})".format(mu.shape, sigma, sigma_inv))
+        logger.info("MultivariateGaussian({})".format(mu.shape))
 
         self.mu = mu.flatten()
         
@@ -82,7 +82,7 @@ class MultivariateGaussian:
         '''
             Find the inverse of a postitive definite matrix
         '''
-        logger.info("Inverting {} matrix".format(A.shape))
+        logger.debug("Inverting {} matrix".format(A.shape))
         log_array("A", A)
         D = A.shape[0]
         
@@ -187,15 +187,14 @@ class MultivariateGaussian:
         '''
         z = da.random.normal(0, 1, self.D)
         if self._chol is None:
-            #self.rechunk()
-            #logger.info("Cholesky factoring...")
-
+            logger.info("Cholesky factoring...")
+            log_array("A", self.sigma())
             #regularization = self.sigma()[0,0] / 1e18
             #sigma = self.sigma() + da_identity(self.D)*regularization
             
             self._chol = da.linalg.cholesky(self.sigma())
+            self._chol.persist()
             logger.info("          ...done")
-            #self._A.persist()
             
         return np.array(self.mu + self._chol @ z)
         
