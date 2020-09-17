@@ -202,7 +202,7 @@ def handle_bayes(ARGS):
 
     if ARGS.PDF or ARGS.PNG or ARGS.SVG or ARGS.FITS: 
 
-        if True:
+        if False:
             
             #posterior.mu.persist()
             
@@ -240,7 +240,7 @@ def handle_bayes(ARGS):
         save_images('{}_{}_pcf'.format(ARGS.title, time_repr))
         
         for i in range(ARGS.nsamples):
-            sphere.set_visible_pixels(posterior.sample(), scale=False)
+            sphere.set_visible_pixels(posterior.cg_sample(), scale=False)
             save_images(image_title = '{}_{}_s{:0>5}'.format(ARGS.title, time_repr, i))
 
 from dask.distributed import Client, progress
@@ -302,7 +302,7 @@ if __name__ == '__main__':
     #root.addHandler(ch)
     root.addHandler(fh)
 
-    #client = Client()
+    client = Client()
 
     handle_bayes(parser.parse_args())
 

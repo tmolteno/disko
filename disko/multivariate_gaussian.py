@@ -163,12 +163,13 @@ class MultivariateGaussian:
         mem = 16 * (fact**2)
         reason = fact[np.argwhere(mem < 1e8)].flatten()
     
+        chunk_size = 'auto' # reason[-1]
         if self._sigma is not None:
-            self._sigma = self._sigma.rechunk(reason[-1])
+            self._sigma = self._sigma.rechunk(chunk_size)
             log_array("sigma", self._sigma)
 
         if self._sigma_inv is not None:
-            self._sigma_inv = self._sigma_inv.rechunk(reason[-1])
+            self._sigma_inv = self._sigma_inv.rechunk(chunk_size)
             log_array("sigma_inv", self._sigma_inv)
 
     def sample(self):
@@ -180,11 +181,12 @@ class MultivariateGaussian:
             self.rechunk()
             logger.info("Cholesky factoring...")
 
-            sigma = self.sigma() + da_identity(self.D)*1e-9
+            regularization = self.sigma()[0,0] / 1e13
+            sigma = self.sigma() + da_identity(self.D)*regularization
             
             self._A = da.linalg.cholesky(sigma)
             logger.info("          ...done")
-            self._A.persist()
+            #self._A.persist()
             
         return np.array(self.mu + self._A @ z)
         
@@ -197,19 +199,63 @@ class MultivariateGaussian:
             http://www.physics.otago.ac.nz/data/fox/publications/ParkerFox_CG_Sampling.pdf
         '''
 
-        self.rechunk()
+        #self.rechunk()
         A = self.sigma()
         
         logger.info("CG sampling...")
+        
+        b = da.random.random(self.D)
+        x_0 = da.zeros(self.D)
+        r_0 = b - A @ x_0               # 
+        p_0 = r_0
+        d_0 = p_0.T @ A @ p_0
+        y_0 = x_0
+        k = 0
+        
+        r_norm = da.linalg.norm(r_0)
 
         while True:
             
-
-            self._A = da.linalg.cholesky()
-            logger.info("          ...done")
-            self._A.persist()
+            # Step 1
+                        
+            gamma = r_norm / d_0
             
-        return np.array(self.mu + self._A @ z)
+            # Step 2
+            x_k = x_0 + gamma * p_0
+            
+            # Step 3
+            z = np.random.normal(0,1)
+            y_k = y_0 + (z / np.sqrt(d_0)) * p_0
+            
+            # Step 4
+            r_k = r_0 - gamma * A @ p_0   # The residual vector
+            r_k_norm = da.linalg.norm(r_k).compute()
+            
+            # Step 5
+            beta = -(r_k_norm) / r_norm
+            
+            # Step 6
+            p_k = r_k - beta * p_0
+            
+            # Step 7
+            d_k = p_k.T @ A @ p_k
+            
+            r_k, d_k, p_k = da.compute(r_k, d_k, p_k)
+            
+            
+            logger.info("||r_k|| {}".format(r_k_norm))
+            if (r_k_norm < epsilon) or (k > self.D):
+                break
+            
+            k = k + 1
+            x_0 = x_k
+            y_0 = y_k
+            r_0 = r_k
+            d_0 = d_k
+            p_0 = p_k
+            r_norm = r_k_norm
+            
+        return np.array(self.mu + A @ y_k)
         
 
     def variance(self):
