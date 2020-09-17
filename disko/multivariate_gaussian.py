@@ -50,8 +50,6 @@ class MultivariateGaussian:
         logger.info("MultivariateGaussian({}, sigma={}, inv={})".format(mu.shape, sigma, sigma_inv))
 
         self.mu = mu.flatten()
-        self._A = None
-        self._A_inv = None
         
         self._sigma = None
         self._sigma_inv = None
@@ -63,16 +61,12 @@ class MultivariateGaussian:
         if sigma is not None:
             log_array("sigma", sigma)
             d = sigma.shape
-            sigma = self.square_rechunk(sigma)
-            self._A = da.linalg.cholesky(sigma)
             self._sigma = sigma
             storage += self._sigma.nbytes
             
         if sigma_inv is not None:
             log_array("sigma_inv", sigma_inv)
             d = sigma_inv.shape
-            sigma_inv = self.square_rechunk(sigma_inv)
-            self._A_inv = da.linalg.cholesky(sigma_inv)
             self._sigma_inv = sigma_inv
             storage += self._sigma_inv.nbytes
             
@@ -96,31 +90,18 @@ class MultivariateGaussian:
         Ainv = da.linalg.solve(A, b, sym_pos=True)
         return Ainv
 
-    #def sigma_inv(self):
-        #if self._sigma_inv is None:
-            #self._sigma = self.square_rechunk(self._sigma)
-            #self._sigma_inv = self.sp_inv(self._sigma)
-        #return self._sigma_inv
-
-    #def sigma(self):
-        #if self._sigma is None:
-            #self._sigma_inv = self.square_rechunk(self._sigma_inv)
-            #self._sigma = self.sp_inv(self._sigma_inv)
-        #return self._sigma
-
     def sigma_inv(self):
-        if self._A_inv is None:
-            #self.rechunk()
-            self._A_inv = self.sp_inv(self._A)
-        log_array("_A_inv", self._A_inv)
-        return self._A_inv.T @ self._A_inv
+        if self._sigma_inv is None:
+            self._sigma = self.square_rechunk(self._sigma)
+            self._sigma_inv = self.sp_inv(self._sigma)
+        return self._sigma_inv
 
     def sigma(self):
-        if self._A is None:
-            #self.rechunk()
-            self._A = self.sp_inv(self._A_inv)
-        log_array("_A", self._A)
-        return self._A.T @ self._A
+        if self._sigma is None:
+            self._sigma_inv = self.square_rechunk(self._sigma_inv)
+            self._sigma = self.sp_inv(self._sigma_inv)
+        return self._sigma
+
 
 
     def bayes_update(self, precision_y, y, A):

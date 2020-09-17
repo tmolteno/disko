@@ -80,8 +80,10 @@ def normal_svd(x, tol=SVD_TOL):
     null_ranks = s < tol  # Where values are top be truncated
     
     s[null_ranks] = 0  # All low values set to 0
-        
-    return [U, s, Vh], rank
+    
+    sigma = da_diagsvd(s, n_v, n_s)
+
+    return [U, sigma, Vh], s, rank
 
 
 def dask_svd(x, tol=SVD_TOL):
@@ -101,24 +103,12 @@ def dask_svd(x, tol=SVD_TOL):
     # A = x.rechunk(('auto', -1))
     A = x.rechunk((n_v, 'auto'))
     log_array("A", A)
-    v, s, uT = da.linalg.svd(A.T)
-
+    v, s, uT = scipy.linalg.svd(A.T, full_matrices=True)
+    
     sigma = da_diagsvd(s, n_v, n_s)
-
-    ''' Now get the full matrices
-        
-        Let A = U S Vh =  [U_1 U_2 ] [Sigma_1     0 ]  [ V_1h... ]
-                          [ .  .   ] [      0     0 ]  [ V_2h... ]
-        
-        
-        The U are not unique, however they are orthogonal, so we can make a 
-        QR decomposition where Q = U and R = S Vh
-        
-    '''
-    U = uT.T
-    Vh = v.T
-
-    s = s.compute()
+    
+    v = da.from_array(v)
+    uT = da.from_array(uT)
     
     tol = s[0]/150.0
     cond = s[0]/s[-1]
@@ -126,20 +116,30 @@ def dask_svd(x, tol=SVD_TOL):
     logger.info("tol = {}".format(tol))
     logger.info("Cond(A) = {}".format(cond))
 
-    log_array("U", U)
-    log_array("s", s)
-    log_array("Vh", Vh)
 
     try:
         rank = np.min(np.argwhere(s < tol))
     except:
         # OK its full rank.
         rank = s.shape[0]
-            
+
+    range_ranks = s >= tol  # Where values are significant
+    null_ranks = s < tol  # Where values are top be truncated
+    
+    s[null_ranks] = 0  # All low values set to 0
+
+
+    U = uT.T
+    Vh = v.T
+    
+    log_array("U", U)
+    log_array("s", s)
+    log_array("Vh", Vh)
+
     U = U.rechunk('auto')
     Vh = Vh.rechunk('auto')
     
-    return [U, sigma, Vh], d, rank
+    return [U, sigma, Vh], s, rank
             
 
 def to_column(x):
@@ -248,10 +248,10 @@ class TelescopeOperator:
             ### Take the SVD of the gamma matrix.
             [self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(self.gamma)
 
-            #[self.U, self.s, self.Vh], rank = normal_svd(np.array(self.gamma))
+            #[self.U, self.s, self.Vh], self.s, rank = normal_svd(np.array(self.gamma))
             
 
-            self.V = self.Vh.conj().T
+            self.V = self.Vh.T
             self.V_1 = self.V[:, 0:self.rank]
             self.V_2 = self.V[:, self.rank:]
             #logger.info("Calculating orthogonal projections")

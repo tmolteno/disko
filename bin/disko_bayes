@@ -302,7 +302,7 @@ if __name__ == '__main__':
     #root.addHandler(ch)
     root.addHandler(fh)
 
-    client = Client()
+    #client = Client()
 
     handle_bayes(parser.parse_args())
 
