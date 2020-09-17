@@ -92,19 +92,31 @@ def dask_svd(x, tol=SVD_TOL):
 
     log_array("x", x)
 
-    if False:
-        A = x.rechunk('auto', n_v)
-        log_array("A", A)
-        ns = min(n_v, n_s)
-        U, s, Vh = da.linalg.svd_compressed(A, k=ns, n_power_iter=4)
-    else:
-        # A = x.rechunk(('auto', -1))
-        A = x.rechunk((n_v, 'auto'))
-        log_array("A", A)
-        v, s, uT = da.linalg.svd(A.T)
-    
-        U = uT.T
-        Vh = v.T
+    #if False:
+        #A = x.rechunk('auto', n_v)
+        #log_array("A", A)
+        #ns = min(n_v, n_s)
+        #U, s, Vh = da.linalg.svd_compressed(A, k=ns, n_power_iter=4)
+    #else:
+    # A = x.rechunk(('auto', -1))
+    A = x.rechunk((n_v, 'auto'))
+    log_array("A", A)
+    v, s, uT = da.linalg.svd(A.T)
+
+    sigma = da_diagsvd(s, n_v, n_s)
+
+    ''' Now get the full matrices
+        
+        Let A = U S Vh =  [U_1 U_2 ] [Sigma_1     0 ]  [ V_1h... ]
+                          [ .  .   ] [      0     0 ]  [ V_2h... ]
+        
+        
+        The U are not unique, however they are orthogonal, so we can make a 
+        QR decomposition where Q = U and R = S Vh
+        
+    '''
+    U = uT.T
+    Vh = v.T
 
     s = s.compute()
     
@@ -127,7 +139,7 @@ def dask_svd(x, tol=SVD_TOL):
     U = U.rechunk('auto')
     Vh = Vh.rechunk('auto')
     
-    return [U, s, Vh], rank
+    return [U, sigma, Vh], d, rank
             
 
 def to_column(x):
@@ -234,12 +246,10 @@ class TelescopeOperator:
             logger.info("Performing SVD.")
             
             ### Take the SVD of the gamma matrix.
-            [self.U, self.s, self.Vh], rank = dask_svd(self.gamma)
+            [self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(self.gamma)
 
             #[self.U, self.s, self.Vh], rank = normal_svd(np.array(self.gamma))
-            self.rank = rank
             
-            self.sigma = da_diagsvd(self.s, self.n_v, self.n_s)
 
             self.V = self.Vh.conj().T
             self.V_1 = self.V[:, 0:self.rank]

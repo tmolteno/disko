@@ -121,7 +121,7 @@ def handle_bayes(ARGS):
     
     # TODO create a proper covariance that ensures the real and imaginary components are linked.
     if ARGS.sigma_v is None:
-        diag = np.diagflat(disko.rms**2)
+        diag = da.diag(disko.rms**2)
         
         sigma_vis = da.block([[diag, 0.5*diag],[0.5*diag, diag]])
         logger.info("Using measurement set sigma {}".format(np.percentile(disko.rms, [5,50,95])))
@@ -129,7 +129,7 @@ def handle_bayes(ARGS):
         sigma_vis = da.diag(np.ones(n_v)*(ARGS.sigma_v)**2)
     
     # now invert sigma_vis
-    sigma_precision = np.linalg.inv(sigma_vis)
+    sigma_precision = MultivariateGaussian.sp_inv(sigma_vis)
     del sigma_vis
     
     # Pull the block from the natural_prior that is the range_space prior
@@ -240,7 +240,7 @@ def handle_bayes(ARGS):
         save_images('{}_{}_pcf'.format(ARGS.title, time_repr))
         
         for i in range(ARGS.nsamples):
-            sphere.set_visible_pixels(posterior.cg_sample(), scale=False)
+            sphere.set_visible_pixels(posterior.sample(), scale=False)
             save_images(image_title = '{}_{}_s{:0>5}'.format(ARGS.title, time_repr, i))
 
 from dask.distributed import Client, progress

@@ -47,34 +47,44 @@ class MultivariateGaussian:
         if (sigma is None) and (sigma_inv is None):
             raise ValueError('Either sigma or sigma_inv must be provided')
             
+        logger.info("MultivariateGaussian({}, sigma={}, inv={})".format(mu.shape, sigma, sigma_inv))
+
         self.mu = mu.flatten()
-        self._sigma = sigma
-        self._sigma_inv = sigma_inv
+        self._A = None
+        self._A_inv = None
+        
+        self._sigma = None
+        self._sigma_inv = None
         
         log_array("mu", self.mu)
         
         storage = self.mu.nbytes
         
         if sigma is not None:
-            d = sigma.shape
-            
-            self._sigma = sigma
             log_array("sigma", sigma)
+            d = sigma.shape
+            sigma = self.square_rechunk(sigma)
+            self._A = da.linalg.cholesky(sigma)
+            self._sigma = sigma
             storage += self._sigma.nbytes
-        else:
-            self._sigma_inv = sigma_inv
-            d = sigma_inv.shape
+            
+        if sigma_inv is not None:
             log_array("sigma_inv", sigma_inv)
+            d = sigma_inv.shape
+            sigma_inv = self.square_rechunk(sigma_inv)
+            self._A_inv = da.linalg.cholesky(sigma_inv)
+            self._sigma_inv = sigma_inv
             storage += self._sigma_inv.nbytes
             
         if (d[0] != self.D) or (d[1] != self.D):
             raise ValueError('Covariance {} must be a {}x{} square matrix'.format(d, self.D, self.D))
     
-        logger.info("MultivariateGaussian({}, {}): {:.2f} GB".format(mu.shape, d, storage/1e9))
+        #logger.info("MultivariateGaussian({}, {}): {:.2f} GB".format(mu.shape, d, storage/1e9))
         
-        self._A = None
+        self._chol = None
 
-    def sp_inv(self, A):
+    @staticmethod
+    def sp_inv(A):
         '''
             Find the inverse of a postitive definite matrix
         '''
@@ -86,17 +96,31 @@ class MultivariateGaussian:
         Ainv = da.linalg.solve(A, b, sym_pos=True)
         return Ainv
 
+    #def sigma_inv(self):
+        #if self._sigma_inv is None:
+            #self._sigma = self.square_rechunk(self._sigma)
+            #self._sigma_inv = self.sp_inv(self._sigma)
+        #return self._sigma_inv
+
+    #def sigma(self):
+        #if self._sigma is None:
+            #self._sigma_inv = self.square_rechunk(self._sigma_inv)
+            #self._sigma = self.sp_inv(self._sigma_inv)
+        #return self._sigma
+
     def sigma_inv(self):
-        if self._sigma_inv is None:
-            self.rechunk()
-            self._sigma_inv = self.sp_inv(self._sigma)
-        return self._sigma_inv
+        if self._A_inv is None:
+            #self.rechunk()
+            self._A_inv = self.sp_inv(self._A)
+        log_array("_A_inv", self._A_inv)
+        return self._A_inv.T @ self._A_inv
 
     def sigma(self):
-        if self._sigma is None:
-            self.rechunk()
-            self._sigma = self.sp_inv(self._sigma_inv)
-        return self._sigma
+        if self._A is None:
+            #self.rechunk()
+            self._A = self.sp_inv(self._A_inv)
+        log_array("_A", self._A)
+        return self._A.T @ self._A
 
 
     def bayes_update(self, precision_y, y, A):
@@ -113,10 +137,11 @@ class MultivariateGaussian:
         
         L = precision_y
         atl = A.T @ L
+        sigma_inv = self.sigma_inv()
         
-        sigma_1_inv = self.sigma_inv() + atl @ A
+        sigma_1_inv = sigma_inv + atl @ A
         sigma_1 = self.sp_inv(sigma_1_inv)
-        mu_1 = sigma_1 @ (self.sigma_inv() @ self.mu + atl @ y)
+        mu_1 = sigma_1 @ (sigma_inv @ self.mu + atl @ y)
         return MultivariateGaussian(mu_1, sigma=sigma_1, sigma_inv = sigma_1_inv)
     
     
@@ -126,6 +151,7 @@ class MultivariateGaussian:
             y = A x + b
         '''
         sigma_1 = A @ self.sigma() @ A.T
+        log_array("sigma_1", sigma_1)
         if b is None:
             mu_1 = A @ self.mu
         else:
@@ -135,6 +161,9 @@ class MultivariateGaussian:
     
     def block(self, start, stop):
         sig = self.sigma()
+        #if stop > sig.shape[0]:
+            #raise ValueError("Block is out of bounds {} > {}".format(stop, sig.shape))
+        logger.info("block({} {})".format(start, stop))
         return MultivariateGaussian(self.mu[start:stop], sigma=sig[start:stop, start:stop])
     
     @classmethod
@@ -158,37 +187,36 @@ class MultivariateGaussian:
         sigma = da.diag(diag)
         return MultivariateGaussian(mu, sigma=sigma)
 
-    def rechunk(self, mem_limit=1e8):
-        fact = factors(self.D)
-        mem = 16 * (fact**2)
+    @staticmethod
+    def square_rechunk(A, mem_limit=1e8):
+        if A.shape[0] < 1:
+            return A
+        
+        logger.info("square_rechunk(A={})".format(A.shape))
+        fact = factors(A.shape[0])
+        mem = 16 * (fact*fact)
         reason = fact[np.argwhere(mem < 1e8)].flatten()
     
-        chunk_size = 'auto' # reason[-1]
-        if self._sigma is not None:
-            self._sigma = self._sigma.rechunk(chunk_size)
-            log_array("sigma", self._sigma)
-
-        if self._sigma_inv is not None:
-            self._sigma_inv = self._sigma_inv.rechunk(chunk_size)
-            log_array("sigma_inv", self._sigma_inv)
+        chunk_size = reason[-1]
+        return A.rechunk(chunk_size)
 
     def sample(self):
         '''
             Return a sample from this multivariate distribution
         '''
         z = da.random.normal(0, 1, self.D)
-        if self._A is None:
-            self.rechunk()
-            logger.info("Cholesky factoring...")
+        if self._chol is None:
+            #self.rechunk()
+            #logger.info("Cholesky factoring...")
 
-            regularization = self.sigma()[0,0] / 1e13
-            sigma = self.sigma() + da_identity(self.D)*regularization
+            #regularization = self.sigma()[0,0] / 1e18
+            #sigma = self.sigma() + da_identity(self.D)*regularization
             
-            self._A = da.linalg.cholesky(sigma)
+            self._chol = da.linalg.cholesky(self.sigma())
             logger.info("          ...done")
             #self._A.persist()
             
-        return np.array(self.mu + self._A @ z)
+        return np.array(self.mu + self._chol @ z)
         
 
 
@@ -243,7 +271,7 @@ class MultivariateGaussian:
             r_k, d_k, p_k = da.compute(r_k, d_k, p_k)
             
             
-            logger.info("||r_k|| {}".format(r_k_norm))
+            logger.info("||r_{}|| {:5.2f}".format(k, r_k_norm))
             if (r_k_norm < epsilon) or (k > self.D):
                 break
             
