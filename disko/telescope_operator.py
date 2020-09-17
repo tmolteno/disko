@@ -493,5 +493,6 @@ class TelescopeOperator:
         plt.title('{} U-V Coverage'.format(name))
         plt.xlabel('u (m)')
         plt.ylabel('v (m)')
+        plt.tight_layout()
         plt.savefig('{}_UV.pdf'.format(name))
         plt.close()

@@ -67,7 +67,7 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
     #address = local_cluster.scheduler_address
     #logging.info("Using distributed scheduler "
                  #"with address '{}'".format(address))
-    client = distributed.Client()
+    #client = distributed.Client()
 
     try:
         # Create a dataset representing the entire antenna table
