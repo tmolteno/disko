@@ -508,6 +508,7 @@ class DiSkO(object):
         if not use_cv:
             reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s),
                                           l1_ratio=1.0, 
+                                          tol=1e-6,
                                           max_iter=100000, 
                                           positive=True)
             reg.fit(gamma, vis_aux)
@@ -575,7 +576,17 @@ class DiSkO(object):
             logger.info('vis mean: {} shape: {}'.format(np.mean(vis_aux), vis_aux.shape))
 
             logger.info("Solving...")
-            reg = linear_model.ElasticNet(alpha=lambduh, l1_ratio=0.05, max_iter=10000, positive=True)
+            
+            #reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s),
+                                          #tol=1e-6,
+                                          #l1_ratio = 0.01,
+                                          #max_iter=100000, 
+                                          #positive=True)
+            
+            reg = linear_model.Ridge(alpha=alpha,
+                                          tol=1e-6,
+                                          max_iter=100000)
+
             reg.fit(gamma, vis_aux)
             sky = reg.coef_
             
