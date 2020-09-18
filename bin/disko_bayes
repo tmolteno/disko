@@ -86,8 +86,11 @@ def handle_bayes(ARGS):
     # Do the inference, get the SVD.
     #
     ##
+    
     to = TelescopeOperator(disko, sphere)
-    to.plot_uv(ARGS.title)
+    
+    if ARGS.uv:
+        to.plot_uv(ARGS.title)
 
     if ARGS.prior is not None:
         prior = MultivariateGaussian.from_hdf5(ARGS.prior)
@@ -184,40 +187,33 @@ def handle_bayes(ARGS):
     if ARGS.PDF or ARGS.PNG or ARGS.SVG or ARGS.FITS: 
 
         posterior.mu.persist()
-        if False:
+
+        if ARGS.mu:
             logger.info("Computing pixels")
             tic = time.perf_counter()    
             mu_positive = np.array(da.clip(posterior.mu, 0, None))
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
+            sphere.set_visible_pixels(mu_positive, scale=False)
+            save_images('{}_{}_mu'.format(ARGS.title, time_repr), source_list=src_list)
 
+        if ARGS.var:
             tic = time.perf_counter()    
             logger.info("Computing variance...")
             variance = np.array(posterior.variance())
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
-            
+            sphere.set_visible_pixels(variance, scale=False)
+            save_images('{}_{}_var'.format(ARGS.title, time_repr), source_list=None)
+        
+        if ARGS.pcf:
             tic = time.perf_counter()    
             logger.info("Computing point covariance...")
             
             brightest_pixel = da.argmax(posterior.mu)
             pix_cov=np.array(posterior.sigma()[brightest_pixel,:])
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
-        else:
-            tic = time.perf_counter()    
-            logger.info("Computing everything...")
-            mu_positive, variance, pix_cov = da.compute(
-                    da.clip(posterior.mu, 0, None),
-                    posterior.variance(),
-                    posterior.sigma()[da.argmax(posterior.mu),:] )
-            logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
 
-        sphere.set_visible_pixels(mu_positive, scale=False)
-        save_images('{}_{}_mu'.format(ARGS.title, time_repr), source_list=src_list)
-
-        sphere.set_visible_pixels(variance, scale=False)
-        save_images('{}_{}_var'.format(ARGS.title, time_repr), source_list=None)
-
-        sphere.set_visible_pixels(pix_cov, scale=False)
-        save_images('{}_{}_pcf'.format(ARGS.title, time_repr), source_list=None)
+            sphere.set_visible_pixels(pix_cov, scale=False)
+            save_images('{}_{}_pcf'.format(ARGS.title, time_repr), source_list=None)
 
         for i in range(ARGS.nsamples):
             sphere.set_visible_pixels(posterior.sample(), scale=False)
@@ -253,6 +249,11 @@ if __name__ == '__main__':
 
     parser.add_argument('--prior', type=str, default=None, help="Load the from an HDF5 file.")
     parser.add_argument('--posterior', type=str, default=None, help="Store the posterior in HDF5 format file.")
+
+    parser.add_argument('--uv', action="store_true", help="Plot the UV coverage.")
+    parser.add_argument('--mu', action="store_true", help="Save the mean image.")
+    parser.add_argument('--pcf', action="store_true", help="Save the point covariance function image.")
+    parser.add_argument('--var', action="store_true", help="Save the pixel variance image.")
 
     parser.add_argument('--nsamples', type=int, default=3, help="Number of samples to save from the posterior.")
 

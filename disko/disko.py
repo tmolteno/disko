@@ -489,7 +489,7 @@ class DiSkO(object):
         
         return ret
 
-    def image_lasso(self, vis_arr, sphere, alpha, scale=True, use_cv=False):
+    def image_lasso(self, vis_arr, sphere, alpha, scale=False, use_cv=False):
         gamma = self.make_gamma(sphere)
                 
         vis_aux = vis_to_real(vis_arr)
@@ -511,7 +511,7 @@ class DiSkO(object):
         else:
             reg = linear_model.ElasticNetCV(l1_ratio=1.0, cv=5, max_iter=10000, positive=True)
             reg.fit(gamma, vis_aux)
-            logger.info("Cross Validation = {}".format(reg.alpha_))
+            logger.info("Cross Validation alpha: {} l1_ratio: {}".format(reg.alpha_, reg.l1_ratio))
 
         sky = reg.coef_
         logger.info("sky = {}".format(sky.shape))
@@ -577,7 +577,7 @@ class DiSkO(object):
             sky = reg.coef_
             
             score = reg.score(gamma, vis_aux)
-            logger.info('Loss function: {}'.format(score))
+            logger.info('Alpha: {}: Loss: {}'.format(alpha, score))
             
         else:
             from dask_ml.linear_model import LinearRegression
@@ -662,7 +662,7 @@ class DiSkO(object):
 
         logger.info("Solving Complete: sky = {}".format(sky.shape))
 
-        sphere.set_visible_pixels(sky, scale=True)
+        sphere.set_visible_pixels(sky, scale=False)
         return sky.reshape(-1,1)
 
 

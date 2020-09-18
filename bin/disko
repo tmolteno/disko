@@ -186,19 +186,19 @@ if __name__ == '__main__':
     
     if ARGS.lasso:
         logger.info("L1 regularization alpha=%f" %ARGS.alpha)
-        sky = disko.image_lasso(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, use_cv=ARGS.cv)
+        sky = disko.image_lasso(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, use_cv=ARGS.cv)
     elif ARGS.matrix_free:
         logger.info("Matrix Free alpha={}".format(ARGS.alpha))
         data = disko.vis_to_data()
         sky = disko.solve_matrix_free(data, sphere, alpha=ARGS.alpha, scale=True, lsqr=ARGS.lsqr, fista=ARGS.fista, lsmr=ARGS.lsmr)
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
-        sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, usedask=ARGS.dask)
+        sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, usedask=ARGS.dask)
         for i in range(ARGS.adaptive):
                 sphere.write_mesh("round_{}.vtk".format(i))
 
                 sphere.refine()
-                sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=True, usedask=ARGS.dask)
+                sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, usedask=ARGS.dask)
                 sphere.pixels = sphere.pixels / sphere.pixel_areas
 
     else:
