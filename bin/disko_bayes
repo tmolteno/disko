@@ -202,9 +202,9 @@ def handle_bayes(ARGS):
 
     if ARGS.PDF or ARGS.PNG or ARGS.SVG or ARGS.FITS: 
 
-        if False:
+        if True:
             
-            #posterior.mu.persist()
+            posterior.mu.persist()
             
             logger.info("Computing pixels")
             tic = time.perf_counter()    
@@ -219,7 +219,9 @@ def handle_bayes(ARGS):
             
             tic = time.perf_counter()    
             logger.info("Computing point covariance...")
-            pix_cov=np.array(posterior.sigma()[0,:])
+            
+            brightest_pixel = da.argmax(posterior.mu)
+            pix_cov=np.array(posterior.sigma()[brightest_pixel,:])
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
         else:
             logger.info("Computing everything...")
@@ -227,7 +229,7 @@ def handle_bayes(ARGS):
                 da.compute(
                     da.clip(posterior.mu, 0, None),
                     posterior.variance(),
-                    posterior.sigma()[0,:]
+                    posterior.sigma()[da.argmax(posterior.mu),:]
                     )
             
         sphere.set_visible_pixels(mu_positive, scale=False)
