@@ -102,12 +102,13 @@ def handle_bayes(ARGS):
     # TODO create a proper covariance that ensures the real and imaginary components are linked.
     if ARGS.sigma_v is None:
         diag = da.diag(disko.rms**2)
-        
-        sigma_vis = da.block([[diag, 0.5*diag],[0.5*diag, diag]])
         logger.info("Using measurement set sigma {}".format(np.percentile(disko.rms, [5,50,95])))
     else:
-        sigma_vis = da.diag(np.ones(n_v)*(ARGS.sigma_v)**2)
-    
+        diag = da.diag(np.ones(n_v // 2)*(ARGS.sigma_v)**2)
+        logger.info("Using supplied sigma {}".format(ARGS.sigma_v))
+     
+    sigma_vis = da.block([[diag, 0.5*diag],[0.5*diag, diag]]).rechunk('auto')
+
     # now invert sigma_vis
     sigma_precision = MultivariateGaussian.sp_inv(sigma_vis)
     del sigma_vis
