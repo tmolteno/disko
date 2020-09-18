@@ -202,15 +202,12 @@ def handle_bayes(ARGS):
 
     if ARGS.PDF or ARGS.PNG or ARGS.SVG or ARGS.FITS: 
 
-        if True:
-            
-            posterior.mu.persist()
-            
+        posterior.mu.persist()
+        if False:
             logger.info("Computing pixels")
             tic = time.perf_counter()    
             mu_positive = np.array(da.clip(posterior.mu, 0, None))
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
-
 
             tic = time.perf_counter()    
             logger.info("Computing variance...")
@@ -224,23 +221,23 @@ def handle_bayes(ARGS):
             pix_cov=np.array(posterior.sigma()[brightest_pixel,:])
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
         else:
+            tic = time.perf_counter()    
             logger.info("Computing everything...")
-            mu_positive, variance, pix_cov = \
-                da.compute(
+            mu_positive, variance, pix_cov = da.compute(
                     da.clip(posterior.mu, 0, None),
                     posterior.variance(),
-                    posterior.sigma()[da.argmax(posterior.mu),:]
-                    )
-            
+                    posterior.sigma()[da.argmax(posterior.mu),:] )
+            logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
+
         sphere.set_visible_pixels(mu_positive, scale=False)
         save_images('{}_{}_mu'.format(ARGS.title, time_repr))
 
         sphere.set_visible_pixels(variance, scale=False)
         save_images('{}_{}_var'.format(ARGS.title, time_repr))
-        
+
         sphere.set_visible_pixels(pix_cov, scale=False)
         save_images('{}_{}_pcf'.format(ARGS.title, time_repr))
-        
+
         for i in range(ARGS.nsamples):
             sphere.set_visible_pixels(posterior.sample(), scale=False)
             save_images(image_title = '{}_{}_s{:0>5}'.format(ARGS.title, time_repr, i))
