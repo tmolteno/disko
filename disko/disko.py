@@ -509,7 +509,7 @@ class DiSkO(object):
             reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s), l1_ratio=1.0, max_iter=10000, positive=True)
             reg.fit(gamma, vis_aux)
         else:
-            reg = linear_model.ElasticNetCV(l1_ratio=1.0, cv=5, max_iter=10000, positive=True)
+            reg = linear_model.ElasticNetCV(l1_ratio=[0.2, 0.9, 0.99, 1.0], cv=5, max_iter=1000, positive=True)
             reg.fit(gamma, vis_aux)
             logger.info("Cross Validation alpha: {} l1_ratio: {}".format(reg.alpha_, reg.l1_ratio))
 
