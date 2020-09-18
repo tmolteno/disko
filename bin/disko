@@ -190,7 +190,7 @@ if __name__ == '__main__':
     elif ARGS.matrix_free:
         logger.info("Matrix Free alpha={}".format(ARGS.alpha))
         data = disko.vis_to_data()
-        sky = disko.solve_matrix_free(data, sphere, alpha=ARGS.alpha, scale=True, lsqr=ARGS.lsqr, fista=ARGS.fista, lsmr=ARGS.lsmr)
+        sky = disko.solve_matrix_free(data, sphere, alpha=ARGS.alpha, scale=False, lsqr=ARGS.lsqr, fista=ARGS.fista, lsmr=ARGS.lsmr)
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, usedask=ARGS.dask)

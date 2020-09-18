@@ -576,8 +576,13 @@ class DiSkO(object):
             reg.fit(gamma, vis_aux)
             sky = reg.coef_
             
+            residual = vis_aux - gamma @ sky 
+            
+            residual_norm = np.linalg.norm(residual)
+            solution_norm = np.linalg.norm(sky)
+            
             score = reg.score(gamma, vis_aux)
-            logger.info('Alpha: {}: Loss: {}'.format(alpha, score))
+            logger.info('Alpha: {}: Loss: {}: rnorm: {}: snorm: {}'.format(alpha, score, residual_norm, solution_norm))
             
         else:
             from dask_ml.linear_model import LinearRegression
