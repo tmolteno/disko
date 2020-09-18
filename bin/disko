@@ -80,7 +80,7 @@ if __name__ == '__main__':
     parser.add_argument('--lasso', action="store_true", help="Use L1 regularization.")
     parser.add_argument('--tikhonov', action="store_true", help="Use L2 regularization.")
     parser.add_argument('--matrix-free', action="store_true", help="Use matrix-free regularization.")
-    parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG).")
+    parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG & SVG).")
 
     parser.add_argument('--title', required=False, default="disko", help="Prefix the output files.")
 

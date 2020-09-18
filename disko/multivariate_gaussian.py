@@ -185,7 +185,6 @@ class MultivariateGaussian:
         '''
             Return a sample from this multivariate distribution
         '''
-        z = da.random.normal(0, 1, self.D)
         if self._chol is None:
             logger.info("Cholesky factoring...")
             log_array("A", self.sigma())
@@ -196,6 +195,7 @@ class MultivariateGaussian:
             self._chol.persist()
             logger.info("          ...done")
             
+        z = da.random.normal(0, 1, self.D)
         return np.array(self.mu + self._chol @ z)
         
 

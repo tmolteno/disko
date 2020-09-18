@@ -31,28 +31,6 @@ logger.addHandler(logging.NullHandler()) # Add other handlers if you're using th
 logger.setLevel(logging.INFO)
 
 
-def handle_image(args, img, title, time_repr, src_list=None):
-    """ This function manages the output of an image, drawing sources e.t.c."""
-    image_title = '{}_{}'.format(title, time_repr)
-    plt.title(image_title)
-    if args.fits:
-        fname = '{}.fits'.format(image_title)
-        fpath = os.path.join(args.dir, fname)
-        api_imaging.save_fits_image(img, fname=fname, out_dir=args.dir, timestamp=time_repr)
-        logger.info("Generating {}".format(fname))
-    if args.PNG:
-        fname = '{}.png'.format(image_title)
-        fpath = os.path.join(args.dir, fname)
-        plt.savefig(fpath, dpi=300)
-        logger.info("Generating {}".format(fname))
-    if args.PDF:
-        fname = '{}.pdf'.format(image_title)
-        fpath = os.path.join(args.dir, fname)
-        plt.savefig(fpath, dpi=600)
-        logger.info("Generating {}".format(fname))
-    if args.display:
-        plt.show()
-
 def handle_bayes(ARGS):
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
@@ -86,6 +64,8 @@ def handle_bayes(ARGS):
         timestamp = disko.timestamp
         src_list = None
         
+    if not ARGS.show_sources:
+        src_list = None
 
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
 
@@ -176,25 +156,25 @@ def handle_bayes(ARGS):
         fname = '{}.{}'.format(image_title, ending)
         return os.path.join(ARGS.dir, fname)
 
-    def save_images(image_title):
+    def save_images(image_title, source_list):
         # Save as a FITS file
         if ARGS.FITS:
             sphere.to_fits(fname=path('fits', image_title), fov=ARGS.fov, info=disko.info)
         
         if ARGS.SVG:
             fname = path('svg', image_title)
-            sphere.to_svg(fname=fname, show_grid=True, src_list=src_list, fov=ARGS.fov, title=image_title)
+            sphere.to_svg(fname=fname, show_grid=True, src_list=source_list, fov=ARGS.fov, title=image_title)
             logger.info("Generating {}".format(fname))
         if ARGS.PNG:
             fname = path('png', image_title)
-            sphere.plot(plt, src_list)
+            sphere.plot(plt, source_list)
             plt.title(image_title)
             plt.savefig(fname, dpi=300)
             plt.close()
             logger.info("Generating {}".format(fname))
         if ARGS.PDF:
             fname = path('pdf', image_title)
-            sphere.plot(plt, src_list)
+            sphere.plot(plt, source_list)
             plt.title(image_title)
             plt.savefig(fname, dpi=600)
             plt.close()
@@ -230,17 +210,17 @@ def handle_bayes(ARGS):
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
 
         sphere.set_visible_pixels(mu_positive, scale=False)
-        save_images('{}_{}_mu'.format(ARGS.title, time_repr))
+        save_images('{}_{}_mu'.format(ARGS.title, time_repr), source_list=src_list)
 
         sphere.set_visible_pixels(variance, scale=False)
-        save_images('{}_{}_var'.format(ARGS.title, time_repr))
+        save_images('{}_{}_var'.format(ARGS.title, time_repr), source_list=None)
 
         sphere.set_visible_pixels(pix_cov, scale=False)
-        save_images('{}_{}_pcf'.format(ARGS.title, time_repr))
+        save_images('{}_{}_pcf'.format(ARGS.title, time_repr), source_list=None)
 
         for i in range(ARGS.nsamples):
             sphere.set_visible_pixels(posterior.sample(), scale=False)
-            save_images(image_title = '{}_{}_s{:0>5}'.format(ARGS.title, time_repr, i))
+            save_images(image_title = '{}_{}_s{:0>5}'.format(ARGS.title, time_repr, i), source_list=None)
 
 from dask.distributed import Client, progress
 
@@ -268,7 +248,8 @@ if __name__ == '__main__':
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
     parser.add_argument('--FITS', action="store_true", help="Generate a FITS format image.")
-    
+    parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG & SVG).")
+
     parser.add_argument('--prior', type=str, default=None, help="Load the from an HDF5 file.")
     parser.add_argument('--posterior', type=str, default=None, help="Store the posterior in HDF5 format file.")
 

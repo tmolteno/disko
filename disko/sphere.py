@@ -481,6 +481,8 @@ class HealpixSphere(object):
         if src_list is not None:
             for s in src_list:
                 self.plot_x(plt, s.el_r, s.az_r)
+        
+        plt.tight_layout()
 
 
 def my_query_disk(nside, x0, radius):
