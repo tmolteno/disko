@@ -207,7 +207,7 @@ class TelescopeOperator:
         
         
         #f = h5py.File('gamma.hdf')
-        self.gamma = da.from_array(_gamma)
+        self.gamma = _gamma #da.from_array(_gamma)
 
         log_array("Gamma", self.gamma)
         

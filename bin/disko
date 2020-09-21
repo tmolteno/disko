@@ -19,6 +19,8 @@ from tart_tools import api_handler
 from tart_tools import api_imaging
 from tart.imaging import elaz
 
+from dask.distributed import Client
+
 from disko import DiSkO, get_source_list, HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere
 
 
@@ -108,6 +110,8 @@ if __name__ == '__main__':
     # add ch to logger
     #logger.addHandler(ch)
     logger.addHandler(fh)
+    
+    #client = Client()
     
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
@@ -242,3 +246,5 @@ if __name__ == '__main__':
         sphere.plot(plt, src_list)
         plt.title(image_title)
         plt.show()
+        
+    #client.close()

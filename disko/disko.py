@@ -13,6 +13,7 @@ import json
 import logging
 import time
 import pylops
+import scipy
 
 import numpy as np
 import healpy as hp
@@ -21,6 +22,7 @@ import dask.array as da
 from copy import deepcopy
 from scipy.optimize import minimize
 from sklearn import linear_model
+from sklearn.metrics import mean_squared_error
 
 from tart.imaging import elaz
 from tart.util import constants
@@ -303,7 +305,7 @@ class DiSkO(object):
         u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms = read_ms(ms, num_vis, res_arcmin, chunks, channel, field_id)
         
         ret = cls(u_arr, v_arr, w_arr, frequency)
-        ret.vis_arr = np.array(cv_vis, dtype=COMPLEX_DATATYPE)
+        ret.vis_arr = cv_vis # np.array(cv_vis, dtype=COMPLEX_DATATYPE)
         ret.timestamp = tstamp
         ret.rms = rms
         ret.info = hdr
@@ -354,7 +356,7 @@ class DiSkO(object):
         
         #logger.info("pixel areas:  {}".format(in_sphere.pixel_areas))
         for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
-            harmonic = np.exp(p2j*(u*in_sphere.l + v*in_sphere.m + w*in_sphere.n_minus_1)) * in_sphere.pixel_areas
+            harmonic = da.exp(p2j*(u*in_sphere.l + v*in_sphere.m + w*in_sphere.n_minus_1)) * in_sphere.pixel_areas
             assert(harmonic.shape[0] == in_sphere.npix)
             harmonic_list.append(harmonic)
         #self.harmonics[cache_key] = harmonic_list
@@ -445,7 +447,18 @@ class DiSkO(object):
             if alpha < 0:
                 alpha = np.mean(self.rms)
             sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = spalg.lsqr(A, data, damp=alpha)
-            logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))      
+            
+            
+            residual = d - A @ sky 
+            
+            residual_norm, solution_norm = da.compute(np.linalg.norm(residual)**2, np.linalg.norm(sky)**2)
+            
+            #mse = mean_squared_error(reg.coef_, np.zeros_like(reg.coef_))
+            #mser = mean_squared_error(vis_aux, gamma @ sky)
+
+            logger.info('Alpha: {}: Loss: {}: rnorm: {}: snorm: {}: mse: {}: mser: {}'.format(alpha, itn, r2norm, solution_norm, solution_norm, r2norm))
+
+            #logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))      
         if lsmr:
             if alpha < 0:
                 alpha = np.mean(self.rms)
@@ -472,16 +485,18 @@ class DiSkO(object):
         n_s = len(harmonic_list[0])
         n_v = len(harmonic_list)
 
-        gamma = np.array(harmonic_list, dtype=COMPLEX_DATATYPE)
+        gamma = da.asarray(harmonic_list) #, dtype=COMPLEX_DATATYPE)
         gamma = gamma.reshape((n_v, n_s))
-        gamma = gamma.conj()
+        gamma = gamma.conj().rechunk('auto')
 
         if makecomplex:
             return gamma
         
-        g_real = np.real(gamma).astype(REAL_DATATYPE)
-        g_imag = np.imag(gamma).astype(REAL_DATATYPE)
-        ret = np.block([[g_real], [g_imag]])
+        #g_real = np.real(gamma).astype(REAL_DATATYPE)
+        #g_imag = np.imag(gamma).astype(REAL_DATATYPE)
+        g_real = da.real(gamma)
+        g_imag = da.imag(gamma)
+        ret = da.block([[g_real], [g_imag]]).rechunk('auto')
 
         logger.info('Gamma Shape: {}'.format(gamma.shape))
         #for i, h in enumerate(harmonic_list):
@@ -569,39 +584,45 @@ class DiSkO(object):
         
         lambduh = alpha/np.sqrt(n_s)
         if not usedask:
-            gamma = self.make_gamma(sphere)
+            gamma = self.make_gamma(sphere).compute()
             logger.info('augmented: {}'.format(gamma.shape))
             
             vis_aux = vis_to_real(vis_arr)
             logger.info('vis mean: {} shape: {}'.format(np.mean(vis_aux), vis_aux.shape))
 
-            logger.info("Solving...")
+            tol = min(alpha/1e4, 1e-10)
+            logger.info("Solving tol={} ...".format(tol))
             
             #reg = linear_model.ElasticNet(alpha=alpha/np.sqrt(n_s),
                                           #tol=1e-6,
                                           #l1_ratio = 0.01,
                                           #max_iter=100000, 
                                           #positive=True)
+            if True:
+                sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = scipy.sparse.linalg.lsqr(gamma, vis_aux, damp=alpha, show=True)
+                logger.info('Alpha: {}: Iterations: {}: rnorm: {}: xnorm: {}'.format(alpha, itn, r2norm, xnorm))
+            else:
+                reg = linear_model.Ridge(alpha=alpha,
+                                     tol=tol,
+                                     solver='svd',
+                                     max_iter=100000)
             
-            reg = linear_model.Ridge(alpha=alpha,
-                                          tol=1e-6,
-                                          max_iter=100000)
+                reg.fit(gamma, vis_aux)
+                logger.info("    Solve Complete, iter={}".format(reg.n_iter_))
 
-            reg.fit(gamma, vis_aux)
-            sky = reg.coef_
-            
-            residual = vis_aux - gamma @ sky 
-            
-            residual_norm = np.linalg.norm(residual)
-            solution_norm = np.linalg.norm(sky)
-            
-            score = reg.score(gamma, vis_aux)
-            logger.info('Alpha: {}: Loss: {}: rnorm: {}: snorm: {}'.format(alpha, score, residual_norm, solution_norm))
+                sky = da.from_array(reg.coef_)
+                
+                residual = vis_aux - gamma @ sky 
+                
+                residual_norm, solution_norm = da.compute(np.linalg.norm(residual)**2, np.linalg.norm(sky)**2)
+                
+
+                score = reg.score(gamma, vis_aux)
+                logger.info('Alpha: {}: Loss: {}: rnorm: {}: snorm: {}'.format(alpha, score, residual_norm, solution_norm))
             
         else:
             from dask_ml.linear_model import LinearRegression
             import dask_glm
-            import dask.array as da
             from dask.distributed import Client, LocalCluster
             from dask.diagnostics import ProgressBar
             import dask

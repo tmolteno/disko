@@ -22,6 +22,7 @@ from tart_tools import api_imaging
 from tart.imaging import elaz
 
 import dask.array as da
+from dask.distributed import Client, progress
 
 from disko import DiSkO, get_source_list, TelescopeOperator, HealpixSubSphere, HealpixSphere, vis_to_real, MultivariateGaussian
 
@@ -219,7 +220,6 @@ def handle_bayes(ARGS):
             sphere.set_visible_pixels(posterior.sample(), scale=False)
             save_images(image_title = '{}_{}_s{:0>5}'.format(ARGS.title, time_repr, i), source_list=None)
 
-from dask.distributed import Client, progress
 
 if __name__ == '__main__':
     
@@ -254,8 +254,7 @@ if __name__ == '__main__':
     parser.add_argument('--mu', action="store_true", help="Save the mean image.")
     parser.add_argument('--pcf', action="store_true", help="Save the point covariance function image.")
     parser.add_argument('--var', action="store_true", help="Save the pixel variance image.")
-
-    parser.add_argument('--nsamples', type=int, default=3, help="Number of samples to save from the posterior.")
+    parser.add_argument('--nsamples', type=int, default=0, help="Number of samples to save from the posterior.")
 
     parser.add_argument('--title', required=False, default="disko", help="Prefix the output files.")
 
