@@ -45,6 +45,9 @@ This should generate a suitable measurement set to image.
 ## Changelog
 
 0.9.1b1 Remove constraint that nside is a power of two now that healpy has accepted the pull request.
+        Add new parameter l1_ratio
+        Dont scale the alpha parameter.
+        Allow negative solutions for Tikhonov regression.
 0.9.0b4 Improve measurement set reading. 
         Use the mean RMS value for a single noise estimate on visibilities.
         Use the correct rank value in overdetermined skies.

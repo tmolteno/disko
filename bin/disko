@@ -59,7 +59,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--vis', required=False, default=None, help="Use a local JSON file containing the visibilities to create the image.")
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
-    parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter. (this is divided by the sqrt of the number of pixels.")
+    parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter.")
+    parser.add_argument('--l1-ratio', type=float, default=0.02, help="Regularization parameter, ratio of l1 to l2 (1.0 means l1 only).")
     parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
     parser.add_argument('--nvis', type=int, default=1000, help="Number of visibilities to use.")
     parser.add_argument('--arcmin', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
@@ -190,7 +191,7 @@ if __name__ == '__main__':
     
     if ARGS.lasso:
         logger.info("L1 regularization alpha=%f" %ARGS.alpha)
-        sky = disko.image_lasso(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, use_cv=ARGS.cv)
+        sky = disko.image_lasso(disko.vis_arr, sphere, alpha=ARGS.alpha, l1_ratio=ARGS.l1_ratio, scale=False, use_cv=ARGS.cv)
     elif ARGS.matrix_free:
         logger.info("Matrix Free alpha={}".format(ARGS.alpha))
         data = disko.vis_to_data()
