@@ -584,7 +584,7 @@ class DiSkO(object):
         
         lambduh = alpha/np.sqrt(n_s)
         if not usedask:
-            gamma = self.make_gamma(sphere).compute()
+            gamma = self.make_gamma(sphere)
             logger.info('augmented: {}'.format(gamma.shape))
             
             vis_aux = vis_to_real(vis_arr)
@@ -598,13 +598,13 @@ class DiSkO(object):
                                           #l1_ratio = 0.01,
                                           #max_iter=100000, 
                                           #positive=True)
-            if True:
+            if False:
                 sky, lstop, itn, r1norm, r2norm, anorm, acond, arnorm, xnorm, var = scipy.sparse.linalg.lsqr(gamma, vis_aux, damp=alpha, show=True)
                 logger.info('Alpha: {}: Iterations: {}: rnorm: {}: xnorm: {}'.format(alpha, itn, r2norm, xnorm))
             else:
                 reg = linear_model.Ridge(alpha=alpha,
                                      tol=tol,
-                                     solver='svd',
+                                     solver='lsqr',
                                      max_iter=100000)
             
                 reg.fit(gamma, vis_aux)
@@ -614,12 +614,12 @@ class DiSkO(object):
                 
                 residual = vis_aux - gamma @ sky 
                 
-                residual_norm, solution_norm = da.compute(np.linalg.norm(residual)**2, np.linalg.norm(sky)**2)
+                sky, residual_norm, solution_norm = da.compute(sky, np.linalg.norm(residual)**2, np.linalg.norm(sky)**2)
                 
 
                 score = reg.score(gamma, vis_aux)
                 logger.info('Alpha: {}: Loss: {}: rnorm: {}: snorm: {}'.format(alpha, score, residual_norm, solution_norm))
-            
+                
         else:
             from dask_ml.linear_model import LinearRegression
             import dask_glm
