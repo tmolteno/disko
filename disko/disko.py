@@ -505,7 +505,7 @@ class DiSkO(object):
         return ret
 
     def image_lasso(self, vis_arr, sphere, alpha, l1_ratio, scale=False, use_cv=False):
-        gamma = self.make_gamma(sphere)
+        gamma = self.make_gamma(sphere).compute()
                 
         vis_aux = vis_to_real(vis_arr)
         
@@ -527,6 +527,8 @@ class DiSkO(object):
                                           max_iter=100000, 
                                           positive=True)
             reg.fit(gamma, vis_aux)
+            
+
         else:
             reg = linear_model.ElasticNetCV(l1_ratio=l1_ratio, cv=5, max_iter=10000, positive=True)
             reg.fit(gamma, vis_aux)
@@ -534,6 +536,14 @@ class DiSkO(object):
 
         sky = reg.coef_
         logger.info("sky = {}".format(sky.shape))
+
+        residual = vis_aux - gamma @ sky 
+        
+        residual_norm = np.linalg.norm(residual)**2
+        solution_norm = np.linalg.norm(sky)**2
+        score = reg.score(gamma, vis_aux)
+        
+        logger.info('Alpha: {}: Loss: {}: rnorm: {}: snorm: {}'.format(alpha, score, residual_norm, solution_norm))
 
         sphere.set_visible_pixels(sky, scale)
         return sky.reshape(-1,1)
