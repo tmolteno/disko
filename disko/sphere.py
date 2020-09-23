@@ -3,7 +3,7 @@
 #
 
 import logging
-
+import json
 import svgwrite
 
 import numpy as np
@@ -158,21 +158,25 @@ def lonlat(theta, phi):
 def image_stats(sky):
     rsky = np.real(sky)
     
-    npix = sky.shape[0]
-    max_p = np.max(rsky)
-    sdev_p = np.std(rsky)
-    min_p = np.min(rsky)
-    mean_p = np.mean(rsky)
-    med_p = np.median(rsky)
-    deviation = np.abs(med_p - rsky)
-    mad_p = np.median(deviation)
+    ret = {}
     
-    if (mad_p < 1e-9):
-        mad_p = sdev_p
-        
-    logger.info("{{'N_s':{}, 'S/N': {}, 'min': {}, 'max': {}, 'mean': {}, 'sdev': {}, 'R_mad': {}, 'MAD': {}, 'median': {}}}".format(npix, (max_p/sdev_p), min_p, max_p, mean_p, sdev_p, (max_p/mad_p), mad_p, med_p))
+    ret['N_s'] = sky.shape[0]
+    ret['max'] = np.max(rsky)
+    ret['sdev']  = np.std(rsky)
+    ret['min']  = np.min(rsky)
+    ret['mean']  = np.mean(rsky)
+    ret['med']  = np.median(rsky)
+    deviation  = np.abs(ret['med'] - rsky)
+    ret['mad']  = np.median(deviation)
     
-    return max_p, min_p, mad_p
+    if ret['sdev']  > 0:
+        ret['S/N'] = (ret['max'] - ret['mean'])/ret['sdev'] 
+    else:
+        ret['S/N'] = (ret['max'] - ret['mean'])
+    
+    logger.info(json.dumps(ret))
+    
+    return ret
 
 def factors(n):    
     result = set()
@@ -232,8 +236,8 @@ class HealpixSphere(object):
         # This discards the imaginary part.
         rpix = pix
         if scale:
-            max_p, min_p, mad_p = image_stats(rpix)
-            rpix = (rpix - min_p) / mad_p
+            stats = image_stats(rpix)
+            rpix = (rpix - stats['min']) / stats['stdev']
             #n_s = rpix.shape[0]
             #fact = factors(n_s)
             #rpix = exposure.equalize_adapthist(rpix.reshape((n_s//fact, -1)), clip_limit=0.03)
@@ -346,18 +350,7 @@ class HealpixSphere(object):
             dwg.add(dwg.text("N_s: {}".format(self.pixels.shape[0]), 
                              (x, y), text_anchor='start', font_size="{}px".format(font_size)))
 
-        max_p = np.max(self.pixels)
-        min_p = np.min(self.pixels)
-        mean_p = np.mean(self.pixels)
-        
-        sdev_p = np.std(self.pixels)
-
-        if sdev_p > 0:
-            logger.info("'N_s':{}, 'S/N': {}, 'min': {}, 'max': {}, 'mean': {}, 'sdev': {}".format(self.npix, (max_p/sdev_p), min_p, max_p, mean_p, sdev_p))
-        else:
-            logger.info("'N_s':{}, 'S/N': {}, 'min': {}, 'max': {}, 'mean': {}, 'sdev': {}".format(self.npix, 'Inf', min_p, max_p, mean_p, sdev_p))
-
-        med = np.median(self.pixels)
+        stats = image_stats(self.pixels)
 
         if not pixels_only:
             svg_pixels = dwg.g(stroke_width=2, stroke_linejoin="round", stroke_opacity=1.0)
@@ -411,7 +404,7 @@ class HealpixSphere(object):
                     y = pc.from_y(y_mean) + (font_size//2)
                     dwg.add(dwg.text("{}".format(i), (x, y), text_anchor='middle', font_size="{}px".format(font_size)))
             else:
-                (r, g, b) = cmap((value - min_p)/(max_p - min_p))
+                (r, g, b) = cmap((value - stats['min'])/(stats['max'] - stats['min']))
                 colour = svgwrite.rgb(r, g, b)
                 if min_lat > 0.07:  # Ignore points on, or below the horizon
                     svg_pixels.add(dwg.polygon(points=poly, fill=colour, stroke=colour))
