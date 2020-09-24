@@ -192,9 +192,11 @@ def handle_bayes(ARGS):
         if ARGS.mu:
             logger.info("Computing pixels")
             tic = time.perf_counter()    
-            mu_positive = np.array(da.clip(posterior.mu, 0, None))
+            #mu_positive = np.array(da.clip(posterior.mu, 0, None))
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
-            sphere.set_visible_pixels(mu_positive, scale=False)
+            stat = sphere.set_visible_pixels(np.array(posterior.mu), scale=False)
+            stat['sigma-v'] = ARGS.sigma_v
+            logger.info(json.dumps(stat, sort_keys=True))
             save_images('{}_{}_mu'.format(ARGS.title, time_repr), source_list=src_list)
 
         if ARGS.var:

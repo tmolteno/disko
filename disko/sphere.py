@@ -161,14 +161,12 @@ def image_stats(sky):
     ret = {}
     
     ret['N_s'] = sky.shape[0]
-    ret['max'] = np.max(rsky)
     ret['sdev']  = np.std(rsky)
-    ret['min']  = np.min(rsky)
     ret['mean']  = np.mean(rsky)
-    ret['med']  = np.median(rsky)
+    ret['min'], ret['med'], ret['max']  = np.percentile(rsky, [0, 50, 100])
     
-    abs_deviation = np.abs(ret['med'] - rsky)
-    ret['mad']  = np.median(abs_deviation)
+    abs_deviation = np.array(np.abs(ret['med'] - rsky))
+    ret['mad']  = np.median(abs_deviation, axis=0)
     
     if ret['sdev']  > 0:
         ret['S/N'] = (ret['max'] - ret['mean'])/ret['sdev'] 
@@ -241,14 +239,15 @@ class HealpixSphere(object):
     def set_visible_pixels(self, pix, scale=False):
         # This discards the imaginary part.
         rpix = pix
+        stats = image_stats(rpix)
         if scale:
-            stats = image_stats(rpix)
             rpix = (rpix - stats['min']) / stats['stdev']
             #n_s = rpix.shape[0]
             #fact = factors(n_s)
             #rpix = exposure.equalize_adapthist(rpix.reshape((n_s//fact, -1)), clip_limit=0.03)
         self.pixels = rpix.reshape((len(pix),))
         logger.info("Pixels Set {}".format(self.pixels.shape))
+        return stats
         
     def corners(self, pixel):
         bounds = hp.boundaries(self.nside, pixel, step=1)
