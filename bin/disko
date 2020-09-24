@@ -24,27 +24,6 @@ from dask.distributed import Client
 from disko import DiSkO, get_source_list, AdaptiveMeshSphere, create_fov
 
 
-def handle_image(args, img, title, time_repr, src_list=None):
-    """ This function manages the output of an image, drawing sources e.t.c."""
-    image_title = '{}_{}'.format(title, time_repr)
-    plt.title(image_title)
-    if args.fits:
-        fname = '{}.fits'.format(image_title)
-        fpath = os.path.join(args.dir, fname)
-        api_imaging.save_fits_image(img, fname=fname, out_dir=args.dir, timestamp=time_repr)
-        logger.info("Generating {}".format(fname))
-    if args.PNG:
-        fname = '{}.png'.format(image_title)
-        fpath = os.path.join(args.dir, fname)
-        plt.savefig(fpath, dpi=300)
-        logger.info("Generating {}".format(fname))
-    if args.PDF:
-        fname = '{}.pdf'.format(image_title)
-        fpath = os.path.join(args.dir, fname)
-        plt.savefig(fpath, dpi=600)
-        logger.info("Generating {}".format(fname))
-    if args.display:
-        plt.show()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image using the web api of a TART radio telescope.', 
@@ -208,41 +187,68 @@ if __name__ == '__main__':
 
     image_title = '{}_{}'.format(ARGS.title, time_repr)
 
-    # Save as a FITS file
     if ARGS.adaptive:
+        # Save as a VTK file
         sphere.write_mesh("{}.vtk".format(image_title))
-    
-    if ARGS.FITS:
-        fname = '{}.fits'.format(image_title)
-        fpath = os.path.join(ARGS.dir, fname)
-        sphere.to_fits(fname=fpath, fov=ARGS.fov, info=disko.info)
-    
-    if ARGS.SVG:
-        fname = '{}.svg'.format(image_title)
-        fpath = os.path.join(ARGS.dir, fname)
 
-        #sky = disko.image_lasso(disko.vis_arr, sphere, alpha=0.02, scale=False)
-        sphere.to_svg(fname=fpath, show_grid=True, src_list=src_list, fov=ARGS.fov, title=image_title)
-        logger.info("Generating {}".format(fname))
-    if ARGS.PNG:
-        sphere.plot(plt, src_list)
-        plt.title(image_title)
-        fname = '{}.png'.format(image_title)
-        fpath = os.path.join(ARGS.dir, fname)
-        plt.savefig(fpath, dpi=300)
-        plt.close()
-        logger.info("Generating {}".format(fname))
-    if ARGS.PDF:
-        sphere.plot(plt, src_list)
-        plt.title(image_title)
-        fname = '{}.pdf'.format(image_title)
-        fpath = os.path.join(ARGS.dir, fname)
-        plt.savefig(fpath, dpi=600)
-        plt.close()
-        logger.info("Generating {}".format(fname))
-    if ARGS.display:
-        sphere.plot(plt, src_list)
-        plt.title(image_title)
-        plt.show()
+    def path(ending, image_title):
+        fname = '{}.{}'.format(image_title, ending)
+        return os.path.join(ARGS.dir, fname)
+
+    def save_images(image_title, source_list):
+        # Save as a FITS file
+        if ARGS.FITS:
+            sphere.to_fits(fname=path('fits', image_title), fov=ARGS.fov, info=disko.info)
+        
+        if ARGS.SVG:
+            fname = path('svg', image_title)
+            sphere.to_svg(fname=fname, show_grid=True, src_list=source_list, fov=ARGS.fov, title=image_title)
+            logger.info("Generating {}".format(fname))
+        if ARGS.PNG:
+            fname = path('png', image_title)
+            sphere.plot(plt, source_list)
+            plt.title(image_title)
+            plt.tight_layout()
+            plt.savefig(fname, dpi=300)
+            plt.close()
+            logger.info("Generating {}".format(fname))
+        if ARGS.PDF:
+            fname = path('pdf', image_title)
+            sphere.plot(plt, source_list)
+            plt.title(image_title)
+            plt.savefig(fname, dpi=600)
+            plt.close()
+            logger.info("Generating {}".format(fname))
+        if ARGS.display:
+            sphere.plot(plt, src_list)
+            plt.title(image_title)
+            plt.show()
+
+    if ARGS.FITS or ARGS.SVG or ARGS.PNG or ARGS.PDF:
+        save_images('{}_{}'.format(ARGS.title, time_repr), source_list=src_list)
+    
+    #if ARGS.SVG:
+        #fname = '{}.svg'.format(image_title)
+        #fpath = os.path.join(ARGS.dir, fname)
+
+        ##sky = disko.image_lasso(disko.vis_arr, sphere, alpha=0.02, scale=False)
+        #sphere.to_svg(fname=fpath, show_grid=True, src_list=src_list, fov=ARGS.fov, title=image_title)
+        #logger.info("Generating {}".format(fname))
+    #if ARGS.PNG:
+        #sphere.plot(plt, src_list)
+        #plt.title(image_title)
+        #fname = '{}.png'.format(image_title)
+        #fpath = os.path.join(ARGS.dir, fname)
+        #plt.savefig(fpath, dpi=300)
+        #plt.close()
+        #logger.info("Generating {}".format(fname))
+    #if ARGS.PDF:
+        #sphere.plot(plt, src_list)
+        #plt.title(image_title)
+        #fname = '{}.pdf'.format(image_title)
+        #fpath = os.path.join(ARGS.dir, fname)
+        #plt.savefig(fpath, dpi=600)
+        #plt.close()
+        #logger.info("Generating {}".format(fname))
         
     #client.close()

@@ -317,7 +317,7 @@ class HealpixSphere(object):
         hdu.writeto(fname, overwrite=True)
         
         
-    def to_svg(self, fname, pixels_only=False, show_grid=False, src_list=None, fov=180.0, title=None):
+    def to_svg(self, fname, pixels_only=False, show_grid=False, src_list=None, fov=180.0, title=None, show_cbar=True):
 
         w = 4000
         #dwg = svgwrite.Drawing(filename=fname, size=(w,w), profile='tiny')
@@ -434,6 +434,48 @@ class HealpixSphere(object):
             dwg.add(svg_pixels)
             grid_color = 'grey'
             
+        if show_cbar:
+            N = 255
+            bar_boxes = dwg.g(stroke_width=2, stroke_linejoin="round", stroke_opacity=1.0)
+            values = np.linspace(stats['min'], stats['max'], N)
+            
+            rvals = (values - stats['min'])/(stats['max'] - stats['min'])
+            
+            start_y = 0.05
+            stop_y = 2.05
+            x0 = pc.from_d(2.05)
+            x1 = pc.from_d(2.1)
+            
+            def y_scale(y):
+                dy = stop_y - start_y
+                return start_y + y*dy
+            
+            for i in range(N-1):
+                v0 = rvals[i]
+                v1 = rvals[i+1]
+                (r, g, b) = cmap(v0)
+                
+                
+                y0 = pc.from_d(y_scale(v0))
+                y1 = pc.from_d(y_scale(v1))
+                
+                poly = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+                colour = svgwrite.rgb(r, g, b)
+                bar_boxes.add(dwg.polygon(points=poly, fill=colour, stroke=colour))
+                
+                if (i == 0):
+                    bar_boxes.add(dwg.text("{:5.3f}".format(stats['min']), 
+                             (x0, y0+font_size/2), text_anchor='end', font_size="{}px".format(font_size)))
+
+                if (i == N-2):
+                    bar_boxes.add(dwg.text("{:5.3f}".format(stats['max']), 
+                             (x0, y0+font_size/2), text_anchor='end', font_size="{}px".format(font_size)))
+
+            border = [(x0, start_y), (x1, start_y), (x1, stop_y), (x0, stop_y)]
+            bar_boxes.add(dwg.polygon(points=border, stroke='grey'))
+            dwg.add(bar_boxes)
+
+
         if show_grid:
             grid_lines = dwg.g(fill='none', stroke=grid_color, stroke_width="{}".format(line_size), stroke_linejoin="round", stroke_dasharray="{},{}".format(5*line_size, 10*line_size))
             
@@ -485,7 +527,7 @@ class HealpixSphere(object):
         plt.figure() # (figsize=(6,6))
         logger.info('self.pixels: {}'.format(self.pixels.shape))
         if True:
-            hp.orthview(self.pixels, rot=rot, xsize=1000, cbar=True, half_sky=False, hold=True)
+            hp.orthview(self.pixels, rot=rot, xsize=1000, cbar=True, half_sky=False, hold=False)
             hp.graticule(verbose=False)
         else:
             hp.mollview(self.pixels, rot=rot, xsize=1000, cbar=True)
@@ -495,7 +537,6 @@ class HealpixSphere(object):
             for s in src_list:
                 self.plot_x(plt, s.el_r, s.az_r)
         
-        plt.tight_layout()
 
 
 def my_query_disk(nside, x0, radius):
@@ -612,7 +653,7 @@ class HealpixSubSphere(HealpixSphere):
         plt.figure() # (figsize=(6,6))
         logger.info('self.pixels: {}'.format(self.pixels.shape))
         if True:
-            hp.orthview(all_pixels, rot=rot, xsize=1000, cbar=True, half_sky=True, hold=True)
+            hp.orthview(all_pixels, rot=rot, xsize=1000, cbar=True, half_sky=True, hold=False)
             hp.graticule(verbose=False)
         else:
             hp.mollview(all_pixels, rot=rot, xsize=1000, cbar=True)
@@ -621,7 +662,6 @@ class HealpixSubSphere(HealpixSphere):
         if src_list is not None:
             for s in src_list:
                 self.plot_x(plt, s.el_r, s.az_r)
-
 
 class HexagonGenerator(object):
     '''

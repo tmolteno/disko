@@ -168,6 +168,7 @@ def handle_bayes(ARGS):
             fname = path('png', image_title)
             sphere.plot(plt, source_list)
             plt.title(image_title)
+            plt.tight_layout()
             plt.savefig(fname, dpi=300)
             plt.close()
             logger.info("Generating {}".format(fname))
