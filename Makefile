@@ -64,7 +64,7 @@ tart:
 	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=60 --arcmax=90 --alpha=0.0025 --tikhonov  --title 'tart'
 
 sphere:
-	disko --nside 64 --ms ../tart2ms/test.ms --SVG --PNG --alpha=0.0025 --tikhonov  --title 'sphere'
+	disko --nside 64 --ms ../tart2ms/test.ms --SVG --PNG --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
 
 mf:
 	disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=30 --arcmax=190 --alpha=-0.56 --fista --matrix-free --title 'mf'

@@ -21,7 +21,7 @@ from tart.imaging import elaz
 
 from dask.distributed import Client
 
-from disko import DiSkO, get_source_list, HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere
+from disko import DiSkO, get_source_list, AdaptiveMeshSphere, create_fov
 
 
 def handle_image(args, img, title, time_repr, src_list=None):
@@ -117,11 +117,9 @@ if __name__ == '__main__':
     radius = np.radians(ARGS.fov / 2.0)
     if ARGS.adaptive > 0:
         sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.arcmin, res_arcmax=ARGS.arcmax, theta=np.radians(0.0), phi=0.0, radius=radius)
-    elif nside is None:
-        sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
     else:
-        sphere = HealpixSphere(nside=nside)
-    
+        sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.arcmin)
+
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
         # Load data from a JSON file

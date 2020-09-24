@@ -15,6 +15,21 @@ logger.addHandler(logging.NullHandler()) # Add other handlers if you're using th
 logger.setLevel(logging.INFO)
 
 
+def create_fov(nside, fov_deg, res_arcmin, theta=0.0, phi=0.0):
+    '''
+        Create an appropriate Sphere object based on:
+        
+        - fov_deg : The field of view in degrees
+        
+    '''
+    if nside is not None:
+        sphere = HealpixSphere(nside)
+    else:
+        radius = np.radians(fov_deg / 2.0)
+        sphere = HealpixSubSphere.from_resolution(resolution=res_arcmin, theta=theta, phi=phi, radius=radius)
+    return sphere
+    
+
 PI_OVER_2 = np.pi / 2
 
 class LonLat(object):
@@ -469,8 +484,8 @@ class HealpixSphere(object):
         rot = (0, 90, 0)
         plt.figure() # (figsize=(6,6))
         logger.info('self.pixels: {}'.format(self.pixels.shape))
-        if False:
-            hp.orthview(self.pixels, rot=rot, xsize=1000, cbar=True, half_sky=True, hold=True)
+        if True:
+            hp.orthview(self.pixels, rot=rot, xsize=1000, cbar=True, half_sky=False, hold=True)
             hp.graticule(verbose=False)
         else:
             hp.mollview(self.pixels, rot=rot, xsize=1000, cbar=True)
