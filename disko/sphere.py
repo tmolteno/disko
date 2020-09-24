@@ -180,7 +180,7 @@ def image_stats(sky):
     else:
         ret['R_mad'] = (ret['max'] - ret['med'])
     
-    logger.info(json.dumps(ret))
+    logger.info(json.dumps(ret, sort_keys=True))
     
     return ret
 
