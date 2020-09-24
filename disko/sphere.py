@@ -166,13 +166,19 @@ def image_stats(sky):
     ret['min']  = np.min(rsky)
     ret['mean']  = np.mean(rsky)
     ret['med']  = np.median(rsky)
-    deviation  = np.abs(ret['med'] - rsky)
-    ret['mad']  = np.median(deviation)
+    
+    abs_deviation = np.abs(ret['med'] - rsky)
+    ret['mad']  = np.median(abs_deviation)
     
     if ret['sdev']  > 0:
         ret['S/N'] = (ret['max'] - ret['mean'])/ret['sdev'] 
     else:
         ret['S/N'] = (ret['max'] - ret['mean'])
+    
+    if ret['mad']  > 0:
+        ret['R_mad'] = (ret['max'] - ret['med'])/ret['mad'] 
+    else:
+        ret['R_mad'] = (ret['max'] - ret['med'])
     
     logger.info(json.dumps(ret))
     
@@ -464,7 +470,7 @@ class HealpixSphere(object):
         rot = (0, 90, 0)
         plt.figure() # (figsize=(6,6))
         logger.info('self.pixels: {}'.format(self.pixels.shape))
-        if True:
+        if False:
             hp.orthview(self.pixels, rot=rot, xsize=1000, cbar=True, half_sky=True, hold=True)
             hp.graticule(verbose=False)
         else:

@@ -72,10 +72,10 @@ def handle_bayes(ARGS):
 
     # Processing
     
-    if False:
+    if ARGS.nside is not None:
         nside = ARGS.nside
         sphere = HealpixSphere(nside)
-        real_vis = disko.vis_arr # vis_to_real(disko.vis_arr)
+        real_vis = vis_to_real(disko.vis_arr)
     else:
         radius = np.radians(ARGS.fov / 2.0)
         sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
@@ -234,10 +234,11 @@ if __name__ == '__main__':
     parser.add_argument('--field', type=int, default=0, help="Use this FIELD_ID from the measurement set.")
 
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
-    parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
     parser.add_argument('--nvis', type=int, default=1000, help="Number of visibilities to use.")
     parser.add_argument('--arcmin', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
+
     parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
+    parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
 
     parser.add_argument('--sigma-v', type=float, default=None, help="Diagonal components of the visibility covariance. If not supplied use measurement set values")
 

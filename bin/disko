@@ -113,6 +113,14 @@ if __name__ == '__main__':
     logger.addHandler(fh)
     
     #client = Client()
+    nside = ARGS.nside
+    radius = np.radians(ARGS.fov / 2.0)
+    if ARGS.adaptive > 0:
+        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.arcmin, res_arcmax=ARGS.arcmax, theta=np.radians(0.0), phi=0.0, radius=radius)
+    elif nside is None:
+        sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
+    else:
+        sphere = HealpixSphere(nside=nside)
     
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
@@ -141,7 +149,7 @@ if __name__ == '__main__':
         disko = DiSkO.from_cal_vis(cv)
     elif ARGS.ms:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
-        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel, field_id=ARGS.field)
+        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=sphere.res_arcmin, channel=ARGS.channel, field_id=ARGS.field)
         # Convert from reduced Julian Date to timestamp.
         timestamp = disko.timestamp
         
@@ -179,15 +187,6 @@ if __name__ == '__main__':
     
     if ARGS.show_sources:
         src_list = get_source_list(source_json, el_limit=ARGS.elevation, jy_limit=1e4)
-    
-    nside = ARGS.nside
-    radius = np.radians(ARGS.fov / 2.0)
-    if ARGS.adaptive > 0:
-        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.arcmin, res_arcmax=ARGS.arcmax, theta=np.radians(0.0), phi=0.0, radius=radius)
-    elif nside is None:
-        sphere = HealpixSubSphere.from_resolution(resolution=ARGS.arcmin, theta=np.radians(0.0), phi=0.0, radius=radius)
-    else:
-        sphere = HealpixSubSphere.from_resolution(nside=nside, theta=0.0, phi=0.0, radius=radius)
     
     if ARGS.lasso:
         logger.info("L1 regularization alpha=%f" %ARGS.alpha)
