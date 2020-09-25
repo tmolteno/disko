@@ -448,13 +448,12 @@ class HealpixSphere(object):
             
             def y_scale(y):
                 dy = stop_y - start_y
-                return start_y + y*dy
+                return stop_y - y*dy
             
             for i in range(N-1):
                 v0 = rvals[i]
                 v1 = rvals[i+1]
                 (r, g, b) = cmap(v0)
-                
                 
                 y0 = pc.from_d(y_scale(v0))
                 y1 = pc.from_d(y_scale(v1))
@@ -465,15 +464,19 @@ class HealpixSphere(object):
                 
                 if (i == 0):
                     bar_boxes.add(dwg.text("{:5.3f}".format(stats['min']), 
-                             (x0, y0+font_size/2), text_anchor='end', font_size="{}px".format(font_size)))
+                             (x0-font_size/2, y1), text_anchor='end', font_size="{}px".format(font_size)))
 
                 if (i == N-2):
                     bar_boxes.add(dwg.text("{:5.3f}".format(stats['max']), 
-                             (x0, y0+font_size/2), text_anchor='end', font_size="{}px".format(font_size)))
+                             (x0-font_size/2, y1+font_size), text_anchor='end', font_size="{}px".format(font_size)))
 
-            border = [(x0, start_y), (x1, start_y), (x1, stop_y), (x0, stop_y)]
-            bar_boxes.add(dwg.polygon(points=border, stroke='grey'))
             dwg.add(bar_boxes)
+
+            y0 = pc.from_d(start_y)
+            y1 = pc.from_d(stop_y)
+            box_border = dwg.g(fill='none', stroke=grid_color, stroke_width="{}".format(line_size/2), stroke_linejoin="round")
+            box_border.add(dwg.polygon(points=[(x0, y0), (x1, y0), (x1, y1), (x0, y1)]))
+            dwg.add(box_border)
 
 
         if show_grid:
