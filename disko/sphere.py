@@ -462,6 +462,14 @@ class HealpixSphere(object):
                 colour = svgwrite.rgb(r, g, b)
                 bar_boxes.add(dwg.polygon(points=poly, fill=colour, stroke=colour))
                 
+                if (i == np.argmin(np.abs(values))) and (i != 0):
+                    bar_boxes.add(dwg.text("0", 
+                             (x0-font_size/2, y1+font_size/2), text_anchor='end', font_size="{}px".format(font_size)))
+                    bar_boxes.add(dwg.line(start=(x0-font_size/3, y0), 
+                                           end=(x0, y0), 
+                                           stroke='black', 
+                                           stroke_width="{}".format(line_size)))
+
                 if (i == 0):
                     bar_boxes.add(dwg.text("{:5.3f}".format(stats['min']), 
                              (x0-font_size/2, y1), text_anchor='end', font_size="{}px".format(font_size)))
