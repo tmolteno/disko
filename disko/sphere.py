@@ -139,13 +139,18 @@ class PlotCoords(object):
         self.line_size = int(float(h) / 400)
     
     def from_d(self, d):
+        '''
+            Scale a distance. to the pixel
+        '''
         return int(d*self.scale)
     
     def from_x(self, x):
         return int(x*self.scale) + self.center_x
     
     def from_y(self, y):
-        return int(y*self.scale) + self.center_y
+        ret = int(y*self.scale) + self.center_y
+        #logger.info("from_y({})->{}".format(y, ret))
+        return ret
     
     def from_elaz(self, elaz):
         hp = elaz.to_hp()
@@ -450,11 +455,11 @@ class HealpixSphere(object):
             values = np.linspace(stats['min'], stats['max'], N)
             
             rvals = (values - stats['min'])/(stats['max'] - stats['min'])
-            
-            start_y = 0.05
-            stop_y = 2.0
-            x0 = pc.from_d(2.05)
-            x1 = pc.from_d(2.1)
+
+            start_y = 0.05*width
+            stop_y = 2.05*width
+            x0 = pc.from_d(2.1*width)
+            x1 = pc.from_d(2.15*width)
             
             def y_scale(y):
                 dy = stop_y - start_y
@@ -471,6 +476,7 @@ class HealpixSphere(object):
                 poly = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
                 colour = svgwrite.rgb(r, g, b)
                 bar_boxes.add(dwg.polygon(points=poly, fill=colour, stroke=colour))
+                #logger.info("box {}".format(poly))
                 
                 if (i == np.argmin(np.abs(values))) and (i != 0):
                     bar_boxes.add(dwg.text("0", 

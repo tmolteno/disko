@@ -162,7 +162,7 @@ def handle_bayes(ARGS):
         
         if ARGS.SVG:
             fname = path('svg', image_title)
-            sphere.to_svg(fname=fname, show_grid=True, src_list=source_list, fov=ARGS.fov, title=image_title)
+            sphere.to_svg(fname=fname, show_grid=True, src_list=source_list, fov=ARGS.fov, title=image_title, show_cbar=True)
             logger.info("Generating {}".format(fname))
         if ARGS.PNG:
             fname = path('png', image_title)
