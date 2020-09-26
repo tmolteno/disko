@@ -40,7 +40,7 @@ class TestUtil(unittest.TestCase):
         fname='test.svg'
         sph = sphere.HealpixSphere(nside=8)
 
-        sph.to_svg(fname=fname, pixels_only=True)
+        sph.to_svg(fname=fname, pixels_only=True, show_cbar=False)
         self.assertTrue(os.path.isfile(fname))
         os.remove(fname)
 

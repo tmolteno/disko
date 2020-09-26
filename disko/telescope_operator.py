@@ -357,16 +357,19 @@ class TelescopeOperator:
             nside (int):        The healpix nside parameter.
         """
 
-        logger.info("Imaging Direct nside={}".format(sphere.nside))
+        if vis_arr.shape[0] != self.n_v:
+            raise ValueError("Visibility array {} wrong shape {}".format(vis_arr.shape, self.n_v))
+        
+        logger.info("Imaging Direct gamma={}, vis={}".format(self.gamma.shape, vis_arr.shape))
         t0 = time.time()
 
-        sky, residuals, rank, s = np.linalg.lstsq(self.gamma, 
-                                                  vis_arr, rcond=None)
+        sky, residuals, rank, s = np.linalg.lstsq(np.array(self.gamma), 
+                                                  np.array(vis_arr))
         
         t1 = time.time()
         logger.info("Elapsed {}s".format(time.time() - t0))
 
-        sphere.set_visible_pixels(sky, scale)
+        sphere.set_visible_pixels(sky.flatten(), scale)
         return sky
 
 
@@ -400,7 +403,7 @@ class TelescopeOperator:
         
         #sky = self.natural_to_sky(x)
         sky = self.V_1 @ x_r
-        sphere.set_visible_pixels(sky, scale)
+        sphere.set_visible_pixels(sky.flatten(), scale)
         
         logger.info("Elapsed {}s".format(time.time() - t0))
         

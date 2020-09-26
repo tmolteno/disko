@@ -29,9 +29,9 @@ class TestSubsphere(unittest.TestCase):
         big = sphere.HealpixSubSphere.from_resolution(resolution=res_deg*60.0, 
                                       theta=np.radians(0.0), phi=0.0, 
                                       radius=np.radians(180))
-        old = sphere.HealpixSphere(32)
+        old = sphere.HealpixSphere(20)
 
-        self.assertEqual(big.nside, 32)
+        self.assertEqual(big.nside, 20)
         self.assertEqual(big.npix, old.npix)
 
     def test_tiny_subsphere(self):
@@ -41,8 +41,8 @@ class TestSubsphere(unittest.TestCase):
                                       theta=np.radians(0.0), 
                                       phi=0.0, radius=np.radians(5))
 
-        self.assertEqual(big.nside, 128)
-        self.assertEqual(big.npix, 364)
+        self.assertEqual(big.nside, 118)
+        self.assertEqual(big.npix, 312)
     
     def test_sizes(self):
        self.assertEqual(self.sphere.npix, self.sphere.el_r.shape[0])
@@ -55,7 +55,7 @@ class TestSubsphere(unittest.TestCase):
                                       theta=np.radians(0.0), phi=0.0, 
                                       radius=np.radians(45))
 
-        big.to_svg(fname=fname, pixels_only=True)
+        big.to_svg(fname=fname, pixels_only=True, show_cbar = False)
         self.assertTrue(os.path.isfile(fname))
         os.remove(fname)
 

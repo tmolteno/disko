@@ -178,7 +178,8 @@ def lonlat(theta, phi):
     return longitude, latitude
 
 def image_stats(sky):
-    rsky = np.real(sky)
+    
+    rsky = sky
     
     ret = {}
     
@@ -260,7 +261,8 @@ class HealpixSphere(object):
 
     def set_visible_pixels(self, pix, scale=False):
         # This discards the imaginary part.
-        rpix = pix
+        rpix = np.asarray(np.real(pix))
+
         stats = image_stats(rpix)
         if scale:
             rpix = (rpix - stats['min']) / stats['stdev']

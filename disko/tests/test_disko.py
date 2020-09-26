@@ -137,8 +137,8 @@ class TestDiSkO(unittest.TestCase):
             inner product with harmonics
         '''
         sky, harmonics = self.get_harmonic_sky(10)
-        vis = [h @ sky.conj() for h in harmonics]
-        vis2 = self.gamma @ sky
+        vis = np.array([h @ sky.conj() for h in harmonics])
+        vis2 = np.array(self.gamma @ sky)
         
         self.assertEqual(harmonics[0].shape[0], self.sphere.npix)
 

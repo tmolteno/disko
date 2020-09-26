@@ -379,7 +379,7 @@ class DiSkO(object):
         logger.info("Imaging Visabilities nside={}".format(sphere.nside))
         t0 = time.time()
         
-        pixels = np.zeros(sphere.npix, dtype=COMPLEX_DATATYPE)
+        pixels = da.zeros(sphere.npix, dtype=COMPLEX_DATATYPE)
         harmonic_list = self.get_harmonics(sphere)
         for h, vis in zip(harmonic_list, vis_arr):
             pixels += vis*h
@@ -398,7 +398,7 @@ class DiSkO(object):
 
         gamma = self.make_gamma(sphere)
         
-        sky, residuals, rank, s = np.linalg.lstsq(gamma, to_column(vis_to_real(vis_arr)), rcond=None)
+        sky, residuals, rank, s = da.linalg.lstsq(gamma, to_column(vis_to_real(vis_arr)))
         
         logger.info("Elapsed {}s".format(time.time() - t0))
 

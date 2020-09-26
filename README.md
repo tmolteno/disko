@@ -49,6 +49,7 @@ This should generate a suitable measurement set to image.
         Dont scale the alpha parameter.
         Allow negative solutions for Tikhonov regression.
         Allow full skies using --nside option
+        Add a colour bar to the SVG output.
         
 0.9.0b4 Improve measurement set reading. 
         Use the mean RMS value for a single noise estimate on visibilities.
