@@ -49,7 +49,7 @@ class MultivariateGaussian:
             
         logger.info("MultivariateGaussian({})".format(mu.shape))
 
-        self.mu = mu.flatten()
+        self.mu = da.asarray(mu.flatten())
         
         self._sigma = None
         self._sigma_inv = None
@@ -61,13 +61,13 @@ class MultivariateGaussian:
         if sigma is not None:
             log_array("sigma", sigma)
             d = sigma.shape
-            self._sigma = sigma
+            self._sigma = da.asarray(sigma)
             storage += self._sigma.nbytes
             
         if sigma_inv is not None:
             log_array("sigma_inv", sigma_inv)
             d = sigma_inv.shape
-            self._sigma_inv = sigma_inv
+            self._sigma_inv = da.asarray(sigma_inv)
             storage += self._sigma_inv.nbytes
             
         if (d[0] != self.D) or (d[1] != self.D):
@@ -191,11 +191,10 @@ class MultivariateGaussian:
             #regularization = self.sigma()[0,0] / 1e18
             #sigma = self.sigma() + da_identity(self.D)*regularization
             
-            self._chol = da.linalg.cholesky(self.sigma())
-            self._chol.persist()
+            self._chol = scipy.linalg.cholesky(self.sigma())
             logger.info("          ...done")
             
-        z = da.random.normal(0, 1, self.D)
+        z = np.random.normal(0, 1, self.D)
         return np.array(self.mu + self._chol @ z)
         
 

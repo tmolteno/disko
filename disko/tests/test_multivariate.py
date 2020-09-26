@@ -48,8 +48,8 @@ class TestMultivariate(unittest.TestCase):
         LOGGER.info(np.std(samples))
     
         precision = 1
-        self.assertAlmostEqual(np.mean(samples), x.mu[0], precision)
-        self.assertAlmostEqual(np.std(samples)**2, x.sigma()[0,0], precision)
+        self.assertAlmostEqual(np.mean(samples), x.mu[0].compute(), precision)
+        self.assertAlmostEqual(np.std(samples)**2, (x.sigma()[0,0]).compute(), precision)
         
     
     def test_hdf(self):

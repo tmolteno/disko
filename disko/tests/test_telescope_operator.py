@@ -76,7 +76,7 @@ class TestTelescopeOperator(unittest.TestCase):
             h_i = h_re + 1.0j*h_im
             dot = h_i @ h_i.conj().T
             #dot = np.dot(h_re, h_re) + np.dot(h_im, h_im)
-            self.assertAlmostEqual(dot, 1.0)
+            self.assertAlmostEqual(dot.compute(), 1.0)
   
 
     def test_null_harmonics(self):
@@ -229,7 +229,7 @@ class TestTelescopeOperator(unittest.TestCase):
         sky = self.get_point_sky()
         vis = self.to.gamma @ sky
         
-        prior = to.get_prior() # in the image space.
+        prior = self.to.get_prior() # in the image space.
     
         prior_r =  prior.linear_transform(self.to.Vh)
 
