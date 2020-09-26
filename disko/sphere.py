@@ -122,23 +122,30 @@ def cmap(fract):
 
 
 class PlotCoords(object):
-
-    def __init__(self, w, fov):
+    '''
+        The image is w x h, with the center at h/2 and h/2. 
+        The virtual coordinates start at the center, and the disk as a radius of 1.0
+        
+        The color bar exists on the left
+        
+    '''
+    def __init__(self, h, fov):
         # w is width in pixels
         fov_rad = np.radians(fov/2)
         angular_scale = 1.0 / np.sin(fov_rad)
-        self.scale = float(w)*angular_scale/2.1
-        self.center = int(round(float(w)/2.0))
-        self.line_size = int(float(w) / 400)
+        self.scale = float(h)*angular_scale/2.1
+        self.center_x = int(round(float(h)/2.0))
+        self.center_y = int(round(float(h)/2.0))
+        self.line_size = int(float(h) / 400)
     
     def from_d(self, d):
         return int(d*self.scale)
     
     def from_x(self, x):
-        return int(x*self.scale) + self.center
+        return int(x*self.scale) + self.center_x
     
     def from_y(self, y):
-        return int(y*self.scale) + self.center
+        return int(y*self.scale) + self.center_y
     
     def from_elaz(self, elaz):
         hp = elaz.to_hp()
@@ -319,14 +326,15 @@ class HealpixSphere(object):
         
     def to_svg(self, fname, pixels_only=False, show_grid=False, src_list=None, fov=180.0, title=None, show_cbar=True):
 
-        w = 4000
+        h = 4000
+        w = 4200
         #dwg = svgwrite.Drawing(filename=fname, size=(w,w), profile='tiny')
-        dwg = svgwrite.Drawing(filename=fname, size=(w,w))
+        dwg = svgwrite.Drawing(filename=fname, size=(w,h))
         
         #dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
         #dwg.add(dwg.text('Test', insert=(0, 0.2), fill='red'))
         
-        pc = PlotCoords(w, fov)
+        pc = PlotCoords(h, fov)
         line_size = pc.line_size
         
         #dwg.desc("Gridless imaging from visibilities.")
@@ -442,7 +450,7 @@ class HealpixSphere(object):
             rvals = (values - stats['min'])/(stats['max'] - stats['min'])
             
             start_y = 0.05
-            stop_y = 2.05
+            stop_y = 2.0
             x0 = pc.from_d(2.05)
             x1 = pc.from_d(2.1)
             
@@ -605,8 +613,7 @@ class HealpixSubSphere(HealpixSphere):
         ret.pixel_indices = hp.query_disc(nside=nside, 
                                           vec=x0, radius=radius, 
                                           inclusive=False, 
-                                          nest=False)
-        #self.pixel_indices = my_query_disk(nside, x0, radius)
+                                          nest=False).astype(np.int)
                 
         ret.npix = ret.pixel_indices.shape[0]
         ret.pixel_areas = 1.0 / np.sqrt(ret.npix)
