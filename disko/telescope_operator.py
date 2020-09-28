@@ -83,7 +83,7 @@ def normal_svd(x, tol=SVD_TOL):
     
     s[null_ranks] = 0  # All low values set to 0
     
-    sigma = da_diagsvd(s, n_v, n_s)
+    sigma = scipy.linalg.diagsvd(s, n_v, n_s)
 
     return [U, sigma, Vh], s, rank
 
@@ -235,9 +235,9 @@ class TelescopeOperator:
             logger.info("Performing SVD.")
             
             ### Take the SVD of the gamma matrix.
-            [self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(self.gamma)
+            #[self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(self.gamma)
 
-            #[self.U, self.s, self.Vh], self.s, rank = normal_svd(np.array(self.gamma))
+            [self.U, self.sigma, self.Vh], self.s, self.rank = normal_svd(np.array(self.gamma))
             
 
             self.V = self.Vh.T

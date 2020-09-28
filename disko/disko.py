@@ -485,18 +485,18 @@ class DiSkO(object):
         n_s = len(harmonic_list[0])
         n_v = len(harmonic_list)
 
-        gamma = da.asarray(harmonic_list) #, dtype=COMPLEX_DATATYPE)
+        gamma = np.asarray(harmonic_list) #, dtype=COMPLEX_DATATYPE)
         gamma = gamma.reshape((n_v, n_s))
-        gamma = gamma.conj().rechunk('auto')
+        gamma = gamma.conj() # .rechunk('auto')
 
         if makecomplex:
             return gamma
         
         #g_real = np.real(gamma).astype(REAL_DATATYPE)
         #g_imag = np.imag(gamma).astype(REAL_DATATYPE)
-        g_real = da.real(gamma)
-        g_imag = da.imag(gamma)
-        ret = da.block([[g_real], [g_imag]]).rechunk('auto')
+        g_real = np.real(gamma)
+        g_imag = np.imag(gamma)
+        ret = np.block([[g_real], [g_imag]]) #.rechunk('auto')
 
         logger.info('Gamma Shape: {}'.format(gamma.shape))
         #for i, h in enumerate(harmonic_list):
