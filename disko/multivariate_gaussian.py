@@ -85,20 +85,18 @@ class MultivariateGaussian:
         logger.debug("Inverting {} matrix".format(A.shape))
         log_array("A", A)
         D = A.shape[0]
-        
+        A = MultivariateGaussian.square_rechunk(A)
         b = da_identity(D).rechunk(A.chunks)
         Ainv = da.linalg.solve(A, b, sym_pos=True)
         return Ainv
 
     def sigma_inv(self):
         if self._sigma_inv is None:
-            self._sigma = self.square_rechunk(self._sigma)
             self._sigma_inv = self.sp_inv(self._sigma)
         return self._sigma_inv
 
     def sigma(self):
         if self._sigma is None:
-            self._sigma_inv = self.square_rechunk(self._sigma_inv)
             self._sigma = self.sp_inv(self._sigma_inv)
         return self._sigma
 
