@@ -86,7 +86,7 @@ class MultivariateGaussian:
         log_array("A", A)
         D = A.shape[0]
         A = MultivariateGaussian.square_rechunk(A)
-        b = da_identity(D).rechunk(A.chunks)
+        b = da_identity(D, chunks=A.chunks)
         Ainv = da.linalg.solve(A, b, sym_pos=True)
         return Ainv
 

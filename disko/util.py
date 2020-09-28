@@ -17,8 +17,8 @@ def log_array(title, x):
         logger.info("   ?: {}:{} {:5.2f} GB".format(title, x.shape, x.nbytes/1e9))
 
 
-def da_identity(d):
-    return da.diag(np.ones(d)).rechunk('auto')
+def da_identity(d, chunks='auto'):
+    return da.diag(np.ones(d)).rechunk(chunks)
 
 
 def da_diagsvd(s, M, N):
