@@ -501,7 +501,7 @@ class TelescopeOperator:
         p05, p50, p95, p100 = self.grid.vis_stats()
         var = p95*p95
         logger.info("Sky Prior variance={}".format(var))
-        prior = MultivariateGaussian(da.zeros(self.n_s) + p50, sigma=var*da_identity(self.n_s))
+        prior = MultivariateGaussian(np.zeros(self.n_s) + p50, sigma=var*np.identity(self.n_s))
         #natural_prior = prior.linear_transform(self.Vh)
 
         return prior

@@ -105,7 +105,7 @@ def handle_bayes(ARGS):
         diag = np.diag(np.ones(n_v // 2)*(ARGS.sigma_v)**2)
         logger.info("Using supplied sigma {}".format(ARGS.sigma_v))
      
-    sigma_vis = da.block([[diag, 0.5*diag],[0.5*diag, diag]]) # .rechunk('auto')
+    sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]]) # .rechunk('auto')
 
     # now invert sigma_vis
     sigma_precision = MultivariateGaussian.sp_inv(sigma_vis)
@@ -182,7 +182,6 @@ def handle_bayes(ARGS):
 
     if ARGS.PDF or ARGS.PNG or ARGS.SVG or ARGS.FITS: 
 
-        posterior.mu.persist()
 
         if ARGS.mu:
             logger.info("Computing pixels")
@@ -206,7 +205,7 @@ def handle_bayes(ARGS):
             tic = time.perf_counter()    
             logger.info("Computing point covariance...")
             
-            brightest_pixel = da.argmax(posterior.mu)
+            brightest_pixel = np.argmax(posterior.mu)
             pix_cov=np.array(posterior.sigma()[brightest_pixel,:])
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
 

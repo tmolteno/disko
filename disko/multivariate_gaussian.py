@@ -49,7 +49,7 @@ class MultivariateGaussian:
             
         logger.info("MultivariateGaussian({})".format(mu.shape))
 
-        self.mu = da.asarray(mu.flatten())
+        self.mu = np.asarray(mu.flatten())
         
         self._sigma = None
         self._sigma_inv = None
@@ -61,13 +61,13 @@ class MultivariateGaussian:
         if sigma is not None:
             log_array("sigma", sigma)
             d = sigma.shape
-            self._sigma = da.asarray(sigma)
+            self._sigma = np.asarray(sigma)
             storage += self._sigma.nbytes
             
         if sigma_inv is not None:
             log_array("sigma_inv", sigma_inv)
             d = sigma_inv.shape
-            self._sigma_inv = da.asarray(sigma_inv)
+            self._sigma_inv = np.asarray(sigma_inv)
             storage += self._sigma_inv.nbytes
             
         if (d[0] != self.D) or (d[1] != self.D):
@@ -149,22 +149,22 @@ class MultivariateGaussian:
     @classmethod
     def outer(self, a, b):
         logger.info("outer({}, {})".format(a.mu.shape, b.mu.shape))
-        mu = da.block([a.mu.flatten(), b.mu.flatten()])
+        mu = np.block([a.mu.flatten(), b.mu.flatten()])
         
         a_s = a.sigma().shape
         b_s = b.sigma().shape
         
         data = [
-                [a.sigma(), da.zeros((a_s[0], b_s[1]))],
-                [da.zeros((b_s[0], a_s[1])), b.sigma()]
+                [a.sigma(), np.zeros((a_s[0], b_s[1]))],
+                [np.zeros((b_s[0], a_s[1])), b.sigma()]
             ]
-        sigma = da.block(data)
+        sigma = np.block(data)
         return MultivariateGaussian(mu, sigma=sigma)
 
     @classmethod
     def diagonal(self, mu, diag):
         logger.info("diagonal({}, {})".format(mu.shape, diag.shape))
-        sigma = da.diag(diag)
+        sigma = np.diag(diag)
         return MultivariateGaussian(mu, sigma=sigma)
 
     @staticmethod
