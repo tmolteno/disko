@@ -92,6 +92,7 @@ def handle_bayes(ARGS):
     else:
         prior = to.get_prior() # in the image space.
     
+    # Transform to the natural basis.
     prior =  prior.linear_transform(to.Vh)
     
     
@@ -104,7 +105,7 @@ def handle_bayes(ARGS):
     else:
         diag = np.diag(np.ones(n_v // 2)*(ARGS.sigma_v)**2)
         logger.info("Using supplied sigma {}".format(ARGS.sigma_v))
-     
+    
     sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]]) # .rechunk('auto')
 
     # now invert sigma_vis
@@ -152,6 +153,7 @@ def handle_bayes(ARGS):
         posterior.to_hdf5(ARGS.posterior)
 
     def path(ending, image_title):
+        os.makedirs(ARGS.dir, exist_ok=True)
         fname = '{}.{}'.format(image_title, ending)
         return os.path.join(ARGS.dir, fname)
 

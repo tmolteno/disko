@@ -192,6 +192,7 @@ if __name__ == '__main__':
         sphere.write_mesh("{}.vtk".format(image_title))
 
     def path(ending, image_title):
+        os.makedirs(ARGS.dir, exist_ok=True)
         fname = '{}.{}'.format(image_title, ending)
         return os.path.join(ARGS.dir, fname)
 

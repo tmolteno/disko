@@ -60,7 +60,7 @@ def tf_svd(x, tol=SVD_TOL):
         
     return  [U, s, Vh], rank
 
-MAX_COND=250.0
+MAX_COND=10000.0
 
 def normal_svd(x, tol=SVD_TOL):
     n_v = x.shape[0]
