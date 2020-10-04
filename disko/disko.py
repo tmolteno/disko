@@ -505,7 +505,7 @@ class DiSkO(object):
         return ret
 
     def image_lasso(self, vis_arr, sphere, alpha, l1_ratio, scale=False, use_cv=False):
-        gamma = self.make_gamma(sphere).compute()
+        gamma = self.make_gamma(sphere)
                 
         vis_aux = vis_to_real(vis_arr)
         
