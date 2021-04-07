@@ -76,10 +76,10 @@ profile:
 sequential: step1 step2
 
 step1:
-	disko_bayes --fov 155 --ms test_data/test.ms  --mu --pcf --var --PNG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15 --posterior post.h5
+	disko_bayes --nside 24 --ms test_data/test.ms  --dir test_out --title 'bayes_tart' --sigma-v=0.15 --posterior post.h5
 
 step2:
-	disko_bayes --fov 155 --ms test_data/test.ms  --mu --pcf --var --PNG --arcmin=90  --dir test_out --title 'bayes_tart_2' --sigma-v=0.15 --prior post.h5
+	disko_bayes --nside 24 --ms test_data/test.ms  --mu --pcf --var --PNG  --dir test_out --title 'bayes_tart_2' --sigma-v=0.15 --prior post.h5
 
 
 # Memory 4800x276 456212 

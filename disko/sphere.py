@@ -230,7 +230,7 @@ class HealpixSphere(object):
         res = hp.nside2resol(nside, arcmin = True)
         self.res_arcmin = res
 
-        logger.info("New Sphere, nside={}. npix={}".format(self.nside, self.npix))
+        logger.info("New Sphere, nside={}. npix={}, res={} arcmin".format(self.nside, self.npix, self.res_arcmin))
         
         self.pixel_indices = np.arange(self.npix)
         theta, phi = hp.pix2ang(nside, self.pixel_indices)
@@ -589,7 +589,7 @@ class HealpixSubSphere(HealpixSphere):
         res = hp.nside2resol(nside, arcmin = True)
         self.nside = nside
         self.res_arcmin = res
-        logger.info("New SubSphere, nside={}".format(self.nside))
+        logger.info("New SubSphere, nside={}, res={} arcmin".format(self.nside, res))
 
     @classmethod
     def from_resolution(cls, resolution=None, nside=None, theta=0.0, phi=0.0, radius=0.0):

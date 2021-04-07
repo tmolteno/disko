@@ -33,6 +33,8 @@ logger.setLevel(logging.INFO)
 
 
 def handle_bayes(ARGS):
+    sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.arcmin)
+
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
         # Load data from a JSON file
@@ -60,7 +62,7 @@ def handle_bayes(ARGS):
         disko = DiSkO.from_cal_vis(cv)
     else:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
-        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=ARGS.arcmin, channel=ARGS.channel, field_id=ARGS.field)
+        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=sphere.res_arcmin, channel=ARGS.channel, field_id=ARGS.field)
         # Convert from reduced Julian Date to timestamp.
         timestamp = disko.timestamp
         src_list = None
@@ -72,7 +74,6 @@ def handle_bayes(ARGS):
 
     # Processing
     
-    sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.arcmin)
     real_vis = vis_to_real(disko.vis_arr)
     
     
