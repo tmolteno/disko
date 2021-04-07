@@ -73,11 +73,13 @@ profile:
 	python3 -m cProfile -o disko.prof ./bin/disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --alpha=0.25 --matrix-free --lsqr
 	python3 prof.py
 
-sequential:
-	disko_bayes --fov 155 --ms test_data/test.ms  --mu --pcf --var --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15 --posterior post.h5
+sequential: step1 step2
 
-sequential1:
-	disko_bayes --fov 155 --ms test_data/test.ms  --mu --pcf --var --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart_2' --sigma-v=0.15 --prior post.h5
+step1:
+	disko_bayes --fov 155 --ms test_data/test.ms  --mu --pcf --var --PNG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15 --posterior post.h5
+
+step2:
+	disko_bayes --fov 155 --ms test_data/test.ms  --mu --pcf --var --PNG --arcmin=90  --dir test_out --title 'bayes_tart_2' --sigma-v=0.15 --prior post.h5
 
 
 # Memory 4800x276 456212 
