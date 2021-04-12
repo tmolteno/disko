@@ -65,12 +65,11 @@ def handle_bayes(ARGS):
     elif ARGS.h5:
         logger.info(f"Getting data from file {ARGS.h5}")
         data = visibility.from_hdf5(ARGS.h5)
+        print(data['baselines'])
         for v in data['vis_list']:
-            print(v)
             cv = calibration.CalibratedVisibility(v)
             cv.set_phase_offset(list(range(cv.get_config().get_num_antenna())),np.array(data['phase_offset']))
             cv.set_gain(list(range(cv.get_config().get_num_antenna())),np.array(data['gain']))
-            #ret.set_flagged_baselines(calib_dict['flagged_baselines'])
 
             timestamp = v.timestamp
             # TODO Calibrate the vis with gains and phases?
