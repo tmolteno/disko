@@ -81,7 +81,9 @@ step1:
 step2:
 	disko_bayes --nside 24 --ms test_data/test.ms  --mu --pcf --var --PNG  --dir test_out --title 'bayes_tart_2' --sigma-v=0.15 --prior post.h5
 
-
+h5:
+	disko_bayes --h5 test_data/vis_2021-03-25_20_50_23.568474.hdf --nside 25
+	
 # Memory 4800x276 456212 
 #	 19328x276 640932 ->  458364 for 
 test_upload:

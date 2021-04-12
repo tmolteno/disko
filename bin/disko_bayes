@@ -20,6 +20,8 @@ from tart.operation import settings
 from tart_tools import api_handler
 from tart_tools import api_imaging
 from tart.imaging import elaz
+from tart.imaging import visibility
+from tart.imaging import calibration
 
 import dask.array as da
 from dask.distributed import Client, progress
@@ -60,6 +62,20 @@ def handle_bayes(ARGS):
             cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains, phase_offsets, flag_list)
             src_list = elaz.from_json(source_json, 0.0)
         disko = DiSkO.from_cal_vis(cv)
+    elif ARGS.h5:
+        logger.info(f"Getting data from file {ARGS.h5}")
+        data = visibility.from_hdf5(ARGS.h5)
+        for v in data['vis_list']:
+            print(v)
+            cv = calibration.CalibratedVisibility(v)
+            cv.set_phase_offset(list(range(cv.get_config().get_num_antenna())),np.array(data['phase_offset']))
+            cv.set_gain(list(range(cv.get_config().get_num_antenna())),np.array(data['gain']))
+            #ret.set_flagged_baselines(calib_dict['flagged_baselines'])
+
+            timestamp = v.timestamp
+            # TODO Calibrate the vis with gains and phases?
+            disko = DiSkO.from_cal_vis(cv)
+
     else:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
         disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=sphere.res_arcmin, channel=ARGS.channel, field_id=ARGS.field)
@@ -227,8 +243,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='DiSkO: Bayesian inference of a posterior sky', 
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+    parser.add_argument('--h5', required=False, default=None, help="Exported Multi-visibility file")
     parser.add_argument('--ms', required=False, default=None, help="visibility file")
     parser.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
+    
+    
     parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
     parser.add_argument('--field', type=int, default=0, help="Use this FIELD_ID from the measurement set.")
 
