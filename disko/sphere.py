@@ -24,9 +24,11 @@ def create_fov(nside, fov_deg, res_arcmin, theta=0.0, phi=0.0):
     '''
     if nside is not None:
         sphere = HealpixSphere(nside)
-    else:
+    elif res_arcmin is not None and fov_deg is not None:
         radius = np.radians(fov_deg / 2.0)
         sphere = HealpixSubSphere.from_resolution(resolution=res_arcmin, theta=theta, phi=phi, radius=radius)
+    else:
+        raise RuntimeError("Either nside, or res_arcmin must be specified")
     return sphere
     
 
@@ -219,6 +221,14 @@ def factors(n):
     ret = sorted(list(result))
     return ret[len(ret)//2]
 
+
+class Sphere(object):
+    '''
+        A base class for all sphere's including grids.
+    '''
+    # TODO  Make this the base class for HealpixSphere and AdaptiveMeshSphere
+    
+    
 class HealpixSphere(object):
     ''' 
         A healpix Sphere 

@@ -44,6 +44,7 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
+0.9.3b1 Add --h5 option to allow sequential inference from a visiblity file.
 0.9.2b1 No longer require arcmin for construction of spheres
 0.9.1b1 Remove constraint that nside is a power of two now that healpy has accepted the pull request.
         Add new parameter l1_ratio

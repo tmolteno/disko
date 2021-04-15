@@ -33,10 +33,85 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
+def create_prior(vis_arr, sphere):
+    ''' Based on the size of the visibilities, try and calculate
+        what range the image should have.
+    '''
+    vabs = np.abs(vis_arr)
 
+    p05, p50, p95, p100 = np.percentile(vabs, [5, 50, 95, 100])
+
+    var = p95*p95
+    logger.info("Extimated Sky Prior variance={}".format(var))
+    prior = MultivariateGaussian(np.zeros(sphere.npix) + p50, sigma=p95*np.identity(sphere.npix))
+
+    return prior
+
+def do_inference(disko, sphere, prior, sigma_v=None):
+
+    real_vis = vis_to_real(disko.vis_arr)
+    
+    to = TelescopeOperator(disko, sphere)
+        
+    # Transform to the natural basis.
+    n_prior =  prior.linear_transform(to.Vh)
+    n_v = real_vis.shape[0]
+    
+    # TODO create a proper covariance that ensures the real and imaginary components are linked.
+    if sigma_v is None:
+        diag = np.diag(disko.rms**2)
+    else:
+        diag = np.diag(np.ones(n_v // 2)*(sigma_v)**2)
+    
+    sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]]) # .rechunk('auto')
+
+    # now invert sigma_vis
+    sigma_precision = MultivariateGaussian.sp_inv(sigma_vis)
+    del sigma_vis
+    
+    if True:
+        prior_r = n_prior.block(0,to.rank)
+        prior_n = n_prior.block(to.rank,to.n_s)
+
+        A_r = to.A_r
+        V = to.V
+        
+        del to
+        posterior_r = prior_r.bayes_update(sigma_precision, real_vis, A_r)
+        posterior_n = prior_n
+        
+        del A_r
+        del sigma_precision
+        del prior_r
+        del prior_n
+        del n_prior
+
+        posterior = MultivariateGaussian.outer(posterior_r, posterior_n)
+        
+        del posterior_r
+        del posterior_n
+        
+        logger.info("Transforming posterior")
+        
+        posterior = posterior.linear_transform(V)
+                
+        del V
+    else:
+        posterior = to.sequential_inference(n_prior, real_vis, sigma_precision)
+        del to
+        del sigma_precision
+        del n_prior
+
+    return posterior
+
+
+
+    
 def handle_bayes(ARGS):
     sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.arcmin)
 
+    # Create a prior.
+    
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
         # Load data from a JSON file
@@ -61,107 +136,57 @@ def handle_bayes(ARGS):
             vis_json, source_json = d
             cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains, phase_offsets, flag_list)
             src_list = elaz.from_json(source_json, 0.0)
+
+        if ARGS.sigma_v is None:
+            raise RuntimeError("The --sigma-v option must be supplied when --file JSON input is used")
+            
+        prior = create_prior(cv.v, sphere)
+        timestamp = cv.get_timestamp()
         disko = DiSkO.from_cal_vis(cv)
-    elif ARGS.h5:
-        logger.info(f"Getting data from file {ARGS.h5}")
-        data = visibility.from_hdf5(ARGS.h5)
-        print(data['baselines'])
+
+        posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
+
+    elif ARGS.hdf:
+        logger.info(f"Getting data from file {ARGS.hdf}")
+        if ARGS.sigma_v is None:
+            raise RuntimeError("The --sigma-v option must be supplied when HDF5 input is used")
+        
+        data = visibility.from_hdf5(ARGS.hdf)
+        
+        prior = create_prior(data['vis_list'][0].v, sphere)
+        posterior = None
+        
         for v in data['vis_list']:
+            if posterior is not None:
+                prior = posterior
             cv = calibration.CalibratedVisibility(v)
+            cv.set_config(v.config)
             cv.set_phase_offset(list(range(cv.get_config().get_num_antenna())),np.array(data['phase_offset']))
             cv.set_gain(list(range(cv.get_config().get_num_antenna())),np.array(data['gain']))
-
-            timestamp = v.timestamp
-            # TODO Calibrate the vis with gains and phases?
+            timestamp = cv.get_timestamp()
             disko = DiSkO.from_cal_vis(cv)
+
+            # TODO Calibrate the vis with gains and phases?
+            posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
 
     else:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
+
         disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=sphere.res_arcmin, channel=ARGS.channel, field_id=ARGS.field)
         # Convert from reduced Julian Date to timestamp.
         timestamp = disko.timestamp
         src_list = None
         
+        prior = create_prior(disko.vis_arr, sphere)
+
+        posterior = do_inference(disko, sphere, prior, sigma_v=disko.rms)
+
     if not ARGS.show_sources:
         src_list = None
 
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
 
-    # Processing
     
-    real_vis = vis_to_real(disko.vis_arr)
-    
-    
-    ##
-    #
-    # Do the inference, get the SVD.
-    #
-    ##
-    
-    to = TelescopeOperator(disko, sphere)
-    
-    if ARGS.uv:
-        to.plot_uv(ARGS.title)
-
-    if ARGS.prior is not None:
-        prior = MultivariateGaussian.from_hdf5(ARGS.prior)
-    else:
-        prior = to.get_prior() # in the image space.
-    
-    # Transform to the natural basis.
-    prior =  prior.linear_transform(to.Vh)
-    
-    
-    n_v = real_vis.shape[0]
-    
-    # TODO create a proper covariance that ensures the real and imaginary components are linked.
-    if ARGS.sigma_v is None:
-        diag = np.diag(disko.rms**2)
-        logger.info("Using measurement set sigma {}".format(np.percentile(disko.rms, [5,50,95])))
-    else:
-        diag = np.diag(np.ones(n_v // 2)*(ARGS.sigma_v)**2)
-        logger.info("Using supplied sigma {}".format(ARGS.sigma_v))
-    
-    sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]]) # .rechunk('auto')
-
-    # now invert sigma_vis
-    sigma_precision = MultivariateGaussian.sp_inv(sigma_vis)
-    del sigma_vis
-    
-    # Pull the block from the natural_prior that is the range_space prior
-    if True:
-        prior_r = prior.block(0,to.rank)
-        prior_n = prior.block(to.rank,to.n_s)
-
-        A_r = to.A_r
-        V = to.V
-        
-        del to
-        posterior_r = prior_r.bayes_update(sigma_precision, real_vis, A_r)
-        posterior_n = prior_n
-        
-        del A_r
-        del sigma_precision
-        del prior_r
-        del prior_n
-        del prior
-
-        posterior = MultivariateGaussian.outer(posterior_r, posterior_n)
-        
-        del posterior_r
-        del posterior_n
-        
-        logger.info("Transforming posterior")
-        
-        posterior = posterior.linear_transform(V)
-                
-        del V
-    else:
-        posterior = to.sequential_inference(prior, real_vis, sigma_precision)
-        del to
-        del sigma_precision
-        del prior
-
     
     
     # Now save the files.
@@ -242,7 +267,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='DiSkO: Bayesian inference of a posterior sky', 
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('--h5', required=False, default=None, help="Exported Multi-visibility file")
+    parser.add_argument('--hdf', required=False, default=None, help="Exported Multi-visibility file")
     parser.add_argument('--ms', required=False, default=None, help="visibility file")
     parser.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
     

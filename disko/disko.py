@@ -32,16 +32,20 @@ from .sphere import HealpixSphere
 from .ms_helper import read_ms
 from .multivariate_gaussian import MultivariateGaussian
 
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
+logger.setLevel(logging.INFO)
+
 '''
     Little helper function to get the UVW positions from the antennas positions.
     The test (i != j) can be changed to (i > j) to avoid the duplicated conjugate
     measurements.
 '''
 def get_all_uvw(ant_pos):
-    
     '''
         ant pos is an array of (N_ant, 3)
     '''
+    #logger.info(f"get_all_uvw({ant_pos})")
     if ant_pos.shape[1] != 3:
         raise RuntimeError("Ant pos (shape={}) must be an array of (N_ant, 3)".format(ant_pos.shape))
     baselines = []
@@ -63,7 +67,6 @@ def to_column(x):
 def vis_to_real(vis_arr):
     return np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
 
-logger = logging.getLogger(__name__)
 
 def get_source_list(source_json, el_limit, jy_limit):
     src_list = []
