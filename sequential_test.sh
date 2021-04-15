@@ -1,6 +1,6 @@
 #!/bin/sh
 
-OPTS="--mu --PNG --nside 20 --posterior post.h5 --title seq --dir seq_out --sigma-v=0.15"
+OPTS="--mu --var --pcf --PNG --nside 20 --posterior post.h5 --title seq --dir seq_out --sigma-v=0.15"
 
 DIR=../tart2ms/
 FIRST=$(find $DIR -name 'test.ms_*' | sort | head -n 1)
