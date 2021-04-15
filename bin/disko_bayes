@@ -33,10 +33,13 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
-def create_prior(vis_arr, sphere):
+def create_prior(vis_arr, sphere, hdf_prior):
     ''' Based on the size of the visibilities, try and calculate
         what range the image should have.
     '''
+    if hdf_prior is not None:
+         return MultivariateGaussian.from_hdf5(hdf_prior)
+
     vabs = np.abs(vis_arr)
 
     p05, p50, p95, p100 = np.percentile(vabs, [5, 50, 95, 100])
@@ -48,7 +51,6 @@ def create_prior(vis_arr, sphere):
     return prior
 
 def do_inference(disko, sphere, prior, sigma_v=None):
-
     real_vis = vis_to_real(disko.vis_arr)
     
     to = TelescopeOperator(disko, sphere)
@@ -62,6 +64,8 @@ def do_inference(disko, sphere, prior, sigma_v=None):
         diag = np.diag(disko.rms**2)
     else:
         diag = np.diag(np.ones(n_v // 2)*(sigma_v)**2)
+    
+    logger.info(f"do_inference(sigma_v={diag[0,0]})")
     
     sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]]) # .rechunk('auto')
 
@@ -140,7 +144,7 @@ def handle_bayes(ARGS):
         if ARGS.sigma_v is None:
             raise RuntimeError("The --sigma-v option must be supplied when --file JSON input is used")
             
-        prior = create_prior(cv.v, sphere)
+        prior = create_prior(cv.v, sphere, ARGS.prior)
         timestamp = cv.get_timestamp()
         disko = DiSkO.from_cal_vis(cv)
 
@@ -153,7 +157,7 @@ def handle_bayes(ARGS):
         
         data = visibility.from_hdf5(ARGS.hdf)
         
-        prior = create_prior(data['vis_list'][0].v, sphere)
+        prior = create_prior(data['vis_list'][0].v, sphere, ARGS.prior)
         posterior = None
         
         for v in data['vis_list']:
@@ -177,9 +181,9 @@ def handle_bayes(ARGS):
         timestamp = disko.timestamp
         src_list = None
         
-        prior = create_prior(disko.vis_arr, sphere)
-
-        posterior = do_inference(disko, sphere, prior, sigma_v=disko.rms)
+        prior = create_prior(disko.vis_arr, sphere, ARGS.prior)
+            
+        posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
 
     if not ARGS.show_sources:
         src_list = None
