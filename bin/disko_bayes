@@ -149,6 +149,7 @@ def handle_bayes(ARGS):
         disko = DiSkO.from_cal_vis(cv)
 
         posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
+        handle_output(ARGS, timestamp, posterior, sphere)
 
     elif ARGS.hdf:
         logger.info(f"Getting data from file {ARGS.hdf}")
@@ -172,7 +173,7 @@ def handle_bayes(ARGS):
 
             # TODO Calibrate the vis with gains and phases?
             posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
-
+            handle_output(ARGS, timestamp, posterior, sphere)
     else:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
 
@@ -184,15 +185,16 @@ def handle_bayes(ARGS):
         prior = create_prior(disko.vis_arr, sphere, ARGS.prior)
             
         posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
+        handle_output(ARGS, timestamp, posterior, sphere)
+        
+
+def handle_output(ARGS, timestamp, posterior, sphere):
 
     if not ARGS.show_sources:
         src_list = None
 
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
 
-    
-    
-    
     # Now save the files.
     if ARGS.posterior is not None:
         posterior.to_hdf5(ARGS.posterior)

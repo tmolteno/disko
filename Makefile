@@ -82,7 +82,7 @@ step2:
 	disko_bayes --nside 24 --ms test_data/test.ms  --mu --pcf --var --PNG  --dir test_out --title 'bayes_tart_2' --sigma-v=0.15 --prior post.h5
 
 h5:
-	disko_bayes --hdf test_data/vis_2021-03-25_20_50_23.568474.hdf --nside 20 --sigma-v=0.15 --mu --pcf --var --PNG --title 'sequential' --dir=test_out
+	disko_bayes --hdf test_data/vis_2021-03-25_20_50_23.568474.hdf --nside 20 --sigma-v=0.15 --mu --pcf --var --PNG --title 'sequential' --dir=seq_out
 	
 # Memory 4800x276 456212 
 #	 19328x276 640932 ->  458364 for 
