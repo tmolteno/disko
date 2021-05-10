@@ -10,7 +10,7 @@ FIRST=$(find $DIR -name 'tart.ms_*' | sort | head -n 1)
 
 disko_bayes --ms $FIRST $OPTS
 
-for ms in $(find $DIR -name 'test.ms_*' | sort | tail -n +2)
+for ms in $(find $DIR -name 'tart.ms_*' | sort | tail -n +2)
 do
     disko_bayes --ms $ms --prior post.h5 $OPTS
 done
