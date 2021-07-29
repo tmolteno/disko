@@ -180,9 +180,8 @@ def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
                     indices = np.random.choice(
                         good_data, min(num_vis, n_max), replace=False
                     )
-
-                # sort the indices to keep them in order (speeds up IO)
-                indices = np.sort(indices)
+                    # sort the indices to keep them in order (speeds up IO)
+                    indices = np.sort(indices)
                 #
                 #
                 #   Now read the remaining data
