@@ -834,7 +834,7 @@ class DiSkO(object):
             sky = reg.fit(A, y)
             sky = reg.coef_
             score = reg.score(proj_operator, vis_aux)
-            logger.info("Loss function: {}".format(score.compute()))
+            logger.info("Loss function: {}".format(score))
 
         logger.info("Solving Complete: sky = {}".format(sky.shape))
 
