@@ -49,7 +49,7 @@ class RadioObservation(object):
         pass
 
 
-def read_ms(ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
+def read_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0, field_id=0):
     """
     Use dask-ms to load the necessary data to create a telescope operator
     (will use uvw positions, and antenna positions)
