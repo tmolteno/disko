@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 import dask.array as da
 import dask
 
-dask.config.set({"optimization.fuse.ave-width": 5})
 
 import h5py
 
@@ -31,6 +30,7 @@ logger.addHandler(
 logger.setLevel(logging.INFO)
 
 SVD_TOL = 1e-3
+USE_DASK=True
 
 from .util import log_array, da_identity, da_diagsvd
 
@@ -120,7 +120,8 @@ def dask_svd(x, tol=SVD_TOL):
     # Do the SVD
     U, s, Vh = scipy.linalg.svd(A, full_matrices=True)
 
-    sigma = da_diagsvd(s, n_v, n_s)
+    #sigma = da_diagsvd(s, n_v, n_s)
+    sigma = scipy.linalg.diagsvd(s, n_v, n_s)
 
     U = da.from_array(U, chunks="auto")
     Vh = da.from_array(Vh, chunks="auto")
@@ -222,7 +223,10 @@ class TelescopeOperator:
         # h5f.create_dataset('gamma',data=_gamma, chunks=(10, self.n_v))
 
         # f = h5py.File('gamma.hdf')
-        self.gamma = _gamma  # da.from_array(_gamma)
+        if USE_DASK:
+            self.gamma = da.from_array(_gamma)
+        else:
+            self.gamma = _gamma
 
         log_array("Gamma", self.gamma)
 
@@ -250,11 +254,12 @@ class TelescopeOperator:
             logger.info("Performing SVD.")
 
             ### Take the SVD of the gamma matrix.
-            # [self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(self.gamma)
-
-            [self.U, self.sigma, self.Vh], self.s, self.rank = normal_svd(
-                np.array(self.gamma)
-            )
+            if USE_DASK:
+                [self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(self.gamma)
+            else:
+                [self.U, self.sigma, self.Vh], self.s, self.rank = normal_svd(
+                    np.array(self.gamma)
+                )
 
             self.V = self.Vh.T
             self.V_1 = self.V[:, 0 : self.rank]
