@@ -478,7 +478,7 @@ class DiSkO(object):
         return data
 
     def solve_matrix_free(
-        self, data, sphere, alpha=0.0, scale=True, fista=False, lsqr=True, lsmr=False
+        self, data, sphere, alpha=0.0, scale=True, fista=False, lsqr=True, lsmr=False, niter=25
     ):
         """
         data = [vis_arr, n_freq, n_pol]
@@ -507,8 +507,9 @@ class DiSkO(object):
             if alpha < 0:
                 alpha = None
             sky, niter = pylops.optimization.sparsity.FISTA(
-                A, d, tol=1e-3, niter=2500, alpha=alpha, show=True
+                A, d, tol=1e-3, niter=niter, alpha=alpha, show=True
             )
+
         if lsqr:
             if alpha < 0:
                 alpha = np.mean(self.rms)
@@ -555,6 +556,28 @@ class DiSkO(object):
             # sky, lstop, itn, normr, mormar, morma, conda, normx = spalg.lsmr(A, data, damp=alpha)
             # logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} normr={}".format(time.time() - t0, sky.shape, lstop, itn, normr))
         # sky = np.abs(sky)
+        
+        residual = d - A @ sky
+        normalized_residuals = residual / np.std(residual)
+        
+        RESIDUAL_LIMIT = 10.0  # Arbitrary limit to show bad residuals.
+        
+        bigguns = np.where(normalized_residuals > RESIDUAL_LIMIT)
+        
+        logger.info(f"Residuals {normalized_residuals[bigguns]}")
+        
+        # Now reshape data back into complex data (from real appended to complex)
+        c_data = np.reshape(data, (2, self.n_v))
+        c_data = c_data[0] + 1.0J * c_data[1]
+        
+        c_res = np.reshape(normalized_residuals, (2, self.n_v))
+        c_res = c_res[0] + 1.0J * c_res[1]
+
+        bigguns = np.where(np.abs(c_res) > RESIDUAL_LIMIT)[0]
+        logger.info(f"Residual problems {bigguns}")
+        for b in bigguns.tolist():
+            logger.info(f"    {b}: {np.abs(c_res[b]):4.2f}: \t{self.u_arr[b]}, {self.v_arr[b]}, {self.w_arr[b]}: {c_data[b]}")
+            
         sphere.set_visible_pixels(sky, scale)
         return sky.reshape(-1, 1)
 

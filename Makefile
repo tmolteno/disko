@@ -37,10 +37,11 @@ adaptive:
 
 # Requires memory_profiler pip3 install memory_profiler
 cygnus:
-	mprof run disko_bayes --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --mu --arcmin 0.05 --nvis 500 --title 'cygnus'
-	mprof plot
+	/usr/bin/time -v disko_bayes --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --mu --arcmin 0.025 --nvis 1500 --title 'cygnus'
 	
-	
+dask:
+	disko --fov 0.5 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.25 --tikhonov --nvis 2000 --dask
+
 # Mem 2520  (0.1 arcmin)   1726672
 # Mem 9940  (0.05 arcmin)  6080840 / 5858460
 # Mem 39480 (0.025 arcmin)
@@ -69,7 +70,11 @@ sphere:
 	disko --nside 64 --ms ../tart2ms/test.ms --SVG --PNG --PDF --SVG --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
 
 mf:
-	disko --fov 155 --ms test_data/test.ms --SVG --arcmin=30 --arcmax=190 --alpha=-0.56 --fista --matrix-free --title 'mf'
+	rm -f disko.log
+	disko --fov 155 --ms test_data/test.ms --SVG --arcmin=90 --arcmax=190 --alpha=-0.56 --fista --matrix-free --title 'mf'
+mf_cyg:
+	rm -f disko.log
+	disko --fov 0.05 --ms ~/astro/cyg2052.ms --SVG --arcmin=0.01 --alpha=-0.56 --nvis 2000 --fista --matrix-free --title 'mf_cyg' --niter 150
 	
 profile:
 	python3 -m cProfile -o disko.prof ./bin/disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120 --alpha=0.25 --matrix-free --lsqr

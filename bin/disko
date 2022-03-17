@@ -62,6 +62,8 @@ if __name__ == '__main__':
     parser.add_argument('--lasso', action="store_true", help="Use L1 regularization.")
     parser.add_argument('--tikhonov', action="store_true", help="Use L2 regularization.")
     parser.add_argument('--matrix-free', action="store_true", help="Use matrix-free regularization.")
+    parser.add_argument('--niter', type=int, default=100, help="Number of iterations for iterative solutions.")
+
     parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG & SVG).")
 
     parser.add_argument('--title', required=False, default="disko", help="Prefix the output files.")
@@ -175,7 +177,7 @@ if __name__ == '__main__':
     elif ARGS.matrix_free:
         logger.info("Matrix Free alpha={}".format(ARGS.alpha))
         data = disko.vis_to_data()
-        sky = disko.solve_matrix_free(data, sphere, alpha=ARGS.alpha, scale=False, lsqr=ARGS.lsqr, fista=ARGS.fista, lsmr=ARGS.lsmr)
+        sky = disko.solve_matrix_free(data, sphere, alpha=ARGS.alpha, scale=False, lsqr=ARGS.lsqr, fista=ARGS.fista, lsmr=ARGS.lsmr, niter=ARGS.niter)
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, usedask=ARGS.dask)
