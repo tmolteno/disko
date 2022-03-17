@@ -1,9 +1,11 @@
+TIME=/usr/bin/time -v
+
 test:
 	- rm *.npz
 	pytest-3  # python3 setup.py test
 	
 develop:
-	sudo python3 setup.py develop
+	pip3 install -e .
 
 install:
 	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-dask
@@ -18,19 +20,19 @@ test2:
 
 svd:
 	rm -f *.npz
-	/usr/bin/time -v disko_svd  --file test_data/test_data.json  --nside 16
+	${TIME} disko_svd  --file test_data/test_data.json  --nside 16
 
 bayes:
 	#rm -f *.npz
-	/usr/bin/time -v disko_bayes --fov 155 --ms test_data/test.ms  --mu --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15
-#	/usr/bin/time -v disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
+	${TIME} disko_bayes --fov 155 --ms test_data/test.ms  --mu --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15
+#	${TIME} disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
 
 ngc1194:
 	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
 
 adaptive:
 	rm -f round*.vtk
-	/usr/bin/time -v disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.07 --arcmax=0.1 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus' --adaptive 50
+	${TIME} disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.07 --arcmax=0.1 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus' --adaptive 50
 	
 
 # Requires memory_profiler pip3 install memory_profiler
@@ -61,7 +63,7 @@ cygnus_center:
 	disko --fov 0.02 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.012 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
 	
 tart:
-	/usr/bin/time -v disko --fov 155 --ms test_data/test.ms --SVG --arcmin=60 --arcmax=90 --alpha=0.0025 --tikhonov  --title 'tart'
+	${TIME} disko --fov 155 --ms test_data/test.ms --SVG --arcmin=60 --arcmax=90 --alpha=0.0025 --tikhonov  --title 'tart'
 
 sphere:
 	disko --nside 64 --ms ../tart2ms/test.ms --SVG --PNG --PDF --SVG --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
