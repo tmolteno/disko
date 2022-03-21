@@ -73,10 +73,15 @@ mf:
 	rm -f disko.log
 	disko --fov 155 --ms test_data/test.ms --SVG --arcmin=90 --arcmax=190 --alpha=-0.56 --fista --matrix-free --title 'mf'
 
-NV_CYG=4000 #	1281930
+## 2000 0.0696
+## 4000 0.0281
+## 4000 0.035 # 3.546681e-02
+## 16000
+NV_CYG=16000 
+#	1281930
 mf_cyg:
 	rm -f disko.log
-	disko --fov 0.05 --ms ~/astro/cyg2052.ms --SVG --arcmin=0.01 --alpha=0.0695 --nvis ${NV_CYG} --fista --matrix-free --title 'mf_cyg' --niter 150
+	disko --fov 0.05 --ms ~/astro/cyg2052.ms --SVG --arcmin=0.01 --alpha=-0.0695 --nvis ${NV_CYG} --fista --matrix-free --title 'mf_cyg' --niter 150
 	
 
 profile:
