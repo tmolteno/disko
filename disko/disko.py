@@ -19,6 +19,8 @@ import numpy as np
 import healpy as hp
 import dask.array as da
 
+from numba import jit
+
 from copy import deepcopy
 from scipy.optimize import minimize
 from sklearn import linear_model
@@ -71,6 +73,7 @@ def to_column(x):
     return x.reshape([-1, 1])
 
 
+@jit(nopython=True)
 def vis_to_real(vis_arr):
     return np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
 
@@ -88,6 +91,7 @@ COMPLEX_DATATYPE = np.complex128
 C = 2.99793e8
 
 
+@jit(nopython=True)
 def omega(freq):
     r"""
     Little routine to convert a frequency into omega
@@ -96,6 +100,7 @@ def omega(freq):
     return 2 * np.pi / wavelength
 
 
+@jit(nopython=True)
 def jomega(freq):
     r"""
     Little routine to convert a frequency into j*omega
@@ -110,9 +115,38 @@ def get_harmonic(p2j, in_sphere, u, v, w):
     )
     return harmonic
 
+@jit(nopython=True)
+def fastmatvec(x,freq,u_arr, v_arr, w_arr, l, m, n_minus_1, pixel_areas):
+    """
+    Multiply by the sky x, producing the set of measurements y
+    Returns returns A * x.
+
+    ( v_real    = (T_real   x
+        v_imag )     T_imag)
+    """
+    
+    n_u = u_arr.shape[0]
+    n_f = freq.shape[0]
+    
+    y = np.zeros(n_u*n_f, dtype=np.complex128)
+    
+    for i_f in range(n_f):
+        f = freq[i_f]
+        p2j = jomega(f)
+
+        for i in range(n_u):
+            u = u_arr[i]
+            v = v_arr[i]
+            w = w_arr[i]
+            column = (
+                np.exp(-p2j * (u*l + v*m + w*n_minus_1)) * pixel_areas
+            )
+            y[i_f*n_u + i] = np.dot(x, column)
+            #y.append(np.dot(x, column))
+
+    return vis_to_real(y)
 
 import scipy.sparse.linalg as spalg
-
 
 class DiSkOOperator(pylops.LinearOperator):
     """
@@ -140,7 +174,7 @@ class DiSkOOperator(pylops.LinearOperator):
 
         self.M = self.n_v * self.n_freq
 
-        self.frequencies = frequencies
+        self.frequencies = np.array(frequencies)
         self.sphere = sphere
 
         self.shape = (self.M, self.N)
@@ -170,6 +204,10 @@ class DiSkOOperator(pylops.LinearOperator):
         return np.conj(self.A(j, i, p2j))
 
     def _matvec(self, x):
+        
+        return fastmatvec(np.array(x, dtype=np.complex128), self.frequencies, self.u_arr, self.v_arr, self.w_arr, 
+                          self.sphere.l, self.sphere.m, self.sphere.n, 
+                          self.sphere.pixel_areas)
         """
         Multiply by the sky x, producing the set of measurements y
         Returns returns A * x.
@@ -177,50 +215,56 @@ class DiSkOOperator(pylops.LinearOperator):
         ( v_real    = (T_real   x
           v_imag )     T_imag)
         """
-        if True:
-            y = []
-            for f in self.frequencies:
-                p2j = jomega(f)
+        #if True:
+            #y = []
+            ##for f in self.frequencies:
+            #for i_f in range(self.frequencies.shape[0]):
+                #f = self.frequencies[i_f]
+                #p2j = jomega(f)
 
-                for u, v, w in zip(
-                    self.u_arr, self.v_arr, self.w_arr
-                ):  # For all complex vis
-                    column = (
-                        np.exp(
-                            -p2j
-                            * (
-                                u * self.sphere.l
-                                + v * self.sphere.m
-                                + w * self.sphere.n_minus_1
-                            )
-                        )
-                        * self.sphere.pixel_areas
-                    )
-                    y.append(np.dot(x, column))
+                ##for u, v, w in zip(
+                    ##self.u_arr, self.v_arr, self.w_arr
+                ##):  # For all complex vis
+                #for i in range(self.u_arr.shape[0]):
+                    #u = self.u_arr[i]
+                    #v = self.v_arr[i]
+                    #w = self.w_arr[i]
+                    #column = (
+                        #np.exp(
+                            #-p2j
+                            #* (
+                                #u * self.sphere.l
+                                #+ v * self.sphere.m
+                                #+ w * self.sphere.n_minus_1
+                            #)
+                        #)
+                        #* self.sphere.pixel_areas
+                    #)
+                    #y.append(np.dot(x, column))
 
-            y = np.array(y)
-            return vis_to_real(y)
-        else:
-            y_re = []
-            y_im = []
-            for f in self.frequencies:
-                p2 = omega(f)
+            #y = np.array(y)
+            #return vis_to_real(y)
+        #else:
+            #y_re = []
+            #y_im = []
+            #for f in self.frequencies:
+                #p2 = omega(f)
 
-                for u, v, w in zip(
-                    self.u_arr, self.v_arr, self.w_arr
-                ):  # For all complex vis
-                    theta = -p2 * (
-                        u * self.sphere.l
-                        + v * self.sphere.m
-                        + w * self.sphere.n_minus_1
-                    )  # harmonics
-                    re = np.cos(theta) * self.sphere.pixel_areas
-                    im = np.sin(theta) * self.sphere.pixel_areas
-                    y_re.append(np.dot(x, re))
-                    y_im.append(np.dot(x, im))
+                #for u, v, w in zip(
+                    #self.u_arr, self.v_arr, self.w_arr
+                #):  # For all complex vis
+                    #theta = -p2 * (
+                        #u * self.sphere.l
+                        #+ v * self.sphere.m
+                        #+ w * self.sphere.n_minus_1
+                    #)  # harmonics
+                    #re = np.cos(theta) * self.sphere.pixel_areas
+                    #im = np.sin(theta) * self.sphere.pixel_areas
+                    #y_re.append(np.dot(x, re))
+                    #y_im.append(np.dot(x, im))
 
-            y = np.concatenate((np.array(y_re), np.array(y_im)))
-            return y
+            #y = np.concatenate((np.array(y_re), np.array(y_im)))
+            #return y
 
     def _rmatvec(self, v):
         r"""
@@ -505,7 +549,8 @@ class DiSkO(object):
         # logger.info("t ={}, s={}".format(time.time() - t0, s))
         if fista:
             if alpha < 0:
-                alpha = None
+                alpha = 10**(-np.log10(self.n_v) + 2) ## Empirical fit
+
             sky, niter = pylops.optimization.sparsity.FISTA(
                 A, d, tol=1e-3, niter=niter, alpha=alpha, show=True
             )
