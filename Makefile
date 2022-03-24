@@ -82,7 +82,7 @@ NV_CYG=32000
 #	1281930
 mf_cyg:
 	rm -f disko.log
-	disko --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --SVG --arcmin=0.01 --alpha=-0.0695 --nvis ${NV_CYG} --fista --matrix-free --title 'mf_cyg' --niter 150
+	disko --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --SVG --arcmin=0.015 --alpha=-0.0695 --nvis ${NV_CYG} --fista --matrix-free --title 'mf_cyg' --niter 1500
 	
 
 profile:

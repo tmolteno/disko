@@ -241,4 +241,4 @@ def read_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0, field_id=0):
     # client.close()
     # local_cluster.close()
 
-    return u_arr, v_arr, w_arr, frequency, cv_vis, hdr, timestamp, rms_arr
+    return u_arr, v_arr, w_arr, frequency, cv_vis, hdr, timestamp, rms_arr, indices
