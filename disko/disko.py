@@ -19,7 +19,6 @@ import numpy as np
 import healpy as hp
 import dask.array as da
 
-from numba import jit
 
 from copy import deepcopy
 from scipy.optimize import minimize
@@ -73,7 +72,6 @@ def to_column(x):
     return x.reshape([-1, 1])
 
 
-@jit(nopython=True)
 def vis_to_real(vis_arr):
     return np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
 
@@ -91,7 +89,6 @@ COMPLEX_DATATYPE = np.complex128
 C = 2.99793e8
 
 
-@jit(nopython=True)
 def omega(freq):
     r"""
     Little routine to convert a frequency into omega
@@ -100,7 +97,6 @@ def omega(freq):
     return 2 * np.pi / wavelength
 
 
-@jit(nopython=True)
 def jomega(freq):
     r"""
     Little routine to convert a frequency into j*omega
@@ -115,7 +111,6 @@ def get_harmonic(p2j, in_sphere, u, v, w):
     )
     return harmonic
 
-@jit(nopython=True)
 def fastmatvec(x,freq,u_arr, v_arr, w_arr, l, m, n_minus_1, pixel_areas):
     """
     Multiply by the sky x, producing the set of measurements y

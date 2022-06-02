@@ -24,12 +24,12 @@ def create_fov(nside, fov_deg, res_arcmin, theta=0.0, phi=0.0):
     - fov_deg : The field of view in degrees
 
     """
-    if nside is not None:
+    if nside is not None and fov_deg is None:
         sphere = HealpixSphere(nside)
     elif res_arcmin is not None and fov_deg is not None:
         radius = np.radians(fov_deg / 2.0)
         sphere = HealpixSubSphere.from_resolution(
-            resolution=res_arcmin, theta=theta, phi=phi, radius=radius
+            res_arcmin=res_arcmin, theta=theta, phi=phi, radius=radius
         )
     else:
         raise RuntimeError("Either nside, or res_arcmin must be specified")
@@ -732,24 +732,22 @@ class HealpixSubSphere(HealpixSphere):
 
     @classmethod
     def from_resolution(
-        cls, resolution=None, nside=None, theta=0.0, phi=0.0, radius=0.0
+        cls, res_arcmin=None, nside=None, theta=0.0, phi=0.0, radius=0.0
     ):
+        logger.info(f"from_resolution(res_arcmin={res_arcmin}, nside={nside}, theta={theta}, phi={phi}, radius={radius})")
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
 
         if nside is None:  # Calculate nside to the appropriate resolution
-            nside = 2
-            prev_res = hp.nside2resol(1, arcmin=True)
+            nside = 4
+            prev_res = hp.nside2resol(2, arcmin=True)
             while True:
                 res = hp.nside2resol(nside, arcmin=True)
-                dres = (prev_res - res) / resolution
-                logger.info("nside={} res={} arcmin dres={}".format(nside, res, dres))
-                if res < resolution:
+                dres = (prev_res - res) / res_arcmin
+                logger.info(f"nside={nside} res={res} prev_res={prev_res} arcmin dres={dres}")
+                if res < res_arcmin:
                     break
-                if res > 1.1 * resolution:
-                    nside = int(nside * dres)
-                else:
-                    nside = nside + 1
+                nside = nside * 2
                 prev_res = res
 
         ret = cls(nside)
