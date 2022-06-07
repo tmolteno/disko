@@ -115,7 +115,7 @@ if __name__ == '__main__':
     #nside = ARGS.nside
     #radius = np.radians(ARGS.fov / 2.0)
     if ARGS.adaptive:
-        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.res_min, res_arcmax=ARGS.res_max, theta=np.radians(0.0), phi=0.0, radius=ARGS.fov/2)
+        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.res_min, res_arcmax=ARGS.res_max, theta=np.radians(0.0), phi=0.0, radius_deg=ARGS.fov/2)
     if ARGS.healpix:
         sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.res)
 

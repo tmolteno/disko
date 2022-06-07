@@ -49,24 +49,26 @@ class AdaptiveMeshSphere(HealpixSphere):
     An adaptive mesh sphere.
     """
 
-    def __init__(self, res_min, res_max, radius):
-        self.radius = radius
-        self.fov = np.degrees(radius * 2)
-
+    def __init__(self, res_min, res_max, radius_rad):
+        self.radius = radius_rad
+        self.fov = np.degrees(radius_rad * 2)
+        self.res_arcmin = np.degrees(res_max)*60
+        
         self.res_max = res_max
         self.res_min = res_min
-        self.res_arcmin = np.degrees(res_min * 60)
+        self.c = np.degrees(res_min * 60)
 
         geo = dmsh.Circle([0.0, 0.0], 1.0)
-
-        N = 2 * np.pi * radius * radius / (res_max * res_max)
+        
+        area_rad = 2*np.pi*radius_rad * radius_rad
+        N = area_rad / (res_max * res_max)
 
         logger.info(
-            "Generating Mesh: r: {}, res: {},  N = {}".format(
-                radius, (res_min, res_max), N
+            "Generating Mesh: r_rad: {}, res: {},  N = {}".format(
+                radius_rad, (res_min, res_max), N
             )
         )
-        X, cells = dmsh.generate(geo, res_max / radius, tol=res_min / 100)
+        X, cells = dmsh.generate(geo, res_max / radius_rad, tol=res_min / 100)
         logger.info(" Mesh generated {}".format(cells.shape))
 
         # logger.info("Optimizing Mesh")
@@ -74,21 +76,21 @@ class AdaptiveMeshSphere(HealpixSphere):
 
         self.mesh(X)
 
-        logger.info("New AdaptiveMeshSphere, resolution_min={}".format(self.res_arcmin))
+        logger.info("New AdaptiveMeshSphere, resolution_min={}".format(self.res_min))
 
     def __repr__(self):
-        return f"AdaptiveMeshSphere fov={self.fov} deg, res_min={self.res_arcmin}"
+        return f"AdaptiveMeshSphere fov={self.fov} deg, res_min={self.res_min}"
 
     @classmethod
     def from_resolution(
-        cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius=0.0
+        cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius_deg=0.0
     ):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
 
         res_max = np.radians(res_arcmax / 60)
         res_min = np.radians(res_arcmin / 60)
-        ret = cls(res_min, res_max, radius)
+        ret = cls(res_min, res_max, np.radians(radius_deg))
         logger.info("AdaptiveMeshSphere from_res, npix={}".format(ret.npix))
 
         return ret
@@ -261,7 +263,7 @@ class AdaptiveMeshSphere(HealpixSphere):
 
         # Convert the x,y to theta and phi
 
-        theta = np.arcsin(r)
+        theta = np.arcsin(r/self.radius)
         phi = np.arctan2(x, y)
 
         el_r, az_r = hp2elaz(theta, phi)

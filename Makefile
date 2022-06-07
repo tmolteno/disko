@@ -32,7 +32,7 @@ ngc1194:
 
 adaptive:
 	rm -f round*.vtk
-	${TIME} disko --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.07 --arcmax=0.1 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus' --adaptive 50
+	${TIME} disko --adaptive --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --res-min 0.07 --res-max=0.1 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus' 
 	
 
 # Requires memory_profiler pip3 install memory_profiler
@@ -65,6 +65,8 @@ cygnus_center:
 	
 tart:
 	${TIME} disko --healpix --res 60 --fov 155 --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'
+tarta:
+	${TIME} disko --adaptive --res-min 180 --res-max 180 --fov 155 --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tarta'
 
 sphere:
 	disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'

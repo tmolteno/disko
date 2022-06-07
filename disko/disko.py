@@ -17,7 +17,7 @@ import scipy
 
 import numpy as np
 import healpy as hp
-import dask.array as da
+#import dask.array as da
 
 
 from copy import deepcopy
@@ -450,7 +450,7 @@ class DiSkO(object):
         # logger.info("pixel areas:  {}".format(in_sphere.pixel_areas))
         for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
             harmonic = (
-                da.exp(
+                np.exp(
                     p2j * (u * in_sphere.l + v * in_sphere.m + w * in_sphere.n_minus_1)
                 )
                 * in_sphere.pixel_areas
@@ -477,7 +477,7 @@ class DiSkO(object):
         logger.info("Imaging Visabilities nside={}".format(sphere.nside))
         t0 = time.time()
 
-        pixels = da.zeros(sphere.npix, dtype=COMPLEX_DATATYPE)
+        pixels = np.zeros(sphere.npix, dtype=COMPLEX_DATATYPE)
         harmonic_list = self.get_harmonics(sphere)
         for h, vis in zip(harmonic_list, vis_arr):
             pixels += vis * h
@@ -496,7 +496,7 @@ class DiSkO(object):
 
         gamma = self.make_gamma(sphere)
 
-        sky, residuals, rank, s = da.linalg.lstsq(
+        sky, residuals, rank, s = np.linalg.lstsq(
             gamma, to_column(vis_to_real(vis_arr))
         )
 
@@ -566,7 +566,7 @@ class DiSkO(object):
 
             residual = d - A @ sky
 
-            residual_norm, solution_norm = da.compute(
+            residual_norm, solution_norm = np.compute(
                 np.linalg.norm(residual) ** 2, np.linalg.norm(sky) ** 2
             )
 
@@ -748,8 +748,12 @@ class DiSkO(object):
         n_s = sphere.pixels.shape[0]
         n_v = self.u_arr.shape[0]
 
+        print(
+            f"image_tikhonov({vis_arr.shape}, {sphere}, {alpha}, scale={scale}, usedask={usedask})"
+        )
+
         lambduh = alpha / np.sqrt(n_s)
-        if not usedask:
+        if usedask is False:
             gamma = self.make_gamma(sphere)
             logger.info("augmented: {}".format(gamma.shape))
 
@@ -792,11 +796,11 @@ class DiSkO(object):
                 reg.fit(gamma, vis_aux)
                 logger.info("    Solve Complete, iter={}".format(reg.n_iter_))
 
-                sky = da.from_array(reg.coef_)
+                sky = reg.coef_ # np.from_array(reg.coef_)
 
                 residual = vis_aux - gamma @ sky
 
-                sky, residual_norm, solution_norm = da.compute(
+                sky, residual_norm, solution_norm = (
                     sky, np.linalg.norm(residual) ** 2, np.linalg.norm(sky) ** 2
                 )
 
@@ -878,9 +882,9 @@ class DiSkO(object):
             # dv = da.from_array(vis_aux)
 
             dask.config.set({"array.chunk-size": "1024MiB"})
-            A = da.rechunk(proj_operator, chunks=("auto", n_s))
+            A = np.rechunk(proj_operator, chunks=("auto", n_s))
             A = client.persist(A)
-            y = vis_aux  # da.rechunk(vis_aux, chunks=('auto', n_s))
+            y = vis_aux  # np.rechunk(vis_aux, chunks=('auto', n_s))
             y = client.persist(y)
             # sky = dask_glm.algorithms.proximal_grad(A, y, regularizer=en, lambduh=alpha, max_iter=10000)
 
