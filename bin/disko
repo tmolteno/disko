@@ -24,31 +24,57 @@ from dask.distributed import Client
 from disko import DiSkO, get_source_list, AdaptiveMeshSphere, create_fov
 
 
-
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image using the web api of a TART radio telescope.', 
-                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--api', required=False, default='https://tart.elec.ac.nz/signal', help="Telescope API server URL.")
-    parser.add_argument('--catalog', required=False, default='https://tart.elec.ac.nz/catalog', help="Catalog API URL.")
 
-    parser.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
-    parser.add_argument('--ms', required=False, default=None, help="visibility file")
+
+    #parser.add_argument('--api', required=False, default='https://tart.elec.ac.nz/signal', help="Telescope API server URL.")
+    #parser.add_argument('--catalog', required=False, default='https://tart.elec.ac.nz/catalog', help="Catalog API URL.")
+        
+    parser_adaptive = argparse.ArgumentParser(add_help=False)
+    parser_adaptive.add_argument('--adaptive', action="store_true", help="Use adaptive meshing")
+    parser_adaptive.add_argument('--res-min', type=float, required=True, help="Highest allowed res of the sky in arc minutes.")
+    parser_adaptive.add_argument('--res-max', type=float, required=True, help="Starting Resolution of the sky in arc minutes.")
+
+
+    parser_sphere = argparse.ArgumentParser(add_help=False)
+    parser_sphere.add_argument('--healpix', action="store_true", help="Use HealPix tiling")
+    parser_sphere.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
+    parser_sphere.add_argument('--res', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
+
+
+    parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image using the web api of a TART radio telescope.', 
+                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter,  parents=[parser_adaptive, parser_sphere])
+
+
+    parser.add_argument('--fov', type=float, required=True, default=None, help="Field of view in degrees.")
+
+    data_group = parser.add_mutually_exclusive_group()
+    data_group.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
+    data_group.add_argument('--ms', required=False, default=None, help="visibility file")
+    
+    parser.add_argument('--nvis', type=int, default=1000, help="Number of visibilities to use.")
+    parser.add_argument('--vis', required=False, default=None, help="Use a local JSON file containing the visibilities to create the image.")
     parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
     parser.add_argument('--field', type=int, default=0, help="Use this FIELD_ID from the measurement set.")
 
-    parser.add_argument('--vis', required=False, default=None, help="Use a local JSON file containing the visibilities to create the image.")
+    algo_group = parser.add_mutually_exclusive_group()
+    algo_group.add_argument('--lsqr', action="store_true", help="Use lsqr in matrix-free")
+    algo_group.add_argument('--lsmr', action="store_true", help="Use lsmr in matrix-free")
+    algo_group.add_argument('--fista', action="store_true", help="Use FISTA in matrix-free")
+    algo_group.add_argument('--lasso', action="store_true", help="Use L1 regularization.")
+    algo_group.add_argument('--tikhonov', action="store_true", help="Use L2 regularization.")
+    
+    parser.add_argument('--matrix-free', action="store_true", help="Use matrix-free regularization.")
+    parser.add_argument('--niter', type=int, default=100, help="Number of iterations for iterative solutions.")
+    
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
     parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter.")
     parser.add_argument('--l1-ratio', type=float, default=0.02, help="Regularization parameter, ratio of l1 to l2 (1.0 means l1 only).")
-    parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
-    parser.add_argument('--nvis', type=int, default=1000, help="Number of visibilities to use.")
-    parser.add_argument('--arcmin', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
-    parser.add_argument('--arcmax', type=float, default=None, help="Starting Resolution of the sky in arc minutes.")
-    parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
 
+    parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG & SVG).")
+    parser.add_argument('--title', required=False, default="disko", help="Prefix the output files.")
     parser.add_argument('--elevation', type=float, default=20.0, help="Elevation limit for displaying sources (degrees).")
     parser.add_argument('--display', action="store_true", help="Display Image to the user.")
-    parser.add_argument('--adaptive', type=int, default=0, help="Use adaptive mesh.")
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
@@ -56,22 +82,14 @@ if __name__ == '__main__':
 
     parser.add_argument('--cv', action="store_true", help="Use Cross Validation")
     parser.add_argument('--dask', action="store_true", help="Use dask")
-    parser.add_argument('--lsqr', action="store_true", help="Use lsqr in matrix-free")
-    parser.add_argument('--lsmr', action="store_true", help="Use lsmr in matrix-free")
-    parser.add_argument('--fista', action="store_true", help="Use FISTA in matrix-free")
-    parser.add_argument('--lasso', action="store_true", help="Use L1 regularization.")
-    parser.add_argument('--tikhonov', action="store_true", help="Use L2 regularization.")
-    parser.add_argument('--matrix-free', action="store_true", help="Use matrix-free regularization.")
-    parser.add_argument('--niter', type=int, default=100, help="Number of iterations for iterative solutions.")
 
-    parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG & SVG).")
-
-    parser.add_argument('--title', required=False, default="disko", help="Prefix the output files.")
 
     source_json = None
 
     ARGS = parser.parse_args()
-
+    
+    print(ARGS)
+    
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
@@ -94,12 +112,12 @@ if __name__ == '__main__':
     logger.addHandler(fh)
     
     #client = Client()
-    nside = ARGS.nside
-    radius = np.radians(ARGS.fov / 2.0)
-    if ARGS.adaptive > 0:
-        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.arcmin, res_arcmax=ARGS.arcmax, theta=np.radians(0.0), phi=0.0, radius=radius)
-    else:
-        sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.arcmin)
+    #nside = ARGS.nside
+    #radius = np.radians(ARGS.fov / 2.0)
+    if ARGS.adaptive:
+        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.res_min, res_arcmax=ARGS.res_max, theta=np.radians(0.0), phi=0.0, radius=ARGS.fov/2)
+    if ARGS.healpix:
+        sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.res_min)
 
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
