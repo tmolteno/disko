@@ -32,8 +32,8 @@ if __name__ == '__main__':
         
     parser_adaptive = argparse.ArgumentParser(add_help=False)
     parser_adaptive.add_argument('--adaptive', action="store_true", help="Use adaptive meshing")
-    parser_adaptive.add_argument('--res-min', type=float, required=True, help="Highest allowed res of the sky in arc minutes.")
-    parser_adaptive.add_argument('--res-max', type=float, required=True, help="Starting Resolution of the sky in arc minutes.")
+    parser_adaptive.add_argument('--res-min', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
+    parser_adaptive.add_argument('--res-max', type=float, default=None, help="Starting Resolution of the sky in arc minutes.")
 
 
     parser_sphere = argparse.ArgumentParser(add_help=False)
@@ -46,7 +46,7 @@ if __name__ == '__main__':
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,  parents=[parser_adaptive, parser_sphere])
 
 
-    parser.add_argument('--fov', type=float, required=True, default=None, help="Field of view in degrees.")
+    parser.add_argument('--fov', type=float, default=None, help="Field of view in degrees.")
 
     data_group = parser.add_mutually_exclusive_group()
     data_group.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     if ARGS.adaptive:
         sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.res_min, res_arcmax=ARGS.res_max, theta=np.radians(0.0), phi=0.0, radius=ARGS.fov/2)
     if ARGS.healpix:
-        sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.res_min)
+        sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.res)
 
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))

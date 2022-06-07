@@ -76,6 +76,9 @@ class AdaptiveMeshSphere(HealpixSphere):
 
         logger.info("New AdaptiveMeshSphere, resolution_min={}".format(self.res_arcmin))
 
+    def __repr__():
+        return f"AdaptiveMeshSphere fov={self.fov} deg, res_min={self.res_arcmin}"
+
     @classmethod
     def from_resolution(
         cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius=0.0

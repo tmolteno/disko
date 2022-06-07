@@ -64,10 +64,10 @@ cygnus_center:
 	disko --fov 0.02 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.012 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
 	
 tart:
-	${TIME} disko --fov 155 --ms test_data/test.ms --SVG --arcmin=60 --arcmax=90 --alpha=0.0025 --tikhonov  --title 'tart'
+	${TIME} disko --healpix --res 60 --fov 155 --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'
 
 sphere:
-	disko --nside 64 --ms ../tart2ms/test.ms --SVG --PNG --PDF --SVG --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
+	disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
 
 mf:
 	rm -f disko.log

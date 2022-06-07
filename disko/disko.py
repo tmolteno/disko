@@ -522,9 +522,7 @@ class DiSkO(object):
         """
         data = [vis_arr, n_freq, n_pol]
         """
-        logger.info(
-            "Solving Visabilities nside={} data={}".format(sphere.nside, data.shape)
-        )
+        logger.info(f"Solving Visabilities sphere={sphere} data={data.shape}")
         assert data.shape[0] == self.n_v * 2
 
         t0 = time.time()

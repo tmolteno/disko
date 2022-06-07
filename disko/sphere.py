@@ -236,10 +236,8 @@ class Sphere(object):
     A base class for all sphere's including grids.
     """
 
-    # TODO  Make this the base class for HealpixSphere and AdaptiveMeshSphere
 
-
-class HealpixSphere(object):
+class HealpixSphere(Sphere):
     """
     A healpix Sphere
     """
@@ -273,6 +271,9 @@ class HealpixSphere(object):
         self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
         self.n_minus_1 = self.n - 1
 
+    def __repr__():
+        return f"HealpixSphere nside={self.nside}"
+    
     def get_lmn(self):
         return self.l, self.m, self.n
 
@@ -342,9 +343,9 @@ class HealpixSphere(object):
         hdr.comments["ORIGIN"] = "L-2 Regularizing imager written by Tim Molteno"
 
         hdr["CRPIX1"] = width // 2 + 1.0
-        hdr["CDELT1"] = self.fov / width
+        hdr["CDELT1"] = fov / width
         hdr["CRPIX2"] = height // 2 + 1.0
-        hdr["CDELT2"] = self.fov / height
+        hdr["CDELT2"] = fov / height
         for key in info:
             hdr[key] = info[key]
         # https://archive.stsci.edu/fuse/DH_Final/FITS_File_Headers.html
@@ -364,6 +365,9 @@ class HealpixSphere(object):
         show_cbar=True,
     ):
 
+        if fov is None:
+            raise Exception("Field of view is required for SVG generation. Use PDF instead")
+        
         h = 4000
         w = 4200
         # dwg = svgwrite.Drawing(filename=fname, size=(w,w), profile='tiny')
@@ -785,6 +789,9 @@ class HealpixSubSphere(HealpixSphere):
             plt.plot(el_r, az_r, "x")
             plt.show()
         return ret
+
+    def __repr__():
+        return f"HealpixSubSphere fov={self.fov} deg, nside={self.nside}"
 
     def split(self, n):
         ret = []
