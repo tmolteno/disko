@@ -71,7 +71,7 @@ sphere:
 
 mf:
 	rm -f disko.log
-	disko --fov 155 --ms test_data/test.ms --SVG --arcmin=90 --arcmax=190 --alpha=-0.56 --fista --matrix-free --title 'mf'
+	disko --healpix --fov 155 --res 90 --ms test_data/test.ms --SVG --alpha=-0.56 --fista --matrix-free --title 'mf'
 
 ## 1000 0.1074
 ## 2000 0.0696

@@ -22,10 +22,15 @@ def create_fov(nside, fov_deg, res_arcmin, theta=0.0, phi=0.0):
     Create an appropriate Sphere object based on:
 
     - fov_deg : The field of view in degrees
-
+s
     """
     if nside is not None and fov_deg is None:
         sphere = HealpixSphere(nside)
+    elif nside is not None and fov_deg is not None:
+        radius = np.radians(fov_deg / 2.0)
+        sphere = HealpixSubSphere.from_resolution(
+            nside=nside, theta=theta, phi=phi, radius=radius
+        )
     elif res_arcmin is not None and fov_deg is not None:
         radius = np.radians(fov_deg / 2.0)
         sphere = HealpixSubSphere.from_resolution(
@@ -271,7 +276,7 @@ class HealpixSphere(Sphere):
         self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
         self.n_minus_1 = self.n - 1
 
-    def __repr__():
+    def __repr__(self):
         return f"HealpixSphere nside={self.nside}"
     
     def get_lmn(self):
@@ -790,7 +795,7 @@ class HealpixSubSphere(HealpixSphere):
             plt.show()
         return ret
 
-    def __repr__():
+    def __repr__(self):
         return f"HealpixSubSphere fov={self.fov} deg, nside={self.nside}"
 
     def split(self, n):
