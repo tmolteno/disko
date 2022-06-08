@@ -19,9 +19,9 @@ class TestMeshsphere(unittest.TestCase):
     def setUp(self):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
-        self.sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=20, res_arcmax=60, 
+        self.sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=60, res_arcmax=60, 
                                                          theta=np.radians(0.0), 
-                                                         phi=0.0, radius=np.radians(10))
+                                                         phi=0.0, radius_deg=10)
 
     
     def test_sizes(self):
@@ -37,10 +37,10 @@ class TestMeshsphere(unittest.TestCase):
         for a in self.sphere.pixel_areas:
             self.assertTrue(a > 0.0)
              
-    def test_lms(self):
-        hp_sphere = HealpixSubSphere.from_resolution(resolution=60.0, 
+    def test_lmn(self):
+        hp_sphere = HealpixSubSphere.from_resolution(res_arcmin=60.0, 
                                               theta=np.radians(0.0), 
-                                              phi=0.0, radius=np.radians(10))
+                                              phi=0.0, radius_rad=np.radians(10))
         
         self.assertAlmostEqual(self.sphere.fov, hp_sphere.fov)
 

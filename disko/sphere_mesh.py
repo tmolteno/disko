@@ -9,7 +9,7 @@ import scipy
 from scipy.spatial import Delaunay, delaunay_plot_2d
 import meshio
 
-from .sphere import HealpixSphere, hp2elaz, elaz2lmn
+from .sphere import Sphere, hp2elaz, elaz2lmn
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -44,13 +44,13 @@ def area(cell, points):
 # return -2 * x
 
 
-class AdaptiveMeshSphere(HealpixSphere):
+class AdaptiveMeshSphere(Sphere):
     """
     An adaptive mesh sphere.
     """
 
     def __init__(self, res_min, res_max, radius_rad):
-        self.radius = radius_rad
+        self.radius_rad = radius_rad
         self.fov = np.degrees(radius_rad * 2)
         self.res_arcmin = np.degrees(res_max)*60
         
@@ -76,10 +76,10 @@ class AdaptiveMeshSphere(HealpixSphere):
 
         self.mesh(X)
 
-        logger.info("New AdaptiveMeshSphere, resolution_min={}".format(self.res_min))
+        logger.info(f"New AdaptiveMeshSphere, resolution_min={self.res_min}")
 
     def __repr__(self):
-        return f"AdaptiveMeshSphere fov={self.fov} deg, res_min={self.res_min}"
+        return f"AdaptiveMeshSphere fov={self.fov} deg, res_min={self.res_min}, N={self.npix}"
 
     @classmethod
     def from_resolution(
@@ -110,14 +110,18 @@ class AdaptiveMeshSphere(HealpixSphere):
         # Scale points
         self.points = np.sum(self.tri.points[self.tri.simplices], axis=1) / 3
         pixel_areas = (
-            self.radius
-            * self.radius
+            self.radius_rad
+            * self.radius_rad
             * np.array(
                 [area(cell=c, points=self.tri.points) for c in self.tri.simplices]
             )
         )
         total_area = np.sum(pixel_areas)
         self.pixel_areas = pixel_areas / total_area
+        
+        if (self.pixel_areas.shape[0] != self.npix):
+            raise RuntimeError(f"self.pixel_areas.shape != self.N, {self.pixel_areas.shape} != {self.npix}")
+        
 
         self.set_lmn()
 
@@ -126,7 +130,7 @@ class AdaptiveMeshSphere(HealpixSphere):
         ret = []
         cell_pairs = []
 
-        r_nyquist = self.res_min / self.radius
+        r_nyquist = self.res_min / self.radius_rad
         logger.info("R limit: {}".format(r_nyquist))
 
         n_ignored = 0
@@ -257,13 +261,13 @@ class AdaptiveMeshSphere(HealpixSphere):
         )
 
     def set_lmn(self):
-        x = self.points[:, 0] * self.radius
-        y = self.points[:, 1] * self.radius
+        x = self.points[:, 0] * self.radius_rad
+        y = self.points[:, 1] * self.radius_rad
         r = np.sqrt(x * x + y * y)
 
         # Convert the x,y to theta and phi
 
-        theta = np.arcsin(r/self.radius)
+        theta = np.arcsin(r)
         phi = np.arctan2(x, y)
 
         el_r, az_r = hp2elaz(theta, phi)
