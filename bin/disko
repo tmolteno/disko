@@ -31,7 +31,7 @@ if __name__ == '__main__':
     #parser.add_argument('--catalog', required=False, default='https://tart.elec.ac.nz/catalog', help="Catalog API URL.")
         
     parser_adaptive = argparse.ArgumentParser(add_help=False)
-    parser_adaptive.add_argument('--adaptive', action="store_true", help="Use adaptive meshing")
+    parser_adaptive.add_argument('--adaptive', type=int, default=None, help="Use adaptive meshing")
     parser_adaptive.add_argument('--res-min', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
     parser_adaptive.add_argument('--res-max', type=float, default=None, help="Starting Resolution of the sky in arc minutes.")
 
@@ -114,8 +114,8 @@ if __name__ == '__main__':
     #client = Client()
     #nside = ARGS.nside
     #radius = np.radians(ARGS.fov / 2.0)
-    if ARGS.adaptive:
-        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.res_min, res_arcmax=ARGS.res_max, theta=np.radians(0.0), phi=0.0, radius_deg=ARGS.fov/2)
+    if ARGS.adaptive is not None:
+        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.res_min, res_arcmax=ARGS.res_max, theta=np.radians(0.0), phi=0.0, radius_rad=np.radians(ARGS.fov/2))
     if ARGS.healpix:
         sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.res)
 
@@ -199,8 +199,10 @@ if __name__ == '__main__':
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, usedask=ARGS.dask)
-        for i in range(ARGS.adaptive):
-                sphere.write_mesh("round_{}.vtk".format(i))
+                    
+        if ARGS.adaptive is not None:
+            for i in range(ARGS.adaptive):
+                sphere.write_mesh(f"{ARGS.title}_round_{i}.vtk")
 
                 sphere.refine()
                 sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, usedask=ARGS.dask)
@@ -209,11 +211,11 @@ if __name__ == '__main__':
     else:
         sky = disko.solve_vis(disko.vis_arr, sphere)
 
-    image_title = '{}_{}'.format(ARGS.title, time_repr)
+    image_title = f"{ARGS.title}_{time_repr}"
 
-    if ARGS.adaptive:
+    if ARGS.adaptive is not None:
         # Save as a VTK file
-        sphere.write_mesh("{}.vtk".format(image_title))
+        sphere.write_mesh(f"{image_title}.vtk")
 
     def path(ending, image_title):
         os.makedirs(ARGS.dir, exist_ok=True)
@@ -221,8 +223,9 @@ if __name__ == '__main__':
         return os.path.join(ARGS.dir, fname)
 
     def save_images(image_title, source_list):
-        # Save as a FITS file
+        
         if ARGS.FITS:
+            # Save as a FITS file
             sphere.to_fits(fname=path('fits', image_title), fov=ARGS.fov, info=disko.info)
         
         if ARGS.SVG:

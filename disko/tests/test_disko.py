@@ -77,12 +77,12 @@ class TestDiSkO(unittest.TestCase):
         cls.nside = 16
         cls.sphere = HealpixSphere(cls.nside)
         res_deg = 4.0
-        cls.subsphere = HealpixSubSphere.from_resolution(resolution=res_deg*60.0, 
-                                      theta = np.radians(0.0), phi=0.0, radius=np.radians(89))
+        cls.subsphere = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0, 
+                                      theta = np.radians(0.0), phi=0.0, radius_rad=np.radians(89))
         
         cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=20, res_arcmax=res_deg*60, 
                                                          theta=np.radians(0.0), 
-                                                         phi=0.0, radius=np.radians(10))
+                                                         phi=0.0, radius_rad=np.radians(10))
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
         cls.subgamma = cls.disko.make_gamma(cls.subsphere)
@@ -105,9 +105,11 @@ class TestDiSkO(unittest.TestCase):
         ### Check the harmonics are normalized.
 
         harmonics = self.disko.get_harmonics(self.sphere)
+        a = self.sphere.pixel_areas
+        val = a @ a.T
         for h_i in harmonics:
             dot = h_i @ h_i.conj().T
-            self.assertAlmostEqual(dot, 1.0)
+            self.assertAlmostEqual(dot, val)
   
     @unittest.skip("Should Fail as the adaptive mesh harmonics dont work")
     def test_adaptive_harmonics_normalized(self):
@@ -219,8 +221,8 @@ class TestDiSkO(unittest.TestCase):
             
             
         '''
-        tiny_subsphere = HealpixSubSphere.from_resolution(resolution=60*60.0, 
-                                      theta = np.radians(0.0), phi=0.0, radius=np.radians(80))
+        tiny_subsphere = HealpixSubSphere.from_resolution(res_arcmin=3600, 
+                                      theta = np.radians(0.0), phi=0.0, radius_rad=np.radians(80))
         self.assertEqual(tiny_subsphere.npix, 4)
 
         frequencies = [1.5e9]

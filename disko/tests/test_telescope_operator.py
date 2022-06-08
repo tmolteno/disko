@@ -76,7 +76,7 @@ class TestTelescopeOperator(unittest.TestCase):
             h_i = h_re + 1.0j*h_im
             dot = h_i @ h_i.conj().T
             #dot = np.dot(h_re, h_re) + np.dot(h_im, h_im)
-            self.assertAlmostEqual(dot.compute(), 1.0)
+            self.assertAlmostEqual(dot, 1.0)
   
 
     def test_null_harmonics(self):
@@ -84,11 +84,11 @@ class TestTelescopeOperator(unittest.TestCase):
         for i in range(0,self.to.n_n()):
             h_i = self.to.null_harmonic(i)
             dot = h_i @ h_i.conj().T
-            self.assertAlmostEqual(dot.compute(), 1.0)
+            self.assertAlmostEqual(dot, 1.0)
             
             # Check that it is in the null space. I.e. multiplication by Gamma returns zero.
             dut = self.to.gamma @ h_i
-            self.assertTrue(np.allclose(np.abs(dut.compute()), np.zeros(self.to.n_v)))
+            self.assertTrue(np.allclose(np.abs(dut), np.zeros(self.to.n_v)))
 
     def test_range_harmonics(self):
         ### Check orthogonality of the harmonics.
@@ -102,9 +102,9 @@ class TestTelescopeOperator(unittest.TestCase):
                 logger.info("natural dot = {}".format(dot))
                 
                 if (i == j):
-                    self.assertAlmostEqual(dot.compute(), 1.0)
+                    self.assertAlmostEqual(dot, 1.0)
                 else:
-                    self.assertAlmostEqual(dot.compute(), 0.0)
+                    self.assertAlmostEqual(dot, 0.0)
   
     def test_sky_conversion(self):
         ### Check orthogonality of the harmonics.
@@ -178,11 +178,11 @@ class TestTelescopeOperator(unittest.TestCase):
         ### Check that v = A_r x_r is the same as Gamma s
         sky = self.get_point_sky()
         # This sky contains null space components, so lets  project those out.
-        vis_orig = (self.to.gamma @ sky).compute()
+        vis_orig = (self.to.gamma @ sky)
         
         sky_r = self.to.P_r() @ sky
         
-        vis = (self.to.gamma @ sky_r).compute()
+        vis = (self.to.gamma @ sky_r)
         logger.info("vis = {}".format(np.real(vis)[0:10]))
         
         # Check that the vis from the sky is the same as the vis from the range-space sky.
@@ -192,7 +192,7 @@ class TestTelescopeOperator(unittest.TestCase):
         # Now image the range-space vis 
         imaged_sky = self.to.image_visibilities(vis, self.sphere, scale=False)
             
-        vis3 = (self.to.gamma @ imaged_sky).compute()
+        vis3 = (self.to.gamma @ imaged_sky)
         # Now check that the visibilities from the imaged sky match the original visibiities
         
         for v1,v2 in zip(vis, vis3):
@@ -212,12 +212,12 @@ class TestTelescopeOperator(unittest.TestCase):
         sky = self.get_point_sky()
 
         # Get the visibilities
-        vis = (self.to.gamma @ sky).compute()
+        vis = (self.to.gamma @ sky)
                 
         # Now image the range-space vis 
         imaged_sky = self.to.image_natural(vis, self.sphere, scale=False)
                 
-        vis3 = (self.to.gamma @ imaged_sky).compute()
+        vis3 = (self.to.gamma @ imaged_sky)
         # Now check that the visibilities from the imaged sky match the original visibiities
         
         for v1,v2 in zip(vis, vis3):

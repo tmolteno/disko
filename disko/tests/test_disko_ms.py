@@ -32,8 +32,8 @@ class TestDiSkOMS(unittest.TestCase):
         cls.nside = 16
         cls.sphere = HealpixSphere(cls.nside)
         res_deg = 4.0
-        cls.subsphere = HealpixSubSphere.from_resolution(resolution=res_deg*60.0, 
-                                      theta = np.radians(0.0), phi=0.0, radius=np.radians(89))
+        cls.subsphere = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0, 
+                                      theta = np.radians(0.0), phi=0.0, radius_rad=np.radians(89))
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
 

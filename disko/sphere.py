@@ -29,12 +29,12 @@ s
     elif nside is not None and fov_deg is not None:
         radius = np.radians(fov_deg / 2.0)
         sphere = HealpixSubSphere.from_resolution(
-            nside=nside, theta=theta, phi=phi, radius=radius
+            nside=nside, theta=theta, phi=phi, radius_rad=radius
         )
     elif res_arcmin is not None and fov_deg is not None:
         radius = np.radians(fov_deg / 2.0)
         sphere = HealpixSubSphere.from_resolution(
-            res_arcmin=res_arcmin, theta=theta, phi=phi, radius=radius
+            res_arcmin=res_arcmin, theta=theta, phi=phi, radius_rad=radius
         )
     else:
         raise RuntimeError("Either nside, or res_arcmin must be specified")
@@ -199,7 +199,8 @@ def lonlat(theta, phi):
 
 def image_stats(sky):
 
-    rsky = sky
+    rsky = sky.flatten()
+    logger.info(f"image_stats {rsky.shape}")
 
     ret = {}
 
@@ -240,84 +241,36 @@ class Sphere(object):
     """
     A base class for all sphere's including grids.
     """
-
-
-class HealpixSphere(Sphere):
-    """
-    A healpix Sphere
-    """
-
-    def __init__(self, nside):
-        self.nside = nside
-        self.npix = hp.nside2npix(self.nside)
-        res = hp.nside2resol(nside, arcmin=True)
-        self.res_arcmin = res
-
-        logger.info(
-            "New Sphere, nside={}. npix={}, res={} arcmin".format(
-                self.nside, self.npix, self.res_arcmin
-            )
-        )
-
-        self.pixel_indices = np.arange(self.npix)
-        theta, phi = hp.pix2ang(nside, self.pixel_indices)
-
-        # For limited fields of view
-        # healpy.query_polygon
-
-        self.pixels = np.zeros(self.npix)  # + hp.UNSEEN
-        self.pixel_areas = 1.0 / np.sqrt(self.npix)
-
-        el_r, az_r = hp2elaz(theta, phi)
-
-        self.el_r = el_r
-        self.az_r = az_r
-
-        self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
-        self.n_minus_1 = self.n - 1
-
-    def __repr__(self):
-        return f"HealpixSphere nside={self.nside}"
     
-    def get_lmn(self):
-        return self.l, self.m, self.n
-
-    def index_of(self, el, az):
-        theta, phi = elaz2hp(el, az)
-        return hp.ang2pix(self.nside, theta, phi)
-
-    def plot_dot(self, el, az):
-        theta, phi = elaz2hp(el, az)
-        hp.projplot(theta, phi, "k.", rot=(0, 90, 0))  #
-
-    def plot_x(self, plt, el, az):
-        theta, phi = elaz2hp(el, az)
-        hp.projplot(theta, phi, "ro", rot=(0, 90, 180))  #
-
+    def __init__(self):
+        self.pixels = None
+        
+        
+    def to_svg(
+        self,
+        fname,
+        pixels_only=False,
+        show_grid=False,
+        src_list=None,
+        fov=180.0,
+        title=None,
+        show_cbar=True,
+    ):
+        raise Exception("SVG output not implemented for this sphere")
+    
     def set_visible_pixels(self, pix, scale=False):
         # This discards the imaginary part.
         rpix = np.asarray(np.real(pix))
 
         stats = image_stats(rpix)
         if scale:
-            rpix = (rpix - stats["min"]) / stats["stdev"]
+            rpix = (rpix - stats["min"]) / stats["sdev"]
             # n_s = rpix.shape[0]
             # fact = factors(n_s)
             # rpix = exposure.equalize_adapthist(rpix.reshape((n_s//fact, -1)), clip_limit=0.03)
         self.pixels = rpix.reshape((len(pix),))
         logger.info("Pixels Set {}".format(self.pixels.shape))
         return stats
-
-    def corners(self, pixel):
-        bounds = hp.boundaries(self.nside, pixel, step=1)
-        bounds = np.array(bounds).T
-        return bounds
-        # lat, lon = hp.vec2ang(bounds)
-        # ret = []
-        # for a,b in zip(lat, lon):
-        # ret.append([b,a])
-
-        # return ret
 
     def to_fits(self, fname, fov, title=None, info={}):
         from astropy.io import fits
@@ -358,6 +311,72 @@ class HealpixSphere(Sphere):
 
         hdu = fits.PrimaryHDU(np.array(grid, dtype=np.float32), header=hdr)
         hdu.writeto(fname, overwrite=True)
+
+
+class HealpixSphere(Sphere):
+    """
+    A healpix Sphere
+    """
+
+    def __init__(self, nside):
+        self.nside = nside
+        self.npix = hp.nside2npix(self.nside)
+        res = hp.nside2resol(nside, arcmin=True)
+        self.res_arcmin = res
+
+        logger.info(
+            "New Sphere, nside={}. npix={}, res={} arcmin".format(
+                self.nside, self.npix, self.res_arcmin
+            )
+        )
+
+        self.pixel_indices = np.arange(self.npix)
+        theta, phi = hp.pix2ang(nside, self.pixel_indices)
+
+        # For limited fields of view
+        # healpy.query_polygon
+
+        self.pixels = np.zeros(self.npix)  # + hp.UNSEEN
+        self.pixel_areas = np.ones(self.npix)/self.npix
+
+        el_r, az_r = hp2elaz(theta, phi)
+
+        self.el_r = el_r
+        self.az_r = az_r
+
+        self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
+        self.n_minus_1 = self.n - 1
+
+    def __repr__(self):
+        return f"HealpixSphere nside={self.nside}"
+    
+    def get_lmn(self):
+        return self.l, self.m, self.n
+
+    def index_of(self, el, az):
+        theta, phi = elaz2hp(el, az)
+        return hp.ang2pix(self.nside, theta, phi)
+
+    def plot_dot(self, el, az):
+        theta, phi = elaz2hp(el, az)
+        hp.projplot(theta, phi, "k.", rot=(0, 90, 0))  #
+
+    def plot_x(self, plt, el, az):
+        theta, phi = elaz2hp(el, az)
+        hp.projplot(theta, phi, "ro", rot=(0, 90, 180))  #
+
+
+    def corners(self, pixel):
+        bounds = hp.boundaries(self.nside, pixel, step=1)
+        bounds = np.array(bounds).T
+        return bounds
+        # lat, lon = hp.vec2ang(bounds)
+        # ret = []
+        # for a,b in zip(lat, lon):
+        # ret.append([b,a])
+
+        # return ret
+
 
     def to_svg(
         self,
@@ -741,23 +760,28 @@ class HealpixSubSphere(HealpixSphere):
 
     @classmethod
     def from_resolution(
-        cls, res_arcmin=None, nside=None, theta=0.0, phi=0.0, radius=0.0
+        cls, res_arcmin=None, nside=None, theta=0.0, phi=0.0, radius_rad=0.0
     ):
-        logger.info(f"from_resolution(res_arcmin={res_arcmin}, nside={nside}, theta={theta}, phi={phi}, radius={radius})")
+        logger.info(f"from_resolution(res_arcmin={res_arcmin}, nside={nside}, theta={theta}, phi={phi}, radius_rad={radius_rad})")
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
 
         if nside is None:  # Calculate nside to the appropriate resolution
-            nside = 4
-            prev_res = hp.nside2resol(2, arcmin=True)
-            while True:
-                res = hp.nside2resol(nside, arcmin=True)
-                dres = (prev_res - res) / res_arcmin
-                logger.info(f"nside={nside} res={res} prev_res={prev_res} arcmin dres={dres}")
-                if res < res_arcmin:
-                    break
-                nside = nside * 2
-                prev_res = res
+            nside = 1
+            while hp.nside2resol(nside, arcmin=True) > res_arcmin:
+                logger.info(f"nside={nside} res={hp.nside2resol(nside, arcmin=True)}")
+                nside *= 2
+                
+            #nside = 2
+            #prev_res = hp.nside2resol(1, arcmin=True)
+            #while True:
+                #res = hp.nside2resol(nside, arcmin=True)
+                #dres = (prev_res - res) / res_arcmin
+                #logger.info(f"nside={nside} res={res} prev_res={prev_res} arcmin dres={dres}")
+                #if res < res_arcmin:
+                    #break
+                #nside = nside * 2
+                #prev_res = res
 
         ret = cls(nside)
 
@@ -766,17 +790,18 @@ class HealpixSubSphere(HealpixSphere):
 
         # https://healpy.readthedocs.io/en/latest/generated/healpy.query_polygon.html
         ret.pixel_indices = hp.query_disc(
-            nside=nside, vec=x0, radius=radius, inclusive=False, nest=False
-        ).astype(np.int)
+            nside=nside, vec=x0, radius=radius_rad, inclusive=False, nest=False
+        ).astype(int)
 
         ret.npix = ret.pixel_indices.shape[0]
-        ret.pixel_areas = 1.0 / np.sqrt(ret.npix)
+        
+        ret.pixel_areas = np.ones(ret.npix)/ret.npix
 
         logger.info("New SubSphere, nside={}. npix={}".format(ret.nside, ret.npix))
 
         theta, phi = hp.pix2ang(nside, ret.pixel_indices)
 
-        ret.fov = np.degrees(radius * 2)
+        ret.fov = np.degrees(radius_rad * 2)
         ret.pixels = np.zeros(ret.npix)  # + hp.UNSEEN
 
         el_r, az_r = hp2elaz(theta, phi)

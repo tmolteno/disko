@@ -3,7 +3,7 @@
 import logging
 import dmsh
 
-# import optimesh
+import optimesh
 import scipy
 
 from scipy.spatial import Delaunay, delaunay_plot_2d
@@ -56,23 +56,24 @@ class AdaptiveMeshSphere(Sphere):
         
         self.res_max = res_max
         self.res_min = res_min
-        self.c = np.degrees(res_min * 60)
 
-        geo = dmsh.Circle([0.0, 0.0], 1.0)
+         # Set radius = 1 to avoid numerical problems in small fields.
+        geo = dmsh.Circle(x0=[0.0, 0.0], r=1.0)
         
-        area_rad = 2*np.pi*radius_rad * radius_rad
-        N = area_rad / (res_max * res_max)
+        edge_size = res_max / radius_rad
 
         logger.info(
-            "Generating Mesh: r_rad: {}, res: {},  N = {}".format(
-                radius_rad, (res_min, res_max), N
+            f"Generating Mesh: r_rad: {radius_rad}, res: {(res_min, res_max)},  edge = {edge_size}"
             )
-        )
-        X, cells = dmsh.generate(geo, res_max / radius_rad, tol=res_min / 100)
+        X, cells = dmsh.generate(geo, 
+                                 target_edge_size=edge_size, 
+                                 tol=edge_size / 250,
+                                 max_steps = 1000,
+                                 verbose=False)
         logger.info(" Mesh generated {}".format(cells.shape))
 
-        # logger.info("Optimizing Mesh")
-        # X, cells = optimesh.odt.fixed_point_uniform(X, cells, 1e-2, 10, verbose=True)
+        logger.info("Optimizing Mesh")
+        X, cells = optimesh.optimize_points_cells(X, cells,  "CVT (block-diagonal)", 1e-5, 10, verbose=False)
 
         self.mesh(X)
 
@@ -83,14 +84,14 @@ class AdaptiveMeshSphere(Sphere):
 
     @classmethod
     def from_resolution(
-        cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius_deg=0.0
+        cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius_rad=0.0
     ):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
 
         res_max = np.radians(res_arcmax / 60)
         res_min = np.radians(res_arcmin / 60)
-        ret = cls(res_min, res_max, np.radians(radius_deg))
+        ret = cls(res_min, res_max, radius_rad)
         logger.info("AdaptiveMeshSphere from_res, npix={}".format(ret.npix))
 
         return ret
@@ -108,15 +109,16 @@ class AdaptiveMeshSphere(Sphere):
         self.pixels = np.zeros(self.npix)
 
         # Scale points
-        self.points = np.sum(self.tri.points[self.tri.simplices], axis=1) / 3
+        self.points = self.radius_rad*np.sum(self.tri.points[self.tri.simplices], axis=1) / 3
         pixel_areas = (
-            self.radius_rad
-            * self.radius_rad
-            * np.array(
+            np.array(
                 [area(cell=c, points=self.tri.points) for c in self.tri.simplices]
             )
         )
         total_area = np.sum(pixel_areas)
+        
+        logger.info(f"Total area {total_area}")
+
         self.pixel_areas = pixel_areas / total_area
         
         if (self.pixel_areas.shape[0] != self.npix):
@@ -261,13 +263,13 @@ class AdaptiveMeshSphere(Sphere):
         )
 
     def set_lmn(self):
-        x = self.points[:, 0] * self.radius_rad
-        y = self.points[:, 1] * self.radius_rad
+        x = self.points[:, 0] 
+        y = self.points[:, 1] 
         r = np.sqrt(x * x + y * y)
 
         # Convert the x,y to theta and phi
 
-        theta = np.arcsin(r)
+        theta = r
         phi = np.arctan2(x, y)
 
         el_r, az_r = hp2elaz(theta, phi)

@@ -65,8 +65,11 @@ cygnus_center:
 	
 tart:
 	${TIME} disko --healpix --res 60 --fov 155 --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'
-tarta:
-	${TIME} disko --adaptive --res-min 180 --res-max 180 --fov 155 --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tarta'
+tart_a:
+	${TIME} disko --adaptive 0 --res-min 120 --res-max 120 --fov 155 --ms test_data/test.ms --alpha=0.0025 --tikhonov  --title 'tarta'
+
+tart_amf:
+	${TIME} disko --adaptive 0 --res-min 180 --res-max 180 --fov 155 --ms test_data/test.ms --alpha=0.0025 --fista --matrix-free  --title 'tarta_mf'
 
 sphere:
 	disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'

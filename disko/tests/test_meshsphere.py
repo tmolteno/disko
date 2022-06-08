@@ -21,7 +21,7 @@ class TestMeshsphere(unittest.TestCase):
         # Phi is [0..2pi]
         self.sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=60, res_arcmax=60, 
                                                          theta=np.radians(0.0), 
-                                                         phi=0.0, radius_deg=10)
+                                                         phi=0.0, radius_rad=np.radians(10))
 
     
     def test_sizes(self):
