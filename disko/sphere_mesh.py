@@ -369,6 +369,12 @@ class AdaptiveMeshSphere(Sphere):
             self.tri.points[:, 0], self.tri.points[:, 1], self.tri.simplices.copy()
         )
         plt.show()
+        
+    def callback(self, x, i):
+        fname = f"callback_{i:05d}.vtk"
+        self.set_visible_pixels(x)
+        self.write_mesh(fname)
+
 
     def write_mesh(self, fname="output.vtk"):
         # import matplotlib.pyplot as plt

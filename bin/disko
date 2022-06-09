@@ -224,11 +224,11 @@ if __name__ == '__main__':
         
         if ARGS.FITS:
             # Save as a FITS file
-            sphere.to_fits(fname=path('fits', image_title), fov=ARGS.fov, info=disko.info)
+            sphere.to_fits(fname=path('fits', image_title), info=disko.info)
         
         if ARGS.SVG:
             fname = path('svg', image_title)
-            sphere.to_svg(fname=fname, show_grid=True, src_list=source_list, fov=ARGS.fov, title=image_title)
+            sphere.to_svg(fname=fname, show_grid=True, src_list=source_list, title=image_title)
             logger.info("Generating {}".format(fname))
         if ARGS.PNG:
             fname = path('png', image_title)

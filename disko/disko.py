@@ -125,6 +125,7 @@ class DiSkOOperator(pylops.LinearOperator):
         self.v_arr = v_arr
         self.w_arr = w_arr
         self.dtype = REAL_DATATYPE
+        self.iteration_count = 0
 
         try:
             self.n_v, self.n_freq, self.npol = data.shape
@@ -150,6 +151,13 @@ class DiSkOOperator(pylops.LinearOperator):
         self.explicit = False  # Can't be directly inverted
         logger.info("Creating DiSkOOperator data={}".format(self.shape))
 
+    def __call__(self, x):
+        # A callback to use during optimization routintes, should be used to write some temporary results
+        if (self.iteration_count % 10 == 0):
+            logger.info(f"callback {self.sphere} {x.shape}")
+            self.sphere.callback(x, self.iteration_count)
+        self.iteration_count = self.iteration_count + 1
+        
     def A(self, i, j, p2j):
         n_vis = len(self.u_arr)
         u, v, w = (
@@ -486,7 +494,7 @@ class DiSkO(object):
             sky, niter = pylops.optimization.sparsity.FISTA(
                 A, d, x0=np.abs(Apre @ d), eigstol=1e-10, tol=1e-10, niter=niter, alpha=None, show=True,
                 #A, d, tol=1e-10, niter=niter, alpha=None, show=True,
-                threshkind = "soft"
+                threshkind = "soft", callback=A
             )
 
         if lsqr:

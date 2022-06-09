@@ -244,15 +244,19 @@ class Sphere(object):
     
     def __init__(self):
         self.pixels = None
+        self.fov = None
         
-        
+    def callback(self, x, i):
+        fname = f"callback_{i:05d}.svg"
+        self.set_visible_pixels(x)
+        self.to_svg(fname, title=f"Iteration {i}")
+    
     def to_svg(
         self,
         fname,
         pixels_only=False,
         show_grid=False,
         src_list=None,
-        fov=180.0,
         title=None,
         show_cbar=True,
     ):
@@ -272,7 +276,7 @@ class Sphere(object):
         logger.info("Pixels Set {}".format(self.pixels.shape))
         return stats
 
-    def to_fits(self, fname, fov, title=None, info={}):
+    def to_fits(self, fname, title=None, info={}):
         from astropy.io import fits
         from scipy.interpolate import griddata
 
@@ -284,7 +288,7 @@ class Sphere(object):
         points = (l, m)
         values = self.pixels
 
-        l0 = np.sin(np.radians(fov / 2))
+        l0 = np.sin(np.radians(self.fov / 2))
 
         width = 2000
         height = 2000
@@ -301,9 +305,9 @@ class Sphere(object):
         hdr.comments["ORIGIN"] = "L-2 Regularizing imager written by Tim Molteno"
 
         hdr["CRPIX1"] = width // 2 + 1.0
-        hdr["CDELT1"] = fov / width
+        hdr["CDELT1"] = self.fov / width
         hdr["CRPIX2"] = height // 2 + 1.0
-        hdr["CDELT2"] = fov / height
+        hdr["CDELT2"] = self.fov / height
         for key in info:
             hdr[key] = info[key]
         # https://archive.stsci.edu/fuse/DH_Final/FITS_File_Headers.html
@@ -384,12 +388,11 @@ class HealpixSphere(Sphere):
         pixels_only=False,
         show_grid=False,
         src_list=None,
-        fov=180.0,
         title=None,
         show_cbar=True,
     ):
 
-        if fov is None:
+        if self.fov is None:
             raise Exception("Field of view is required for SVG generation. Use PDF instead")
         
         h = 4000
@@ -400,16 +403,16 @@ class HealpixSphere(Sphere):
         # dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
         # dwg.add(dwg.text('Test', insert=(0, 0.2), fill='red'))
 
-        pc = PlotCoords(h, fov)
+        pc = PlotCoords(h, self.fov)
         line_size = pc.line_size
 
         # dwg.desc("Gridless imaging from visibilities.")
         if True:  # info is not None:
-            rad = np.radians(fov / 2)
+            rad = np.radians(self.fov / 2)
             width = np.sin(rad)
             font_size = pc.from_d(0.05 * width)
 
-            fov_arcmin = fov * 60.0
+            fov_arcmin = self.fov * 60.0
 
             x = pc.from_x(-width)
 
