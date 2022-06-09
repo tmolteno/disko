@@ -30,10 +30,10 @@ if __name__ == '__main__':
     #parser.add_argument('--api', required=False, default='https://tart.elec.ac.nz/signal', help="Telescope API server URL.")
     #parser.add_argument('--catalog', required=False, default='https://tart.elec.ac.nz/catalog', help="Catalog API URL.")
         
-    parser_adaptive = argparse.ArgumentParser(add_help=False)
-    parser_adaptive.add_argument('--adaptive', type=int, default=None, help="Use adaptive meshing")
-    parser_adaptive.add_argument('--res-min', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
-    parser_adaptive.add_argument('--res-max', type=float, default=None, help="Starting Resolution of the sky in arc minutes.")
+    parser_mesh = argparse.ArgumentParser(add_help=False)
+    parser_mesh.add_argument('--mesh', type=int, default=None, help="Use adaptive meshing")
+    parser_mesh.add_argument('--res-min', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
+    parser_mesh.add_argument('--res-max', type=float, default=None, help="Starting Resolution of the sky in arc minutes.")
 
 
     parser_sphere = argparse.ArgumentParser(add_help=False)
@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
 
     parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image using the web api of a TART radio telescope.', 
-                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter,  parents=[parser_adaptive, parser_sphere])
+                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter,  parents=[parser_mesh, parser_sphere])
 
 
     parser.add_argument('--fov', type=float, default=None, help="Field of view in degrees.")
@@ -87,9 +87,7 @@ if __name__ == '__main__':
     source_json = None
 
     ARGS = parser.parse_args()
-    
-    print(ARGS)
-    
+        
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
@@ -114,7 +112,7 @@ if __name__ == '__main__':
     #client = Client()
     #nside = ARGS.nside
     #radius = np.radians(ARGS.fov / 2.0)
-    if ARGS.adaptive is not None:
+    if ARGS.mesh is not None:
         sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.res_min, res_arcmax=ARGS.res_max, theta=np.radians(0.0), phi=0.0, radius_rad=np.radians(ARGS.fov/2))
     if ARGS.healpix:
         sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.res)
@@ -200,8 +198,8 @@ if __name__ == '__main__':
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, usedask=ARGS.dask)
                     
-        if ARGS.adaptive is not None:
-            for i in range(ARGS.adaptive):
+        if ARGS.mesh is not None:
+            for i in range(ARGS.mesh):
                 sphere.write_mesh(f"{ARGS.title}_round_{i}.vtk")
 
                 sphere.refine()
@@ -213,7 +211,7 @@ if __name__ == '__main__':
 
     image_title = f"{ARGS.title}_{time_repr}"
 
-    if ARGS.adaptive is not None:
+    if ARGS.mesh is not None:
         # Save as a VTK file
         sphere.write_mesh(f"{image_title}.vtk")
 

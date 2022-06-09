@@ -771,17 +771,6 @@ class HealpixSubSphere(HealpixSphere):
             while hp.nside2resol(nside, arcmin=True) > res_arcmin:
                 logger.info(f"nside={nside} res={hp.nside2resol(nside, arcmin=True)}")
                 nside *= 2
-                
-            #nside = 2
-            #prev_res = hp.nside2resol(1, arcmin=True)
-            #while True:
-                #res = hp.nside2resol(nside, arcmin=True)
-                #dres = (prev_res - res) / res_arcmin
-                #logger.info(f"nside={nside} res={res} prev_res={prev_res} arcmin dres={dres}")
-                #if res < res_arcmin:
-                    #break
-                #nside = nside * 2
-                #prev_res = res
 
         ret = cls(nside)
 

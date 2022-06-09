@@ -44,10 +44,12 @@ class TestMeshsphere(unittest.TestCase):
         
         self.assertAlmostEqual(self.sphere.fov, hp_sphere.fov)
 
-        print(np.max(self.sphere.l), np.max(self.sphere.m), np.max(self.sphere.n_minus_1))
-        print(np.max(hp_sphere.l), np.max(hp_sphere.m), np.max(hp_sphere.n_minus_1))
+        print(f"   mesh(l,m,n-1): {np.max(self.sphere.l)}, {np.max(self.sphere.m)}, {np.max(self.sphere.n_minus_1)}")
+        print(f"healpix(l,m,n-1): {np.max(hp_sphere.l)}, {np.max(hp_sphere.m)}, {np.max(hp_sphere.n_minus_1)}")
         
-        print("el_r {} {}".format(np.max(self.sphere.el_r), np.max(hp_sphere.el_r)))
+        print(f"   mesh(el, az): {np.min(self.sphere.el_r)}, {np.min(self.sphere.az_r)} max: {np.max(self.sphere.el_r)}, {np.max(self.sphere.az_r)}")
+        print(f"healpix(el, az): {np.min(hp_sphere.el_r)}, {np.min(hp_sphere.az_r)} max: {np.max(hp_sphere.el_r)}, {np.max(hp_sphere.az_r)}")
+        
         self.assertAlmostEqual(np.max(self.sphere.el_r), np.max(hp_sphere.el_r), 1)
 
         self.assertAlmostEqual(np.max(self.sphere.m), np.max(hp_sphere.m), 2)
