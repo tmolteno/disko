@@ -13,11 +13,11 @@ from copy import deepcopy
 
 import numpy as np
 
-from tart.operation import settings
+#from tart.operation import settings
 
-from tart_tools import api_handler
-from tart_tools import api_imaging
-from tart.imaging import elaz
+#from tart_tools import api_handler
+#from tart_tools import api_imaging
+#from tart.imaging import elaz
 
 from dask.distributed import Client
 
@@ -31,7 +31,8 @@ if __name__ == '__main__':
     #parser.add_argument('--catalog', required=False, default='https://tart.elec.ac.nz/catalog', help="Catalog API URL.")
         
     parser_mesh = argparse.ArgumentParser(add_help=False)
-    parser_mesh.add_argument('--mesh', type=int, default=None, help="Use adaptive meshing")
+    parser_mesh.add_argument('--mesh', action="store_true", help="Use a non-structured mesh in the image space")
+    parser_mesh.add_argument('--adaptive', type=int, default=0, help="Use N cycles of adaptive meshing")
     parser_mesh.add_argument('--res-min', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
     parser_mesh.add_argument('--res-max', type=float, default=None, help="Starting Resolution of the sky in arc minutes.")
 
@@ -198,8 +199,8 @@ if __name__ == '__main__':
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, usedask=ARGS.dask)
                     
-        if ARGS.mesh is not None:
-            for i in range(ARGS.mesh):
+        if ARGS.mesh:
+            for i in range(ARGS.adaptive):
                 sphere.write_mesh(f"{ARGS.title}_round_{i}.vtk")
 
                 sphere.refine()
@@ -211,14 +212,15 @@ if __name__ == '__main__':
 
     image_title = f"{ARGS.title}_{time_repr}"
 
-    if ARGS.mesh is not None:
-        # Save as a VTK file
-        sphere.write_mesh(f"{image_title}.vtk")
-
     def path(ending, image_title):
         os.makedirs(ARGS.dir, exist_ok=True)
         fname = '{}.{}'.format(image_title, ending)
         return os.path.join(ARGS.dir, fname)
+
+    if ARGS.mesh:
+        # Save as a VTK file
+        sphere.write_mesh(path('vtk', image_title))
+
 
     def save_images(image_title, source_list):
         
