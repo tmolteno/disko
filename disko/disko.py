@@ -25,8 +25,8 @@ from scipy.optimize import minimize
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error
 
-from tart.imaging import elaz
-from tart.util import constants
+#from tart.imaging import elaz
+#from tart.util import constants
 
 
 from .sphere import HealpixSphere
@@ -153,7 +153,7 @@ class DiSkOOperator(pylops.LinearOperator):
 
     def __call__(self, x):
         # A callback to use during optimization routintes, should be used to write some temporary results
-        if (self.iteration_count % 10 == 0):
+        if (self.iteration_count > 0) and (self.iteration_count % 10 == 0):
             logger.info(f"callback {self.sphere} {x.shape}")
             self.sphere.callback(x, self.iteration_count)
         self.iteration_count = self.iteration_count + 1
@@ -463,6 +463,30 @@ class DiSkO(object):
 
         return data
 
+    def handle_residuals(self, operator, data, sky):
+        residual = data - operator @ sky
+        normalized_residuals = residual / np.std(residual)
+        
+        RESIDUAL_LIMIT = 10.0  # Arbitrary limit to show bad residuals.
+        
+        bigguns = np.where(normalized_residuals > RESIDUAL_LIMIT)
+        
+        logger.info(f"Residuals {normalized_residuals[bigguns]}")
+        
+        # Now reshape data back into complex data (from real appended to complex)
+        c_data = np.reshape(data, (2, self.n_v))
+        c_data = c_data[0] + 1.0J * c_data[1]
+        
+        c_res = np.reshape(normalized_residuals, (2, self.n_v))
+        c_res = c_res[0] + 1.0J * c_res[1]
+
+        bigguns = np.where(np.abs(c_res) > RESIDUAL_LIMIT)[0]
+        logger.info(f"Residual problems {bigguns}")
+        if self.indices is not None:
+            logger.info(f"Residual indices {self.indices[bigguns]}")
+        for b in bigguns.tolist():
+            logger.info(f"    {b}: {np.abs(c_res[b]):4.2f}: \t{self.u_arr[b]}, {self.v_arr[b]}, {self.w_arr[b]}: {c_data[b]}")
+
     def solve_matrix_free(
         self, data, sphere, alpha=0.0, scale=True, fista=False, lsqr=True, lsmr=False, niter=25
     ):
@@ -544,29 +568,8 @@ class DiSkO(object):
             # logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} normr={}".format(time.time() - t0, sky.shape, lstop, itn, normr))
         # sky = np.abs(sky)
         
-        residual = d - A @ sky
-        normalized_residuals = residual / np.std(residual)
+        self.handle_residuals(A, d, sky)
         
-        RESIDUAL_LIMIT = 10.0  # Arbitrary limit to show bad residuals.
-        
-        bigguns = np.where(normalized_residuals > RESIDUAL_LIMIT)
-        
-        logger.info(f"Residuals {normalized_residuals[bigguns]}")
-        
-        # Now reshape data back into complex data (from real appended to complex)
-        c_data = np.reshape(data, (2, self.n_v))
-        c_data = c_data[0] + 1.0J * c_data[1]
-        
-        c_res = np.reshape(normalized_residuals, (2, self.n_v))
-        c_res = c_res[0] + 1.0J * c_res[1]
-
-        bigguns = np.where(np.abs(c_res) > RESIDUAL_LIMIT)[0]
-        logger.info(f"Residual problems {bigguns}")
-        if self.indices is not None:
-            logger.info(f"Residual indices {self.indices[bigguns]}")
-        for b in bigguns.tolist():
-            logger.info(f"    {b}: {np.abs(c_res[b]):4.2f}: \t{self.u_arr[b]}, {self.v_arr[b]}, {self.w_arr[b]}: {c_data[b]}")
-            
         sphere.set_visible_pixels(sky, scale)
         return sky.reshape(-1, 1)
 

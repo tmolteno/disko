@@ -41,11 +41,14 @@ This should generate a suitable measurement set to image.
 ## TODO
 
 * Add a --full-sphere option which fixes the sphere in celestial coordinates, and then points the phase center of an observation correctly. Requires a beam pattern to be specified (or at least a hemispherical beam). A beam is a sky vector mask. I.e., should fall to zero 'outside' the beam.
-* Deal with flagging, output residuals in a way that can be used to flag in the measurement set.
+* Deal with flagging, output residuals in a way that can be used to flag in the measurement set. This means some casa expression that changes the MS.
 
 ## Changelog
 
 0.9.3b2 Fix indexing error in read_ms when the number of visibilities requested exceeded the number available.
+        clean up the meshing 
+        rework the command line interface
+        Output residuals to the terminal (still no way to include them back in...). The ms needs to be flagged externally.
 0.9.3b1 Add --h5 option to allow sequential inference from a visiblity file.
 0.9.2b1 No longer require arcmin for construction of spheres
 0.9.1b1 Remove constraint that nside is a power of two now that healpy has accepted the pull request.

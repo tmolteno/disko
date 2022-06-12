@@ -377,16 +377,15 @@ class AdaptiveMeshSphere(Sphere):
 
 
     def write_mesh(self, fname="output.vtk"):
-        # import matplotlib.pyplot as plt
-
-        # plt.plot(self.l, self.m, 'x')
-        ###plt.plot(el_r, az_r, 'x')
-        # plt.show()
-
+        # Add a zero third dimension to avoid a VTK warning.
+        mesh_pts = np.zeros((self.points.shape[0], 3))
+        mesh_pts[:,0] = self.points[:,0]
+        mesh_pts[:,1] = self.points[:,1]
+        
         # and write it to a file
         meshio.write_points_cells(
             fname,
-            self.points,
+            mesh_pts,
             [("triangle", self.simplices)],
             cell_data={"flux": [self.pixels]},
         )
