@@ -61,7 +61,7 @@ dask:
 
 
 cygnus_lsmr:
-	${TIME} disko  --healpix --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --res 0.012 --matrix-free --lsmr --nvis 5000 --alpha 0.1 --title 'cygnus_lsmr'
+	${TIME} disko  --healpix --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --res 0.022 --matrix-free --lsmr --nvis 5000 --alpha 0.0001 --title 'cygnus_lsmr'
 	
 tart:
 	${TIME} disko --healpix --res 60 --fov 155 --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'
