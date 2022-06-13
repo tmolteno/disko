@@ -667,7 +667,7 @@ class HealpixSphere(Sphere):
                 stroke_dasharray="{},{}".format(5 * line_size, 10 * line_size),
             )
 
-            for angle in np.linspace(0, fov / 2, 4)[1:]:  # three circles
+            for angle in np.linspace(0, self.fov / 2, 4)[1:]:  # three circles
                 rad = np.radians(angle)
                 radius = pc.from_d(np.sin(rad))
                 grid_lines.add(

@@ -74,9 +74,12 @@ tart_amf:
 sphere:
 	disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
 
-mf:
+tart_fista:
 	rm -f disko.log
-	disko --healpix --fov 155 --res 90 --ms test_data/test.ms --SVG --alpha=-0.56 --fista --matrix-free --title 'mf'
+	disko --healpix --fov 155 --res 90 --ms test_data/test.ms --SVG --alpha=-0.56 --fista --matrix-free --title 'tart_fista'
+tart_lsmr:
+	rm -f disko.log
+	disko --healpix --fov 155 --res 90 --ms test_data/test.ms --SVG --alpha=-0.56 --lsmr --matrix-free --title 'tart_lsmr'
 
 ## 1000 0.1074
 ## 2000 0.0696

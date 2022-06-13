@@ -515,11 +515,14 @@ class DiSkO(object):
             if alpha <= 0:
                 alpha = 10**(-np.log10(self.n_v) + 2) ## Empirical fit
 
-            sky, niter = pylops.optimization.sparsity.FISTA(
-                A, d, x0=np.abs(Apre @ d), eigstol=1e-10, tol=1e-10, niter=niter, alpha=None, show=True,
+            sky, niter = pylops.optimization.sparsity.ISTA(
+                #A, d, x0=np.abs(Apre @ d), eigstol=1e-10, tol=1e-10, niter=niter, alpha=None, show=True,
+                A, d, x0=np.abs(Apre @ d)+1, eigstol=1e-10, tol=1e-10, niter=niter, alpha=None, show=True,
                 #A, d, tol=1e-10, niter=niter, alpha=None, show=True,
                 threshkind = "soft", callback=A
             )
+            
+            logger.info(f"Fixta complete: {sky.shape} niter={niter}")
 
         if lsqr:
             if alpha < 0:
@@ -556,7 +559,7 @@ class DiSkO(object):
         if lsmr:
             if alpha < 0:
                 alpha = np.mean(self.rms)
-            x0 = Apre * d
+            x0 = Apre @ d
 
             sky, info = pylops.optimization.leastsquares.NormalEquationsInversion(
                 A, Regs=None, data=d, x0=x0, epsI=alpha, returninfo=True
