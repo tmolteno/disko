@@ -676,11 +676,11 @@ class HealpixSphere(Sphere):
 
             for angle in range(0, 360, 30):
                 rad = np.radians(angle)
-                radius = np.sin(np.radians(fov / 6))
+                radius = np.sin(np.radians(self.fov / 6))
                 x0 = radius * np.sin(rad)
                 y0 = radius * np.cos(rad)
 
-                radius = np.sin(np.radians(fov / 2))
+                radius = np.sin(np.radians(self.fov / 2))
                 x = radius * np.sin(rad)
                 y = radius * np.cos(rad)
                 grid_lines.add(

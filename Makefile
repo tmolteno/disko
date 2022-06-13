@@ -60,8 +60,8 @@ dask:
 #         Maximum resident set size (kbytes): 2903484
 
 
-cygnus_center:
-	disko --fov 0.02 --ms ../tart2ms/docker/cyg2052.ms --SVG --arcmin 0.012 --tikhonov --nvis 2000 --alpha 0.1 --title 'cygnus_center'
+cygnus_lsmr:
+	${TIME} disko  --healpix --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --res 0.012 --matrix-free --lsmr --nvis 5000 --alpha 0.1 --title 'cygnus_lsmr'
 	
 tart:
 	${TIME} disko --healpix --res 60 --fov 155 --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'
