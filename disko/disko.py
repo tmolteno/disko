@@ -520,6 +520,8 @@ class DiSkO(object):
                 #A, d, tol=1e-10, niter=niter, alpha=None, show=True,
                 threshkind = "soft", callback=A
             )
+            
+            logger.info(f"Fixta complete: {sky.shape} niter={niter}")
 
         if lsqr:
             if alpha < 0:
@@ -556,7 +558,7 @@ class DiSkO(object):
         if lsmr:
             if alpha < 0:
                 alpha = np.mean(self.rms)
-            x0 = Apre * d
+            x0 = Apre @ d
 
             sky, info = pylops.optimization.leastsquares.NormalEquationsInversion(
                 A, Regs=None, data=d, x0=x0, epsI=alpha, returninfo=True
