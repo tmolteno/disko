@@ -113,7 +113,7 @@ if __name__ == '__main__':
     #client = Client()
     #nside = ARGS.nside
     #radius = np.radians(ARGS.fov / 2.0)
-    if ARGS.mesh is not None:
+    if ARGS.mesh:
         sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.res_min, res_arcmax=ARGS.res_max, theta=np.radians(0.0), phi=0.0, radius_rad=np.radians(ARGS.fov/2))
     if ARGS.healpix:
         sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.res)
