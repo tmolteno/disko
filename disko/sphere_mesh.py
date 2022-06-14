@@ -126,7 +126,6 @@ def get_lmn(radius_rad, edge_size):
         sin(el_r) = r
 
     ''' 
-    print(f"r={r}")
     
     theta = r
     phi = np.arctan2(x, y)

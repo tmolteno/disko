@@ -72,6 +72,6 @@ class TestMeshsphere(unittest.TestCase):
         res_deg = 10
         fname='test.fits'
 
-        self.sphere.to_fits(fname=fname, fov=90)
+        self.sphere.to_fits(fname=fname)
         self.assertTrue(os.path.isfile(fname))
         os.remove(fname)
