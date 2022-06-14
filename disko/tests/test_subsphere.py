@@ -66,6 +66,6 @@ class TestSubsphere(unittest.TestCase):
                                       theta=np.radians(0.0), phi=0.0, 
                                       radius_rad=np.radians(45))
 
-        big.to_fits(fname=fname, fov=90)
+        big.to_fits(fname=fname)
         self.assertTrue(os.path.isfile(fname))
         os.remove(fname)
