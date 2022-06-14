@@ -61,7 +61,9 @@ dask:
 
 
 cygnus_lsmr:
-	${TIME} disko  --healpix --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --res 0.022 --matrix-free --lsmr --nvis 5000 --alpha 0.0001 --title 'cygnus_lsmr'
+	${TIME} disko  --healpix --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --res 0.022 --matrix-free --lsmr --nvis 50000 --alpha 0.001 --title 'cygnus_lsmr'
+cygnus_fista:
+	${TIME} disko  --healpix --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --res 0.022 --matrix-free --fista --niter 200 --nvis 5000 --alpha 10 --title 'cygnus_fista'
 	
 tart:
 	${TIME} disko --healpix --res 60 --fov 155 --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'
@@ -76,10 +78,10 @@ sphere:
 
 tart_fista:
 	rm -f disko.log
-	disko --healpix --fov 155 --res 90 --ms test_data/test.ms --SVG --alpha=-0.56 --fista --matrix-free --title 'tart_fista'
+	disko --healpix --fov 155 --res 180 --ms test_data/test.ms --SVG --fista --matrix-free --title 'tart_fista'
 tart_lsmr:
 	rm -f disko.log
-	disko --healpix --fov 155 --res 90 --ms test_data/test.ms --SVG --alpha=-0.56 --lsmr --matrix-free --title 'tart_lsmr'
+	disko --healpix --fov 155 --res 180 --ms test_data/test.ms --SVG --alpha=0.1 --lsmr --matrix-free --title 'tart_lsmr'
 
 ## 1000 0.1074
 ## 2000 0.0696

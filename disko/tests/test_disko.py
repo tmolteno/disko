@@ -181,6 +181,21 @@ class TestDiSkO(unittest.TestCase):
         for a,b in zip(vis[:,0], data[:,0,0]):
             self.assertAlmostEqual(a, b, 5)
 
+    def test_lsmr_matrix_free(self):
+        
+        ## Generate fake data with a frequency axis and an npol axis.
+        data = self.disko.vis_to_data()
+        sky = self.disko.solve_matrix_free(data, self.subsphere, alpha=0.0, scale=False, fista=False, lsqr=False, lsmr=True)
+        self.assertEqual(sky.shape[0], 1504)
+        
+        # Check that sky is a solution
+        vis = self.subgamma @ sky
+        logger.info("subgamma type {}".format(self.subgamma.dtype))
+        logger.info("sky type {}".format(sky.dtype))
+        self.assertEqual(vis[:,0].shape, data[:,0,0].shape)
+        for a,b in zip(vis[:,0], data[:,0,0]):
+            self.assertAlmostEqual(a, b, 4)
+
     def test_fista_matrix_free(self):
         
         ## Generate fake data with a frequency axis and an npol axis.

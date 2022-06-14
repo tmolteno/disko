@@ -227,7 +227,7 @@ class DiSkOOperator(pylops.LinearOperator):
             for l, m, n_1, a in zip(
                     self.sphere.l, self.sphere.m, self.sphere.n_minus_1,
                         self.sphere.pixel_areas ): 
-                theta = p2 * (self.u_arr * l + self.v_arr * m + self.w_arr * n_1)
+                theta = -p2 * (self.u_arr * l + self.v_arr * m + self.w_arr * n_1)
 
                 re = np.cos(theta)*a
                 im = np.sin(theta)*a
@@ -516,8 +516,8 @@ class DiSkO(object):
                 #alpha = 10**(-np.log10(self.n_v) + 2) ## Empirical fit
 
             sky, niter = pylops.optimization.sparsity.FISTA(
-                #A, d, x0=np.abs(Apre @ d), eigstol=1e-10, tol=1e-10, niter=niter, alpha=alpha, show=True,
-                A, d, tol=1e-10, niter=niter, alpha=None, show=True,
+                A, d, x0=np.abs(Apre @ d), eigstol=1e-10, tol=1e-10, niter=niter, alpha=alpha, show=True,
+                #A, d, niter=niter, alpha=None, show=True,
                 threshkind = "soft", callback=A
             )
             

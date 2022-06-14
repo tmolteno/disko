@@ -69,7 +69,7 @@ if __name__ == '__main__':
     parser.add_argument('--niter', type=int, default=100, help="Number of iterations for iterative solutions.")
     
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
-    parser.add_argument('--alpha', type=float, default=0.001, help="Regularization parameter.")
+    parser.add_argument('--alpha', type=float, default=None, help="Regularization parameter.")
     parser.add_argument('--l1-ratio', type=float, default=0.02, help="Regularization parameter, ratio of l1 to l2 (1.0 means l1 only).")
 
     parser.add_argument('--show-sources', action="store_true", help="Show known sources on images (only works on PNG & SVG).")
