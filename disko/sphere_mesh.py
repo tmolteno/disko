@@ -43,49 +43,49 @@ def area(cell, points):
 # def grad(self, x):
 # return -2 * x
 
-import pygmsh
+#import pygmsh
 
-class AdaptiveMeshSphereNew(Sphere):
+#class AdaptiveMeshSphereNew(Sphere):
     
-    def __init__(self, res_min, res_max, radius_rad):
-        self.radius_rad = radius_rad
-        self.fov = np.degrees(radius_rad * 2)
-        self.res_arcmin = np.degrees(res_max)*60
+    #def __init__(self, res_min, res_max, radius_rad):
+        #self.radius_rad = radius_rad
+        #self.fov = np.degrees(radius_rad * 2)
+        #self.res_arcmin = np.degrees(res_max)*60
         
-        self.res_max = res_max
-        self.res_min = res_min
+        #self.res_max = res_max
+        #self.res_min = res_min
         
-        edge_size = res_max / radius_rad
-        logger.info(f" Starting mesh generation {pygmsh.__version__}")
+        #edge_size = res_max / radius_rad
+        #logger.info(f" Starting mesh generation {pygmsh.__version__}")
 
-        with pygmsh.geo.Geometry() as geom:
-            geom.add_circle(
-                [0.0, 0.0, 0.0],
-                1.0,
-                mesh_size=edge_size,
-                num_sections=4,
-                compound=True,
-            )
-            mesh = geom.generate_mesh()
-            print(mesh)
-            X = mesh.points
-            cells = mesh.get_cells_type("triangle")
-        logger.info(f" Mesh generated: pts={X.shape}, cells={cells.shape}")
-        print(cells)
+        #with pygmsh.geo.Geometry() as geom:
+            #geom.add_circle(
+                #[0.0, 0.0, 0.0],
+                #1.0,
+                #mesh_size=edge_size,
+                #num_sections=4,
+                #compound=True,
+            #)
+            #mesh = geom.generate_mesh()
+            #print(mesh)
+            #X = mesh.points
+            #cells = mesh.get_cells_type("triangle")
+        #logger.info(f" Mesh generated: pts={X.shape}, cells={cells.shape}")
+        #print(cells)
 
-    @classmethod
-    def from_resolution(
-        cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius_rad=0.0
-    ):
-        # Theta is co-latitude measured southward from the north pole
-        # Phi is [0..2pi]
+    #@classmethod
+    #def from_resolution(
+        #cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius_rad=0.0
+    #):
+        ## Theta is co-latitude measured southward from the north pole
+        ## Phi is [0..2pi]
 
-        res_max = np.radians(res_arcmax / 60)
-        res_min = np.radians(res_arcmin / 60)
-        ret = cls(res_min, res_max, radius_rad)
-        logger.info("AdaptiveMeshSphere from_res, npix={}".format(ret.npix))
+        #res_max = np.radians(res_arcmax / 60)
+        #res_min = np.radians(res_arcmin / 60)
+        #ret = cls(res_min, res_max, radius_rad)
+        #logger.info("AdaptiveMeshSphere from_res, npix={}".format(ret.npix))
 
-        return ret
+        #return ret
 
 def get_mesh(radius_rad, edge_size):
 

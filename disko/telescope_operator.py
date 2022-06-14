@@ -384,7 +384,7 @@ class TelescopeOperator:
         t0 = time.time()
 
         sky, residuals, rank, s = np.linalg.lstsq(
-            np.array(self.gamma), np.array(vis_arr)
+            np.array(self.gamma), np.array(vis_arr), rcond=None
         )
 
         t1 = time.time()

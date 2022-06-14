@@ -35,12 +35,12 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(phi, 0)
 
 
-    def test_svg(self):
-        res_deg = 10
-        fname='test.svg'
-        sph = sphere.HealpixSphere(nside=8)
+    #def test_svg(self):
+        #res_deg = 10
+        #fname='test.svg'
+        #sph = sphere.HealpixSphere(nside=8)
 
-        sph.to_svg(fname=fname, pixels_only=True, show_cbar=False)
-        self.assertTrue(os.path.isfile(fname))
-        os.remove(fname)
+        #sph.to_svg(fname=fname, pixels_only=True, show_cbar=False)
+        #self.assertTrue(os.path.isfile(fname))
+        #os.remove(fname)
 

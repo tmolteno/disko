@@ -323,6 +323,7 @@ class HealpixSphere(Sphere):
     """
 
     def __init__(self, nside):
+        super().__init__()
         self.nside = nside
         self.npix = hp.nside2npix(self.nside)
         res = hp.nside2resol(nside, arcmin=True)
