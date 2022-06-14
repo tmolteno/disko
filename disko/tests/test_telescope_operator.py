@@ -76,7 +76,7 @@ class TestTelescopeOperator(unittest.TestCase):
             h_i = h_re + 1.0j*h_im
             dot = h_i @ h_i.conj().T
             #dot = np.dot(h_re, h_re) + np.dot(h_im, h_im)
-            self.assertAlmostEqual(dot, 1.0)
+            self.assertAlmostEqual(dot.compute(), 1.0)
   
 
     def test_null_harmonics(self):
@@ -84,7 +84,7 @@ class TestTelescopeOperator(unittest.TestCase):
         for i in range(0,self.to.n_n()):
             h_i = self.to.null_harmonic(i)
             dot = h_i @ h_i.conj().T
-            self.assertAlmostEqual(dot, 1.0)
+            self.assertAlmostEqual(dot.compute(), 1.0)
             
             # Check that it is in the null space. I.e. multiplication by Gamma returns zero.
             dut = self.to.gamma @ h_i
@@ -102,9 +102,9 @@ class TestTelescopeOperator(unittest.TestCase):
                 logger.info("natural dot = {}".format(dot))
                 
                 if (i == j):
-                    self.assertAlmostEqual(dot, 1.0)
+                    self.assertAlmostEqual(dot.compute(), 1.0)
                 else:
-                    self.assertAlmostEqual(dot, 0.0)
+                    self.assertAlmostEqual(dot.compute(), 0.0)
   
     def test_sky_conversion(self):
         ### Check orthogonality of the harmonics.
@@ -197,7 +197,7 @@ class TestTelescopeOperator(unittest.TestCase):
         
         for v1,v2 in zip(vis, vis3):
             logger.info("a,b = {} {}".format(v1, v2))
-            self.assertAlmostEqual(v1[0], v2[0])
+            self.assertAlmostEqual(v1[0].compute(), v2[0].compute())
             
 
     def test_A(self):
@@ -222,7 +222,7 @@ class TestTelescopeOperator(unittest.TestCase):
         
         for v1,v2 in zip(vis, vis3):
             logger.info("a,b = {} {}".format(v1, v2))
-            self.assertAlmostEqual(v1[0], v2[0])
+            self.assertAlmostEqual(v1[0].compute(), v2[0].compute())
             
 
     def test_bayes(self):
