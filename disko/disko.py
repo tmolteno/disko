@@ -191,8 +191,8 @@ class DiSkOOperator(pylops.LinearOperator):
         """
         n_u = self.u_arr.shape[0]
         
-        y_re = []
-        y_im = []
+        y_re = np.zeros(n_u)
+        y_im = np.zeros(n_u)
         
         for f in self.frequencies:
             p2 = omega(f)
@@ -205,10 +205,10 @@ class DiSkOOperator(pylops.LinearOperator):
                 z = -p2 * (u*self.sphere.l + v*self.sphere.m + w*self.sphere.n_minus_1)
                 re = np.cos(z)*self.sphere.pixel_areas
                 im = np.sin(z)*self.sphere.pixel_areas
-                y_re.append(np.dot(x, re))
-                y_im.append(np.dot(x, im))
+                y_re[i] = np.dot(x, re)
+                y_im[i] = np.dot(x, im)
 
-        return np.concatenate((np.array(y_re), np.array(y_im)))
+        return np.concatenate((y_re, y_im))
 
     def _rmatvec(self, v):
         r"""
@@ -225,9 +225,9 @@ class DiSkOOperator(pylops.LinearOperator):
             p2 = omega(f)
             # for each pixel
             for l, m, n_1, a in zip(
-                    self.sphere.l, self.sphere.m, self.sphere.n_minus_1, \
+                    self.sphere.l, self.sphere.m, self.sphere.n_minus_1,
                         self.sphere.pixel_areas ): 
-                theta = -p2 * (self.u_arr * l + self.v_arr * m + self.w_arr * n_1)
+                theta = p2 * (self.u_arr * l + self.v_arr * m + self.w_arr * n_1)
 
                 re = np.cos(theta)*a
                 im = np.sin(theta)*a
@@ -516,8 +516,8 @@ class DiSkO(object):
                 #alpha = 10**(-np.log10(self.n_v) + 2) ## Empirical fit
 
             sky, niter = pylops.optimization.sparsity.FISTA(
-                A, d, x0=np.abs(Apre @ d), eigstol=1e-10, tol=1e-10, niter=niter, alpha=alpha, show=True,
-                #A, d, tol=1e-10, niter=niter, alpha=None, show=True,
+                #A, d, x0=np.abs(Apre @ d), eigstol=1e-10, tol=1e-10, niter=niter, alpha=alpha, show=True,
+                A, d, tol=1e-10, niter=niter, alpha=None, show=True,
                 threshkind = "soft", callback=A
             )
             

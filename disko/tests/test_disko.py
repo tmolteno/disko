@@ -185,7 +185,7 @@ class TestDiSkO(unittest.TestCase):
         
         ## Generate fake data with a frequency axis and an npol axis.
         data = self.disko.vis_to_data()
-        sky = self.disko.solve_matrix_free(data, self.subsphere, alpha=0.0, scale=False, fista=True, lsqr=False, lsmr=False)
+        sky = self.disko.solve_matrix_free(data, self.subsphere, alpha=None, scale=False, fista=True, lsqr=False, lsmr=False)
         self.assertEqual(sky.shape[0], 1504)
         
         # Check that sky is a solution
@@ -213,9 +213,9 @@ class TestDiSkO(unittest.TestCase):
 
         vis1 = self.gamma @ sky
 
-        vis2 = Op.matvec(sky)
-        logger.info(vis1[0:10])
-        logger.info(vis2[0:10])
+        vis2 = Op @ sky # Op.matvec(sky)
+        logger.info(f"vis1: {vis1[0:10]}")
+        logger.info(f"vis2: {vis2[0:10]}")
         
         self.assertEqual(vis1.shape, vis2.shape)
         self.assertTrue(np.allclose(vis1, vis2))
