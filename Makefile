@@ -67,11 +67,12 @@ cygnus_fista:
 	
 tart:
 	${TIME} disko --healpix --res 60 --fov 155 --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'
-tart_a:
-	${TIME} disko --mesh 0 --res-min 120 --res-max 120 --fov 155 --ms test_data/test.ms --alpha=0.0025 --tikhonov  --title 'tarta'
+tart_mesh:
+	${TIME} disko --mesh --res-min 120 --res-max 120 --fov 155 --ms test_data/test.ms --alpha=0.0025 --tikhonov  --title 'tart_mesh'
 
-tart_amf:
-	${TIME} disko --mesh 0 --res-min 180 --res-max 180 --fov 155 --ms test_data/test.ms --alpha=0.0025 --fista --matrix-free  --title 'tarta_mf'
+tart_mesh_fista:
+	${TIME} disko --mesh --res-min 180 --res-max 180 --fov 155 --ms test_data/test.ms  --fista --alpha=25 --niter 1000  --matrix-free  --title 'tarta_mesh_fista'
+# 	${TIME} disko --mesh --res-min 180 --res-max 180 --fov 155 --ms test_data/test.ms --alpha=-0.0025 --fista --matrix-free  --title 'tarta_mesh_fista'
 
 sphere:
 	disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'

@@ -513,8 +513,9 @@ class DiSkO(object):
         # u,s,vt = spalg.svds(A, k=min(A.shape)-2)
         # logger.info("t ={}, s={}".format(time.time() - t0, s))
         if fista:
-            #if alpha <= 0:
-                #alpha = 10**(-np.log10(self.n_v) + 2) ## Empirical fit
+            if alpha is not None:
+                if alpha <= 0:
+                    alpha = 10**(-np.log10(self.n_v) + 2) ## Empirical fit
 
             sky, niter = pylops.optimization.sparsity.FISTA(
                 A, d, x0=np.abs(Apre @ d), eigstol=1e-10, tol=1e-10, niter=niter, alpha=alpha, show=True,
@@ -522,7 +523,7 @@ class DiSkO(object):
                 threshkind = "soft", callback=A
             )
             
-            logger.info(f"Fixta complete: {sky.shape} niter={niter}")
+            logger.info(f"FISTA complete: {sky.shape} niter={niter}")
 
         if lsqr:
             if alpha < 0:

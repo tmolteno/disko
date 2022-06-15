@@ -89,7 +89,7 @@ def area(cell, points):
 
 def get_mesh(radius_rad, edge_size):
 
-    logger.info(f"Generating Mesh: r_rad: {radius_rad}, edge = {edge_size}")
+    logger.info(f"Generating Mesh: r_rad: {radius_rad:4.2f}, edge = {edge_size:6.3f}")
     geo = dmsh.Circle(x0=[0.0, 0.0], r=1)
     X, cells = dmsh.generate(geo, target_edge_size=edge_size/radius_rad, 
                             tol=edge_size / 250,
@@ -145,7 +145,7 @@ class AdaptiveMeshSphere(Sphere):
     """
 
     def __init__(self, res_min, res_max, radius_rad):
-        logger.info(f"New AdaptiveMeshSphere({radius_rad}) res_min={res_min}, res_max={res_max}")
+        logger.info(f"New AdaptiveMeshSphere({radius_rad:4.2f}) res_min={res_min:4.2f}, res_max={res_max:4.2f}")
         self.radius_rad = radius_rad
         self.fov = np.degrees(radius_rad * 2)
         self.res_arcmin = np.degrees(res_max)*60
@@ -175,7 +175,7 @@ class AdaptiveMeshSphere(Sphere):
 
 
     def __repr__(self):
-        return f"AdaptiveMeshSphere fov={self.fov} deg, res_min={self.res_min}, N={self.npix}"
+        return f"AdaptiveMeshSphere fov={self.fov} deg, res_min={self.res_min:4.2f}, N={self.npix}"
 
     @classmethod
     def from_resolution(
