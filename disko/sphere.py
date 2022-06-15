@@ -246,7 +246,7 @@ class Sphere(object):
     def callback(self, x, i):
         fname = f"callback_{i:05d}.svg"
         stats = self.set_visible_pixels(x)
-        logger.info(f"Image stats: {json.dumps(ret, sort_keys=True)}")
+        logger.info(f"Image stats: {json.dumps(stats, sort_keys=True)}")
         self.to_svg(fname, title=f"Iteration {i}")
     
     def to_svg(
