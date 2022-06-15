@@ -246,7 +246,6 @@ class Sphere(object):
     def callback(self, x, i):
         fname = f"callback_{i:05d}.svg"
         stats = self.set_visible_pixels(x)
-        logger.info(f"Image stats: {json.dumps(stats, sort_keys=True)}")
         self.to_svg(fname, title=f"Iteration {i}")
     
     def to_svg(
@@ -271,7 +270,7 @@ class Sphere(object):
             # fact = factors(n_s)
             # rpix = exposure.equalize_adapthist(rpix.reshape((n_s//fact, -1)), clip_limit=0.03)
         self.pixels = rpix.reshape((len(pix),))
-        logger.info("Pixels Set {}".format(self.pixels.shape))
+        logger.info(f"Pixels Set {self.pixels.shape}, Image stats: {json.dumps(stats, sort_keys=True)}")
         return stats
 
     def to_fits(self, fname, title=None, info={}):
