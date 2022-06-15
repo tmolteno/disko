@@ -483,9 +483,10 @@ class DiSkO(object):
         bigguns = np.where(np.abs(c_res) > RESIDUAL_LIMIT)[0]
         logger.info(f"Residual problems {bigguns}")
         if self.indices is not None:
-            logger.info(f"Residual indices {self.indices[bigguns]}")
-        for b in bigguns.tolist():
-            logger.info(f"    {b}: {np.abs(c_res[b]):4.2f}: \t{self.u_arr[b]}, {self.v_arr[b]}, {self.w_arr[b]}: {c_data[b]}")
+            logger.info(f"Residual List")
+            logger.info(f"    MS_INDEX, INDEX, RES (sd), U,      V,      W,      VIS")
+            for b,i in zip(bigguns.tolist(), self.indices[bigguns]):
+                logger.info(f"    {i:07d}, {b:07d}, {np.abs(c_res[b]):4.2f},   {self.u_arr[b]:4.2f}, {self.v_arr[b]:4.2f}, {self.w_arr[b]:4.2f}, {c_data[b]:4.2f}")
 
     def solve_matrix_free(
         self, data, sphere, alpha=0.0, scale=True, fista=False, lsqr=True, lsmr=False, niter=25
