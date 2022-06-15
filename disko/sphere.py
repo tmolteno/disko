@@ -200,7 +200,6 @@ def lonlat(theta, phi):
 def image_stats(sky):
 
     rsky = sky.flatten()
-    logger.info(f"image_stats {rsky.shape}")
 
     ret = {}
 
@@ -221,8 +220,6 @@ def image_stats(sky):
         ret["R_mad"] = (ret["max"] - ret["med"]) / ret["mad"]
     else:
         ret["R_mad"] = ret["max"] - ret["med"]
-
-    logger.info(json.dumps(ret, sort_keys=True))
 
     return ret
 
@@ -248,7 +245,8 @@ class Sphere(object):
         
     def callback(self, x, i):
         fname = f"callback_{i:05d}.svg"
-        self.set_visible_pixels(x)
+        stats = self.set_visible_pixels(x)
+        logger.info(f"Image stats: {json.dumps(ret, sort_keys=True)}")
         self.to_svg(fname, title=f"Iteration {i}")
     
     def to_svg(
