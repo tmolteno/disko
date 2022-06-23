@@ -61,7 +61,7 @@ dask:
 
 
 cygnus_lsmr:
-	${TIME} disko  --healpix --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --res 0.022 --matrix-free --lsmr --nvis 50000 --alpha 0.001 --title 'cygnus_lsmr'
+	${TIME} disko  --healpix --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --res 0.022 --matrix-free --lsmr --nvis 50000 --alpha 0.01 --title 'cygnus_lsmr'
 cygnus_fista:
 	${TIME} disko  --healpix --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --res 0.072 --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
 	
@@ -93,7 +93,7 @@ NV_CYG=32000
 #	1281930
 mf_cyg:
 	rm -f disko.log
-	disko --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --SVG --arcmin=0.015 --alpha=-0.0695 --nvis ${NV_CYG} --fista --matrix-free --title 'mf_cyg' --niter 100
+	disko --mesh --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --SVG --res-min=0.015  --res-max=0.015 --alpha=-0.0695 --nvis ${NV_CYG} --fista --matrix-free --title 'mf_cyg' --niter 100
 	
 
 profile:

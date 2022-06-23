@@ -10,6 +10,7 @@ from scipy.spatial import Delaunay, delaunay_plot_2d
 import meshio
 
 from .sphere import Sphere, hp2elaz, elaz2lmn
+from .resolution import Resolution
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -89,7 +90,7 @@ def area(cell, points):
 
 def get_mesh(radius_rad, edge_size):
 
-    logger.info(f"Generating Mesh: r_rad: {radius_rad:4.2f}, edge = {edge_size:6.3f}")
+    logger.info(f"Generating Mesh: Radius: {Resolution.from_rad(radius_rad)}, edge = {Resolution.from_rad(edge_size)} %")
     geo = dmsh.Circle(x0=[0.0, 0.0], r=1)
     X, cells = dmsh.generate(geo, target_edge_size=edge_size/radius_rad, 
                             tol=edge_size / 250,
@@ -139,15 +140,16 @@ def get_lmn(radius_rad, edge_size):
 
     return X, cells, pixel_areas, el_r, az_r, l,m,n
 
+    
 class AdaptiveMeshSphere(Sphere):
     """
     An adaptive mesh sphere.
     """
 
     def __init__(self, res_min, res_max, radius_rad):
-        logger.info(f"New AdaptiveMeshSphere({radius_rad:4.2f}) res_min={res_min:4.2f}, res_max={res_max:4.2f}")
+        logger.info(f"New AdaptiveMeshSphere({Resolution.from_rad(radius_rad)}) res_min={Resolution.from_rad(res_min)}, res_max={Resolution.from_rad(res_max)}")
         self.radius_rad = radius_rad
-        self.fov = np.degrees(radius_rad * 2)
+        self.fov = Resolution.from_rad(radius_rad * 2)
         self.res_arcmin = np.degrees(res_max)*60
         
         self.res_max = res_max
@@ -175,7 +177,7 @@ class AdaptiveMeshSphere(Sphere):
 
 
     def __repr__(self):
-        return f"AdaptiveMeshSphere fov={self.fov} deg, res_min={self.res_min:4.2f}, N={self.npix}"
+        return f"AdaptiveMeshSphere fov={self.fov}, res_min={Resolution.from_rad(self.res_min)}, N={self.npix}"
 
     @classmethod
     def from_resolution(
