@@ -20,31 +20,6 @@ logger.addHandler(
 logger.setLevel(logging.INFO)
 
 
-def get_baseline_resolution(bl, frequency):
-    # Period of fringes is bl*sin(theta)
-    # resolution is then theta_min = lambda / bl
-    c = 2.99793e8
-    wavelength = c / frequency
-
-    res_limit = np.arcsin(wavelength / bl)  # approx wavelength/bl
-    return Resolution.from_rad(res_limit)
-
-
-def get_max_baseline_from_resolution(res, frequency):
-    # d sin(theta) = \lambda / 2
-    theta = res.radians()
-    c = 2.99793e8
-    wavelength = c / frequency
-    bl_max = wavelength / (np.sin(theta))
-    return bl_max
-
-
-# def get_visibility(vis_arr, baselines, i,j):
-# if (i > j):
-# return get_visibility(vis_arr, baselines, j, i)
-
-# return vis_arr[baselines.index([i,j])]
-
 
 class RadioObservation(object):
     def __init__(self):
@@ -137,7 +112,7 @@ def read_ms(ms, num_vis, resolution, chunks=1000, channel=0, field_id=0):
                 #   Now calculate which indices we should use to get the required number of
                 #   visibilities.
                 #
-                bl_max = get_max_baseline_from_resolution(resolution, frequency)
+                bl_max = resolution.get_min_baseline(frequency)
 
                 logger.info("Resolution Max UVW: {:g} meters".format(bl_max))
                 logger.info("Flags: {}".format(flags.shape))
@@ -146,7 +121,7 @@ def read_ms(ms, num_vis, resolution, chunks=1000, channel=0, field_id=0):
                 # 1.0 / 2*np.sin(theta) = limit_u
                 limit_uvw = np.max(np.abs(uvw), 0)
 
-                res_limit = get_baseline_resolution(limit_uvw[0], frequency)
+                res_limit = Resolution.from_baseline(np.max(limit_uvw), frequency)
                 logger.info(f"Nyquist resolution: {res_limit}")
 
                 if True:
@@ -234,6 +209,7 @@ def read_ms(ms, num_vis, resolution, chunks=1000, channel=0, field_id=0):
 
     except Exception as e:
         logger.info("Exception {}".format(e))
+        logger.exception(e)
 
     # finally:
     # client.close()

@@ -70,3 +70,39 @@ class Resolution:
 
         uas = mas * 1000
         return f"{uas:4.2f}uas"
+    
+    
+    def get_min_baseline(self, frequency):
+        '''
+            Get the shortest baseline that will resolve 
+            this resolution, and the specified frequency.
+            
+            Double-slit interferometer (spacing d). Fringe maxima
+            occur at angles where
+                d * sin(theta) = n * wavelength
+                
+            n = 1: sin(theta) = wavelength/d
+            n = 2: sin(theta) = 2*wavelength/d
+            
+            angular spacing = wavelength / d
+            
+            so d = spacing / theta
+        '''
+        c = 2.99793e8
+        wavelength = c / frequency
+        spacing = wavelength / self.x_rad
+        return spacing*2    # Nyquist requires twice this...
+
+    @classmethod
+    def from_baseline(cls, bl, frequency):
+        '''
+            Return the angular resolution that will be
+            given by a particular baseline length
+        '''
+        c = 2.99793e8
+        wavelength = c / frequency
+
+        res_limit = wavelength / bl
+        return cls(res_limit / 2) # Nyquist requires twice this
+
+
