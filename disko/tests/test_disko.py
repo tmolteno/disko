@@ -12,7 +12,7 @@ import pylops
 
 from disko import DiSkO
 import disko
-from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere
+from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere, Resolution
 
 from tart.operation import settings
 from tart_tools import api_imaging
@@ -76,13 +76,13 @@ class TestDiSkO(unittest.TestCase):
         cls.disko = DiSkO.from_cal_vis(cv)
         cls.nside = 16
         cls.sphere = HealpixSphere(cls.nside)
-        res_deg = 4.0
-        cls.subsphere = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0, 
+        res = Resolution.from_deg(4.0)
+        cls.subsphere = HealpixSubSphere.from_resolution(res_arcmin=res.arcmin(), 
                                       theta = np.radians(0.0), phi=0.0, radius_rad=np.radians(89))
         
-        cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=20, res_arcmax=res_deg*60, 
+        cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_min=res, res_max=res, 
                                                          theta=np.radians(0.0), 
-                                                         phi=0.0, radius_rad=np.radians(10))
+                                                         phi=0.0, fov=Resolution.from_deg(10))
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
         cls.subgamma = cls.disko.make_gamma(cls.subsphere)
