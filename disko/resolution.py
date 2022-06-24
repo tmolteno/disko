@@ -53,7 +53,7 @@ class Resolution:
         return np.de
     
     def __repr__(self):
-        d = np.degrees(self.x_rad)
+        d = self.degrees()
         if np.abs(d) > 1:
             return f"{d:4.2f}deg"
         

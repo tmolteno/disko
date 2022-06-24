@@ -143,9 +143,8 @@ class PlotCoords(object):
 
     """
 
-    def __init__(self, h, fov):
+    def __init__(self, h, fov_rad):
         # w is width in pixels
-        fov_rad = np.radians(fov / 2)
         angular_scale = 1.0 / np.sin(fov_rad)
         self.scale = float(h) * angular_scale / 2.1
         self.center_x = int(round(float(h) / 2.0))
@@ -291,7 +290,7 @@ class Sphere(object):
         points = (l, m)
         values = self.pixels
 
-        l0 = np.sin(np.radians(self.fov.radians() / 2))
+        l0 = np.sin(self.fov.radians() / 2)
 
         width = 2000
         height = 2000
@@ -406,16 +405,14 @@ class HealpixSphere(Sphere):
         # dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
         # dwg.add(dwg.text('Test', insert=(0, 0.2), fill='red'))
 
-        pc = PlotCoords(h, self.fov)
+        pc = PlotCoords(h, self.fov.radians()/2)
         line_size = pc.line_size
 
         # dwg.desc("Gridless imaging from visibilities.")
         if True:  # info is not None:
-            rad = np.radians(self.fov / 2)
+            rad = self.fov.radians() / 2
             width = np.sin(rad)
             font_size = pc.from_d(0.05 * width)
-
-            fov_arcmin = self.fov * 60.0
 
             x = pc.from_x(-width)
 
@@ -631,9 +628,10 @@ class HealpixSphere(Sphere):
                 stroke_linejoin="round",
                 stroke_dasharray="{},{}".format(5 * line_size, 10 * line_size),
             )
+            
+            fov_rad = self.fov.radians()
 
-            for angle in np.linspace(0, self.fov / 2, 4)[1:]:  # three circles
-                rad = np.radians(angle)
+            for rad in np.linspace(0, fov_rad / 2, 4)[1:]:  # three circles
                 radius = pc.from_d(np.sin(rad))
                 grid_lines.add(
                     dwg.circle(center=(pc.from_x(0.0), pc.from_y(0.0)), r=radius)
@@ -641,11 +639,11 @@ class HealpixSphere(Sphere):
 
             for angle in range(0, 360, 30):
                 rad = np.radians(angle)
-                radius = np.sin(np.radians(self.fov / 6))
+                radius = np.sin(fov_rad / 6)
                 x0 = radius * np.sin(rad)
                 y0 = radius * np.cos(rad)
 
-                radius = np.sin(np.radians(self.fov / 2))
+                radius = np.sin(fov_rad / 2)
                 x = radius * np.sin(rad)
                 y = radius * np.cos(rad)
                 grid_lines.add(
@@ -758,7 +756,7 @@ class HealpixSubSphere(HealpixSphere):
 
         theta, phi = hp.pix2ang(nside, ret.pixel_indices)
 
-        ret.fov = np.degrees(radius_rad * 2)
+        ret.fov = Resolution.from_rad(radius_rad * 2)
         ret.pixels = np.zeros(ret.npix)  # + hp.UNSEEN
 
         el_r, az_r = hp2elaz(theta, phi)
@@ -778,7 +776,7 @@ class HealpixSubSphere(HealpixSphere):
         return ret
 
     def __repr__(self):
-        return f"HealpixSubSphere fov={self.fov} deg, nside={self.nside}"
+        return f"HealpixSubSphere fov={self.fov}, nside={self.nside}"
 
     def split(self, n):
         ret = []
