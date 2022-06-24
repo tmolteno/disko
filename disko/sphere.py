@@ -16,28 +16,31 @@ logger.addHandler(
 )  # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
+from .resolution import Resolution
 
-def create_fov(nside, fov_deg, res_arcmin, theta=0.0, phi=0.0):
+def create_fov(nside, fov, res, theta=0.0, phi=0.0):
     """
     Create an appropriate Sphere object based on:
 
-    - fov_deg : The field of view in degrees
+    - fov : The field of view as a Resolution object
 s
     """
-    if nside is not None and fov_deg is None:
+    
+    if nside is not None and fov is None:
         sphere = HealpixSphere(nside)
-    elif nside is not None and fov_deg is not None:
-        radius = np.radians(fov_deg / 2.0)
+    elif nside is not None and fov is not None:
+        radius_rad = fov.radians() / 2
         sphere = HealpixSubSphere.from_resolution(
-            nside=nside, theta=theta, phi=phi, radius_rad=radius
-        )
-    elif res_arcmin is not None and fov_deg is not None:
-        radius = np.radians(fov_deg / 2.0)
+            nside=nside, theta=theta, phi=phi, radius_rad=radius_rad)
+    elif res is not None and fov is not None:
+        radius_rad = fov.radians() / 2
+        res_arcmin = res.arcmin()
         sphere = HealpixSubSphere.from_resolution(
-            res_arcmin=res_arcmin, theta=theta, phi=phi, radius_rad=radius
-        )
+            res_arcmin=res_arcmin, theta=theta, phi=phi, radius_rad=radius_rad)
     else:
         raise RuntimeError("Either nside, or res_arcmin must be specified")
+    
+    logger.info(f"create_fov -> {sphere}")
     return sphere
 
 
@@ -248,6 +251,9 @@ class Sphere(object):
         stats = self.set_visible_pixels(x)
         self.to_svg(fname, title=f"Iteration {i}")
     
+    def min_res(self):
+        raise Exception("min_res not implemented for this sphere")
+
     def to_svg(
         self,
         fname,
@@ -257,8 +263,8 @@ class Sphere(object):
         title=None,
         show_cbar=True,
     ):
-        raise Exception("SVG output not implemented for this sphere")
-    
+        raise Exception("SVG not implemented for this sphere")
+
     def set_visible_pixels(self, pix, scale=False):
         # This discards the imaginary part.
         rpix = np.asarray(np.real(pix))
@@ -285,7 +291,7 @@ class Sphere(object):
         points = (l, m)
         values = self.pixels
 
-        l0 = np.sin(np.radians(self.fov / 2))
+        l0 = np.sin(np.radians(self.fov.radians() / 2))
 
         width = 2000
         height = 2000
@@ -324,13 +330,9 @@ class HealpixSphere(Sphere):
         self.nside = nside
         self.npix = hp.nside2npix(self.nside)
         res = hp.nside2resol(nside, arcmin=True)
-        self.res_arcmin = res
+        self._min_res = Resolution.from_arcmin(res)
 
-        logger.info(
-            "New Sphere, nside={}. npix={}, res={} arcmin".format(
-                self.nside, self.npix, self.res_arcmin
-            )
-        )
+        logger.info(f"New Sphere, nside={nside}. npix={self.npix}, res={self.min_res()} arcmin")
 
         self.pixel_indices = np.arange(self.npix)
         theta, phi = hp.pix2ang(nside, self.pixel_indices)
@@ -351,6 +353,9 @@ class HealpixSphere(Sphere):
 
     def __repr__(self):
         return f"HealpixSphere nside={self.nside}"
+    
+    def min_res(self):
+        return self._min_res
     
     def get_lmn(self):
         return self.l, self.m, self.n
@@ -426,62 +431,24 @@ class HealpixSphere(Sphere):
                 )
 
             y = font_size * 2
-            if self.res_arcmin / 60 < 1.0:
-                dwg.add(
-                    dwg.text(
-                        "Res: {:5.2f} mas".format(self.res_arcmin * 60 * 1000),
-                        (x, y),
-                        text_anchor="start",
-                        font_size="{}px".format(font_size),
-                    )
+            dwg.add(
+                dwg.text(
+                    f"Res: {self.min_res()}",
+                    (x, y),
+                    text_anchor="start",
+                    font_size="{}px".format(font_size),
                 )
-            elif self.res_arcmin < 1.0:
-                dwg.add(
-                    dwg.text(
-                        'Res: {:5.2f} "'.format(self.res_arcmin * 60),
-                        (x, y),
-                        text_anchor="start",
-                        font_size="{}px".format(font_size),
-                    )
-                )
-            else:
-                dwg.add(
-                    dwg.text(
-                        "Res: {:5.2f} '".format(self.res_arcmin),
-                        (x, y),
-                        text_anchor="start",
-                        font_size="{}px".format(font_size),
-                    )
-                )
+            )
 
             y = font_size * 3
-            if fov_arcmin < 1.0:
-                dwg.add(
-                    dwg.text(
-                        "FOV: {:.4f} mas".format(fov_arcmin * 60 * 1000),
-                        (x, y),
-                        text_anchor="start",
-                        font_size="{}px".format(font_size),
-                    )
+            dwg.add(
+                dwg.text(
+                    f"FOV: {self.fov}",
+                    (x, y),
+                    text_anchor="start",
+                    font_size="{}px".format(font_size),
                 )
-            elif fov_arcmin < 180:
-                dwg.add(
-                    dwg.text(
-                        "FOV: {:4.2f} '".format(fov_arcmin),
-                        (x, y),
-                        text_anchor="start",
-                        font_size="{}px".format(font_size),
-                    )
-                )
-            else:
-                dwg.add(
-                    dwg.text(
-                        "FOV: {:4.2f} deg".format(fov_arcmin / 60),
-                        (x, y),
-                        text_anchor="start",
-                        font_size="{}px".format(font_size),
-                    )
-                )
+            )
 
             y = font_size * 4
             dwg.add(
@@ -756,14 +723,14 @@ class HealpixSubSphere(HealpixSphere):
     def __init__(self, nside):
         res = hp.nside2resol(nside, arcmin=True)
         self.nside = nside
-        self.res_arcmin = res
-        logger.info("New SubSphere, nside={}, res={} arcmin".format(self.nside, res))
+        self._min_res = Resolution.from_arcmin(res)
+        logger.info(f"New SubSphere, nside={self.nside}, res={self._min_res}")
 
     @classmethod
     def from_resolution(
         cls, res_arcmin=None, nside=None, theta=0.0, phi=0.0, radius_rad=0.0
     ):
-        logger.info(f"from_resolution(res_arcmin={res_arcmin}, nside={nside}, theta={theta}, phi={phi}, radius_rad={radius_rad})")
+        logger.info(f"HealpixSubSphere.from_resolution(res={res_arcmin} arcmin, nside={nside}, theta={theta}, phi={phi}, radius_rad={radius_rad})")
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
 

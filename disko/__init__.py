@@ -23,3 +23,4 @@ from .draw_sky import mask_to_sky
 from .ms_helper import read_ms
 from .projection_lsqr import plsqr
 from .multivariate_gaussian import MultivariateGaussian
+from .resolution import Resolution

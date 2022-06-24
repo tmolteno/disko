@@ -66,7 +66,7 @@ cygnus_fista:
 	${TIME} disko  --healpix --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --res 0.072 --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
 	
 tart:
-	${TIME} disko --healpix --res 60 --fov 155 --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'
+	${TIME} disko --healpix --res 1deg --fov 155deg --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'
 tart_mesh:
 	${TIME} disko --mesh --res-min 120 --res-max 120 --fov 155 --ms test_data/test.ms --alpha=0.0025 --tikhonov  --title 'tart_mesh'
 

@@ -13,6 +13,7 @@ from copy import deepcopy
 
 import numpy as np
 
+
 #from tart.operation import settings
 
 #from tart_tools import api_handler
@@ -21,7 +22,7 @@ import numpy as np
 
 from dask.distributed import Client
 
-from disko import DiSkO, get_source_list, AdaptiveMeshSphere, create_fov
+from disko import DiSkO, get_source_list, AdaptiveMeshSphere, create_fov, Resolution
 
 
 if __name__ == '__main__':
@@ -33,21 +34,21 @@ if __name__ == '__main__':
     parser_mesh = argparse.ArgumentParser(add_help=False)
     parser_mesh.add_argument('--mesh', action="store_true", help="Use a non-structured mesh in the image space")
     parser_mesh.add_argument('--adaptive', type=int, default=0, help="Use N cycles of adaptive meshing")
-    parser_mesh.add_argument('--res-min', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
-    parser_mesh.add_argument('--res-max', type=float, default=None, help="Starting Resolution of the sky in arc minutes.")
+    parser_mesh.add_argument('--res-min', type=str, default=None, help="Highest allowed res of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
+    parser_mesh.add_argument('--res-max', type=str, default=None, help="Starting Resolution of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
 
 
     parser_sphere = argparse.ArgumentParser(add_help=False)
     parser_sphere.add_argument('--healpix', action="store_true", help="Use HealPix tiling")
     parser_sphere.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
-    parser_sphere.add_argument('--res', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
+    parser_sphere.add_argument('--res', type=str, default=None, help="Highest allowed res of the sky in arc minutes.")
 
 
     parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image using the web api of a TART radio telescope.', 
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,  parents=[parser_mesh, parser_sphere])
 
 
-    parser.add_argument('--fov', type=float, default=None, help="Field of view in degrees.")
+    parser.add_argument('--fov', type=str, required=True, help="Field of view. E.g. 1.3deg, 12\", 11', 8uas, 6mas...")
 
     data_group = parser.add_mutually_exclusive_group()
     data_group.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
@@ -79,6 +80,7 @@ if __name__ == '__main__':
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
+    parser.add_argument('--VTK', action="store_true", help="Generate a VTK mesh format image.")
     parser.add_argument('--FITS', action="store_true", help="Generate a FITS format image.")
 
     parser.add_argument('--cv', action="store_true", help="Use Cross Validation")
@@ -88,6 +90,7 @@ if __name__ == '__main__':
     source_json = None
 
     ARGS = parser.parse_args()
+    print(ARGS)
         
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -113,10 +116,18 @@ if __name__ == '__main__':
     #client = Client()
     #nside = ARGS.nside
     #radius = np.radians(ARGS.fov / 2.0)
+    
+    fov = Resolution.from_string(ARGS.fov)
+    
     if ARGS.mesh:
-        sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=ARGS.res_min, res_arcmax=ARGS.res_max, theta=np.radians(0.0), phi=0.0, radius_rad=np.radians(ARGS.fov/2))
+        res_min = Resolution.from_string(ARGS.res_min)
+        res_max = Resolution.from_string(ARGS.res_max)
+        
+        sphere = AdaptiveMeshSphere.from_resolution(res_min=res_min, res_max=res_max, theta=np.radians(0.0), phi=0.0, fov=fov)
     if ARGS.healpix:
-        sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.res)
+        
+        res = Resolution.from_string(ARGS.res)
+        sphere = create_fov(ARGS.nside, fov=fov, res=res)
 
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
@@ -144,12 +155,14 @@ if __name__ == '__main__':
             src_list = elaz.from_json(source_json, 0.0)
         disko = DiSkO.from_cal_vis(cv)
     elif ARGS.ms:
-        logger.info("Getting Data from MS file: {}".format(ARGS.ms))
+        logger.info(f"Getting Data from MS file: {ARGS.ms} to {sphere}")
 
         if not os.path.exists(ARGS.ms):
             raise RuntimeError(f"Measurement set {ARGS.ms} not found")
 
-        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=sphere.res_arcmin, channel=ARGS.channel, field_id=ARGS.field)
+        min_res = sphere.min_res()
+        logger.info(f"Min Res {min_res}")
+        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=min_res.arcmin(), channel=ARGS.channel, field_id=ARGS.field)
         # Convert from reduced Julian Date to timestamp.
         timestamp = disko.timestamp
         
@@ -224,6 +237,9 @@ if __name__ == '__main__':
 
     def save_images(image_title, source_list):
         
+        if ARGS.VTK:
+            sphere.write_mesh(path('vtk', image_title))
+
         if ARGS.FITS:
             # Save as a FITS file
             sphere.to_fits(fname=path('fits', image_title), info=disko.info)

@@ -146,16 +146,15 @@ class AdaptiveMeshSphere(Sphere):
     An adaptive mesh sphere.
     """
 
-    def __init__(self, res_min, res_max, radius_rad):
-        logger.info(f"New AdaptiveMeshSphere({Resolution.from_rad(radius_rad)}) res_min={Resolution.from_rad(res_min)}, res_max={Resolution.from_rad(res_max)}")
-        self.radius_rad = radius_rad
-        self.fov = Resolution.from_rad(radius_rad * 2)
-        self.res_arcmin = np.degrees(res_max)*60
-        
+    def __init__(self, res_min, res_max, fov):
+        logger.info(f"New AdaptiveMeshSphere(fov={fov}) res_min={res_min}, res_max={res_max}")
+        self.radius_rad = fov.radians() / 2
+        self.fov = fov
+        self.res_arcmin = res_max
         self.res_max = res_max
         self.res_min = res_min
 
-        points, simplices, pixel_areas, el_r, az_r, l,m,n = get_lmn(radius_rad, res_max)
+        points, simplices, pixel_areas, el_r, az_r, l,m,n = get_lmn(self.radius_rad, self.res_max.radians())
         
         self.l = l
         self.m = m
@@ -175,20 +174,18 @@ class AdaptiveMeshSphere(Sphere):
 
         self.pixel_areas = pixel_areas / total_area
 
+    def min_res(self):
+        return self.res_min
 
     def __repr__(self):
-        return f"AdaptiveMeshSphere fov={self.fov}, res_min={Resolution.from_rad(self.res_min)}, N={self.npix}"
+        return f"AdaptiveMeshSphere fov={self.fov}, res_min={self.res_min}, N={self.npix}"
 
     @classmethod
-    def from_resolution(
-        cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius_rad=0.0
-    ):
+    def from_resolution(cls, res_min=None, res_max=None, theta=0.0, phi=0.0, fov=None):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
 
-        res_max = np.radians(res_arcmax / 60)
-        res_min = np.radians(res_arcmin / 60)
-        ret = cls(res_min, res_max, radius_rad)
+        ret = cls(res_min, res_max, fov)
         logger.info(f"AdaptiveMeshSphere from_res, npix={ret.npix}")
 
         return ret
