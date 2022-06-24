@@ -376,10 +376,13 @@ class AdaptiveMeshSphere(Sphere):
 
     def write_mesh(self, fname="output.vtk"):
         # Add a zero third dimension to avoid a VTK warning.
+        logger.info(f"Writing VTK file {fname}")
         mesh_pts = np.zeros((self.points.shape[0], 3))
         mesh_pts[:,0] = self.points[:,0]
         mesh_pts[:,1] = self.points[:,1]
         
+        # Scale mesh points if they're too small
+        mesh_pts = mesh_pts * 1000
         # and write it to a file
         meshio.write_points_cells(
             fname,

@@ -11,6 +11,8 @@ from daskms import xds_from_table, xds_from_ms, xds_to_table, TableProxy
 from dask.diagnostics import ProgressBar
 from dask.distributed import progress
 
+from .resolution import Resolution
+
 logger = logging.getLogger(__name__)
 logger.addHandler(
     logging.NullHandler()
@@ -20,17 +22,17 @@ logger.setLevel(logging.INFO)
 
 def get_baseline_resolution(bl, frequency):
     # Period of fringes is bl*sin(theta)
-    # resolution is then theta_min = lambda / b
+    # resolution is then theta_min = lambda / bl
     c = 2.99793e8
     wavelength = c / frequency
 
     res_limit = np.arcsin(wavelength / bl)  # approx wavelength/bl
-    return res_limit
+    return Resolution.from_rad(res_limit)
 
 
-def get_resolution_max_baseline(res_arcmin, frequency):
+def get_max_baseline_from_resolution(res, frequency):
     # d sin(theta) = \lambda / 2
-    theta = np.radians(res_arcmin / 60.0)
+    theta = res.radians()
     c = 2.99793e8
     wavelength = c / frequency
     bl_max = wavelength / (np.sin(theta))
@@ -49,12 +51,12 @@ class RadioObservation(object):
         pass
 
 
-def read_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0, field_id=0):
+def read_ms(ms, num_vis, resolution, chunks=1000, channel=0, field_id=0):
     """
     Use dask-ms to load the necessary data to create a telescope operator
     (will use uvw positions, and antenna positions)
 
-    -- res_arcmin: Used to calculate the maximum baselines to consider.
+    -- resolution: Used to calculate the maximum baselines to consider.
                    We want two pixels per smallest fringe
                    pix_res > fringe / 2
 
@@ -135,7 +137,7 @@ def read_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0, field_id=0):
                 #   Now calculate which indices we should use to get the required number of
                 #   visibilities.
                 #
-                bl_max = get_resolution_max_baseline(res_arcmin, frequency)
+                bl_max = get_max_baseline_from_resolution(resolution, frequency)
 
                 logger.info("Resolution Max UVW: {:g} meters".format(bl_max))
                 logger.info("Flags: {}".format(flags.shape))
@@ -145,11 +147,7 @@ def read_ms(ms, num_vis, res_arcmin, chunks=1000, channel=0, field_id=0):
                 limit_uvw = np.max(np.abs(uvw), 0)
 
                 res_limit = get_baseline_resolution(limit_uvw[0], frequency)
-                logger.info(
-                    "Nyquist resolution: {:g} arcmin".format(
-                        np.degrees(res_limit) * 60.0
-                    )
-                )
+                logger.info(f"Nyquist resolution: {res_limit}")
 
                 if True:
                     bl = np.sqrt(uvw[:, 0] ** 2 + uvw[:, 1] ** 2 + uvw[:, 2] ** 2)
