@@ -32,7 +32,7 @@ ngc1194:
 
 adaptive:
 	rm -f round*.vtk
-	${TIME} disko --mesh --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --res-min 0.07 --res-max=0.1 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus' 
+	${TIME} disko --mesh --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --res 0.07 --res-max=0.1 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus' 
 	
 
 # Requires memory_profiler pip3 install memory_profiler
@@ -68,21 +68,21 @@ cygnus_fista:
 tart:
 	${TIME} disko --healpix --res 1deg --fov 155deg --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'
 tart_mesh:
-	${TIME} disko --mesh --res-min 2deg --res-max 2deg --fov 155deg --ms test_data/test.ms --alpha=0.0025 --tikhonov  --title 'tart_mesh'
+	${TIME} disko --mesh --res 2deg --fov 155deg --ms test_data/test.ms --alpha=0.0025 --tikhonov  --title 'tart_mesh'
 
 tart_mesh_fista:
-	${TIME} disko --mesh --res-min 180 --res-max 180 --fov 155 --ms test_data/test.ms  --fista --alpha=25 --niter 1000  --matrix-free  --title 'tarta_mesh_fista'
-# 	${TIME} disko --mesh --res-min 180 --res-max 180 --fov 155 --ms test_data/test.ms --alpha=-0.0025 --fista --matrix-free  --title 'tarta_mesh_fista'
+	${TIME} disko --mesh --res 3deg --fov 155 --ms test_data/test.ms  --fista --alpha=25 --niter 1000  --matrix-free  --title 'tarta_mesh_fista'
+# 	${TIME} disko --mesh --res 180 --res-max 180 --fov 155 --ms test_data/test.ms --alpha=-0.0025 --fista --matrix-free  --title 'tarta_mesh_fista'
 
 sphere:
 	disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
 
 tart_fista:
 	rm -f disko.log
-	disko --healpix --fov 155 --res 180 --ms test_data/test.ms --SVG --fista --matrix-free --title 'tart_fista'
+	disko --healpix --fov 155 --res 3deg --ms test_data/test.ms --SVG --fista --matrix-free --title 'tart_fista'
 tart_lsmr:
 	rm -f disko.log
-	disko --healpix --fov 155 --res 180 --ms test_data/test.ms --SVG --alpha=0.1 --lsmr --matrix-free --title 'tart_lsmr'
+	disko --healpix --fov 155 --res 1deg --ms test_data/test.ms --SVG --alpha=0.01 --lsmr --matrix-free --title 'tart_lsmr'
 
 ## 1000 0.1074
 ## 2000 0.0696
@@ -93,7 +93,7 @@ NV_CYG=32000
 #	1281930
 mf_cyg:
 	rm -f disko.log
-	disko --mesh --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --SVG --res-min=0.015  --res-max=0.015 --alpha=-0.0695 --nvis ${NV_CYG} --fista --matrix-free --title 'mf_cyg' --niter 100
+	disko --mesh --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --SVG --res=0.015 --alpha=-0.0695 --nvis ${NV_CYG} --fista --matrix-free --title 'mf_cyg' --niter 100
 	
 
 profile:

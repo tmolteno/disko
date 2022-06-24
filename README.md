@@ -45,12 +45,12 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
+
 0.9.3b2 Fix indexing error in read_ms when the number of visibilities requested exceeded the number available.
         clean up the meshing 
-        rework the command line interface
+        rework the command line interface. New resolution specification
         Output residuals to the terminal (still no way to include them back in...). The ms needs to be flagged externally.
         Use Natural weighting when reading from measurement sets
-        
 0.9.3b1 Add --h5 option to allow sequential inference from a visiblity file.
 0.9.2b1 No longer require arcmin for construction of spheres
 0.9.1b1 Remove constraint that nside is a power of two now that healpy has accepted the pull request.

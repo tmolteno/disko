@@ -35,13 +35,11 @@ if __name__ == '__main__':
     parser_mesh.add_argument('--mesh', action="store_true", help="Use a non-structured mesh in the image space")
     parser_mesh.add_argument('--adaptive', type=int, default=0, help="Use N cycles of adaptive meshing")
     parser_mesh.add_argument('--res-min', type=str, default=None, help="Highest allowed res of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
-    parser_mesh.add_argument('--res-max', type=str, default=None, help="Starting Resolution of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
 
 
     parser_sphere = argparse.ArgumentParser(add_help=False)
     parser_sphere.add_argument('--healpix', action="store_true", help="Use HealPix tiling")
     parser_sphere.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
-    parser_sphere.add_argument('--res', type=str, default=None, help="Highest allowed res of the sky in arc minutes.")
 
 
     parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image using the web api of a TART radio telescope.', 
@@ -49,6 +47,7 @@ if __name__ == '__main__':
 
 
     parser.add_argument('--fov', type=str, required=True, help="Field of view. E.g. 1.3deg, 12\", 11', 8uas, 6mas...")
+    parser.add_argument('--res', type=str, required=True, help="Maximim Resolution of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
 
     data_group = parser.add_mutually_exclusive_group()
     data_group.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
@@ -90,7 +89,6 @@ if __name__ == '__main__':
     source_json = None
 
     ARGS = parser.parse_args()
-    print(ARGS)
         
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
@@ -118,15 +116,18 @@ if __name__ == '__main__':
     #radius = np.radians(ARGS.fov / 2.0)
     
     fov = Resolution.from_string(ARGS.fov)
+    res = Resolution.from_string(ARGS.res)
     
     if ARGS.mesh:
-        res_min = Resolution.from_string(ARGS.res_min)
-        res_max = Resolution.from_string(ARGS.res_max)
         
-        sphere = AdaptiveMeshSphere.from_resolution(res_min=res_min, res_max=res_max, theta=np.radians(0.0), phi=0.0, fov=fov)
+        if ARGS.res_min is None:
+            res_min = res
+        else:
+            res_min = Resolution.from_string(ARGS.res_min)
+        
+        sphere = AdaptiveMeshSphere.from_resolution(res_min=res_min, res_max=res, theta=np.radians(0.0), phi=0.0, fov=fov)
     if ARGS.healpix:
         
-        res = Resolution.from_string(ARGS.res)
         sphere = create_fov(ARGS.nside, fov=fov, res=res)
 
     if ARGS.file:
