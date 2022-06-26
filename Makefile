@@ -37,7 +37,7 @@ adaptive:
 
 # Requires memory_profiler pip3 install memory_profiler
 cygnus:
-	/usr/bin/time -v disko_bayes --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --mu --arcmin 0.025 --nvis 1500 --title 'cygnus'
+	/usr/bin/time -v disko_bayes --healpix --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --mu --res 1arcsec --nvis 1500 --title 'cygnus'
 	
 dask:
 	disko --fov 0.5 --ms /home/tim/astro/cyg2052.ms --SVG --arcmin 0.25 --tikhonov --nvis 2000 --dask
@@ -61,9 +61,9 @@ dask:
 
 
 cygnus_lsmr:
-	${TIME} disko  --healpix --fov "3'" --ms ~/astro/cyg2052.ms --FITS --res '1"' --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
+	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
 cygnus_fista:
-	${TIME} disko  --healpix --fov "3'" --ms ~/astro/cyg2052.ms --FITS --res '1"' --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
+	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
 	
 tart:
 	${TIME} disko --healpix --res 1deg --fov 155deg --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'

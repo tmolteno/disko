@@ -5,8 +5,16 @@ def parse_ending(x_str, ending):
         return float(x_str.split(ending)[0])
     return None
 
+DEGREES="deg"
+MINUTES='arcmin'
+SECONDS='arcsec'
+MILLIARCSECONDS='mas'
+MICROARCSECONDS='uas'
+
 class Resolution:
-    
+    '''
+        Degrees (°), minutes ('), seconds (") 
+    '''
     def __init__(self, x_rad):
         self.x_rad = x_rad
     
@@ -28,7 +36,7 @@ class Resolution:
 
     @classmethod
     def from_string(cls, x_str):
-        endings = ['uas', 'mas', '"', '\'', 'deg']
+        endings = [MICROARCSECONDS, MILLIARCSECONDS, SECONDS, MINUTES, DEGREES]
         deg_factors = [3600*1000000, 3600*1000, 3600, 60, 1]
         parsed = [ parse_ending(x_str, e) for e in endings]
         for p, f in zip(parsed, deg_factors):
@@ -58,18 +66,18 @@ class Resolution:
             return f"{d:4.2f}deg"
         
         if np.abs(self.arcmin()) > 1:
-            return f"{self.arcmin():4.2f}\""
+            return f"{self.arcmin():4.2f}{MINUTES}"
         
         arcsec = self.arcsec()
         if np.abs(arcsec) > 1:
-            return f"{arcsec:4.2f}'"
+            return f"{arcsec:4.2f}{SECONDS}"
         
         mas = arcsec * 1000
         if np.abs(mas) >= 1:
-            return f"{mas:4.2f}mas"
+            return f"{mas:4.2f}{MILLIARCSECONDS}"
 
         uas = mas * 1000
-        return f"{uas:4.2f}uas"
+        return f"{uas:4.2f}{MICROARCSECONDS}"
     
     
     def get_min_baseline(self, frequency):
