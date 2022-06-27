@@ -59,6 +59,7 @@ dask:
 #        Maximum resident set size (kbytes): 3956904
 #         Maximum resident set size (kbytes): 2903484
 
+TART_ARGS=--fov 155deg --res 2deg -ms test_data/test.ms
 
 cygnus_lsmr:
 	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
@@ -66,23 +67,22 @@ cygnus_fista:
 	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
 	
 tart:
-	${TIME} disko --healpix --res 1deg --fov 155deg --ms test_data/test.ms --SVG --alpha=0.0025 --tikhonov  --title 'tart'
+	${TIME} disko --healpix ${TART_ARGS} --SVG --alpha=0.0025 --tikhonov  --title 'tart'
 tart_mesh:
-	${TIME} disko --mesh --res 2deg --fov 155deg --ms test_data/test.ms --alpha=0.0025 --tikhonov  --title 'tart_mesh'
+	${TIME} disko --mesh ${TART_ARGS} --alpha=0.0025 --tikhonov  --title 'tart_mesh'
 
 tart_mesh_fista:
-	${TIME} disko --mesh --res 3deg --fov 155 --ms test_data/test.ms  --fista --alpha=25 --niter 1000  --matrix-free  --title 'tarta_mesh_fista'
-# 	${TIME} disko --mesh --res 180 --res-max 180 --fov 155 --ms test_data/test.ms --alpha=-0.0025 --fista --matrix-free  --title 'tarta_mesh_fista'
+	${TIME} disko --mesh ${TART_ARGS}  --fista --niter 1000  --matrix-free  --title 'tarta_mesh_fista'
 
 sphere:
 	disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
 
 tart_fista:
 	rm -f disko.log
-	disko --healpix --fov 155 --res 3deg --ms test_data/test.ms --SVG --fista --matrix-free --title 'tart_fista'
+	disko --healpix ${TART_ARGS} --SVG --fista --matrix-free --title 'tart_fista'
 tart_lsmr:
 	rm -f disko.log
-	disko --healpix --fov 155 --res 1deg --ms test_data/test.ms --SVG --alpha=0.01 --lsmr --matrix-free --title 'tart_lsmr'
+	disko --healpix {TART_ARGS} --SVG --alpha=0.01 --lsmr --matrix-free --title 'tart_lsmr'
 
 ## 1000 0.1074
 ## 2000 0.0696
