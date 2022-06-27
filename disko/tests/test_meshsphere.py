@@ -8,7 +8,7 @@ import os
 
 import numpy as np
 
-from disko import AdaptiveMeshSphere, area, HealpixSubSphere
+from disko import AdaptiveMeshSphere, area, HealpixSubSphere, Resolution
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler()) # Add a null handler so logs can go somewhere
@@ -19,9 +19,10 @@ class TestMeshsphere(unittest.TestCase):
     def setUp(self):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
-        self.sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=60, res_arcmax=60, 
-                                                         theta=np.radians(0.0), 
-                                                         phi=0.0, radius_rad=np.radians(10))
+        self.sphere = AdaptiveMeshSphere.from_resolution(res_min=Resolution.from_arcmin(60), 
+                                                         res_max=Resolution.from_arcmin(60), 
+                                                         theta=np.radians(0.0), phi=0.0, 
+                                                         fov=Resolution.from_deg(20))
 
     
     def test_sizes(self):
@@ -42,7 +43,7 @@ class TestMeshsphere(unittest.TestCase):
                                               theta=np.radians(0.0), 
                                               phi=0.0, radius_rad=np.radians(10))
         
-        self.assertAlmostEqual(self.sphere.fov, hp_sphere.fov)
+        self.assertAlmostEqual(self.sphere.fov.degrees(), hp_sphere.fov.degrees())
 
         print(f"   mesh(l,m,n-1): {np.max(self.sphere.l)}, {np.max(self.sphere.m)}, {np.max(self.sphere.n_minus_1)}")
         print(f"healpix(l,m,n-1): {np.max(hp_sphere.l)}, {np.max(hp_sphere.m)}, {np.max(hp_sphere.n_minus_1)}")
@@ -58,6 +59,8 @@ class TestMeshsphere(unittest.TestCase):
 
     #def test_harmonics(self):
         
+    def test_adaptive(self):
+        grad, cell_pairs  = self.sphere.gradient()
         
     @unittest.skip("We don't have svg write going yet")        
     def test_svg(self):

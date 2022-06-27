@@ -32,7 +32,7 @@ ngc1194:
 
 adaptive:
 	rm -f round*.vtk
-	${TIME} disko --mesh --fov 0.05 --ms /home/tim/astro/cyg2052.ms --SVG --res 0.07 --res-max=0.1 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus' 
+	${TIME} disko --mesh --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --res 10arcsec --res-min=430mas --adaptive 2 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus' 
 	
 
 # Requires memory_profiler pip3 install memory_profiler

@@ -250,31 +250,33 @@ class AdaptiveMeshSphere(Sphere):
 
     def gradient(self):
         # Return a gradient between every pair of cells
-        ret = []
+        gradients = []
         cell_pairs = []
+        
+        #tri = Delaunay(self.points)
 
-        r_nyquist = self.res_min / self.radius_rad
-        logger.info("R limit: {}".format(r_nyquist))
+        r_min = self.res_min.radians() / self.fov.radians()
+        logger.info(f"Gradient: r_min: {r_min}")
 
         n_ignored = 0
-        for p1, nlist in enumerate(self.tri.neighbors):
+        for p1, nlist in enumerate(tri.neighbors):
             y1 = self.pixels[p1]
             # print(p1, nlist)
             for p2 in nlist:
                 if p2 != -1:
                     dx, dy = self.points[p2] - self.points[p1]
                     r = np.sqrt(dx * dx + dy * dy)
-                    if r > r_nyquist:
+                    if r > r_min:
                         grad = (
                             y1 - self.pixels[p2]
                         ) / r  # TODO Check this division by /r
-                        ret.append([grad, r])
+                        gradients.append([grad, r])
                         cell_pairs.append([p1, p2])
                     else:
                         n_ignored += 1
         logger.info("Gradient Ignored: {} of {} points".format(n_ignored, self.npix))
 
-        return np.array(ret), cell_pairs
+        return np.array(gradients), cell_pairs
 
     def refine(self):
         grad, pairs = self.gradient()
