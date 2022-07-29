@@ -25,7 +25,7 @@ from scipy.optimize import minimize
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error
 
-#from tart.imaging import elaz
+from tart.imaging import elaz
 #from tart.util import constants
 
 

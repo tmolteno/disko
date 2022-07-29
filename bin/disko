@@ -14,11 +14,11 @@ from copy import deepcopy
 import numpy as np
 
 
-#from tart.operation import settings
+from tart.operation import settings
 
 #from tart_tools import api_handler
-#from tart_tools import api_imaging
-#from tart.imaging import elaz
+from tart_tools import api_imaging
+from tart.imaging import elaz
 
 from dask.distributed import Client
 
