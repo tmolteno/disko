@@ -60,7 +60,7 @@ def get_all_uvw(ant_pos):
     ant_p = np.array(ant_pos)
     for i in range(num_ant):
         for j in range(num_ant):
-            if i < j:
+            if i != j:
                 baselines.append([i, j])
 
     bl_pos = ant_p[np.array(baselines).astype(int)]
@@ -516,8 +516,8 @@ class DiSkO(object):
                     alpha = 10**(-np.log10(self.n_v) + 2) ## Empirical fit
 
             sky, niter = pylops.optimization.sparsity.FISTA(
-                A, d, x0=np.abs(Apre @ d), eigstol=1e-10, tol=1e-10, niter=niter, alpha=alpha, show=True,
-                #A, d, niter=niter, alpha=None, show=True,
+                A, d,  eigstol=1e-10, tol=1e-10, niter=niter, alpha=alpha, show=True,
+                #A, d, niter=niter, alpha=None, show=True, x0=np.abs(Apre @ d),
                 threshkind = "soft", callback=A
             )
             
