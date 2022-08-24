@@ -104,10 +104,10 @@ def jomega(freq):
     return 1.0j * omega(freq)
 
 
-def get_harmonic(p2j, in_sphere, u, v, w):
+def get_harmonic(p2j, l, m, n_minus_1, u, v, w, pixel_areas):
     harmonic = (
-        np.exp(p2j * (u * in_sphere.l + v * in_sphere.m + w * in_sphere.n_minus_1))
-        * in_sphere.pixel_areas
+        np.exp(p2j * (u * l + v * m + w * n_minus_1))
+        * pixel_areas
     )
     return harmonic
 
@@ -171,7 +171,8 @@ class DiSkOOperator(pylops.LinearOperator):
             self.sphere.n[j],
         )  # The column index (one l,m,n element per pixel)
 
-        z = np.exp(-p2j * (u * l + v * m + w * (n - 1))) * self.sphere.pixel_areas[j]
+        z = get_harmonic(p2j, l, m, n-1, u, v, w, self.sphere.pixel_areas)
+        #z = np.exp(-p2j * (u * l + v * m + w * (n - 1))) * self.sphere.pixel_areas[j]
         if i < n_vis:
             return np.real(z)
         else:
@@ -195,16 +196,18 @@ class DiSkOOperator(pylops.LinearOperator):
         y_im = np.zeros(n_u)
         
         for f in self.frequencies:
-            p2 = omega(f)
+            p2j = jomega(f)
             # For each visibility
             for i in range(n_u):
                 u = self.u_arr[i]
                 v = self.v_arr[i]
                 w = self.w_arr[i]
                 
-                z = -p2 * (u*self.sphere.l + v*self.sphere.m + w*self.sphere.n_minus_1)
-                re = np.cos(z)*self.sphere.pixel_areas
-                im = np.sin(z)*self.sphere.pixel_areas
+                #z = p2 * (u*self.sphere.l + v*self.sphere.m + w*self.sphere.n_minus_1)
+                h = get_harmonic(p2j, self.sphere.l, self.sphere.m, self.sphere.n_minus_1, u, v, w, self.sphere.pixel_areas)
+
+                re = np.real(h)
+                im = np.imag(h)
                 y_re[i] = np.dot(x, re)
                 y_im[i] = np.dot(x, im)
 
@@ -222,15 +225,15 @@ class DiSkOOperator(pylops.LinearOperator):
         ret = []
 
         for f in self.frequencies:
-            p2 = omega(f)
+            p2j = jomega(f)
             # for each pixel
             for l, m, n_1, a in zip(
                     self.sphere.l, self.sphere.m, self.sphere.n_minus_1,
                         self.sphere.pixel_areas ): 
-                theta = -p2 * (self.u_arr * l + self.v_arr * m + self.w_arr * n_1)
-
-                re = np.cos(theta)*a
-                im = np.sin(theta)*a
+                #theta = -p2 * (self.u_arr * l + self.v_arr * m + self.w_arr * n_1)
+                h = get_harmonic(-p2j, l, m, n_1, self.u_arr, self.v_arr, self.w_arr, a)
+                re = np.real(h)
+                im = np.imag(h)
 
                 reim = np.concatenate((re, im))
                 assert reim.shape == (self.M,)
@@ -291,7 +294,7 @@ class DirectImagingOperator(pylops.LinearOperator):
             p2j = jomega(f)
 
             for u, v, w, vis in zip(self.u_arr, self.v_arr, self.w_arr, vis_complex):
-                h = get_harmonic(p2j, self.sphere, u, v, w)
+                h = get_harmonic(p2j, self.sphere.l, self.sphere.m, self.sphere.n_minus_1, u, v, w, self.sphere.pixel_areas)
                 sky += np.real(vis * h)
 
         return sky
@@ -311,7 +314,7 @@ class DirectImagingOperator(pylops.LinearOperator):
 
             # Vector version
             for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
-                h = get_harmonic(-p2j, self.sphere, u, v, w)
+                h = get_harmonic(-p2j, self.sphere.l, self.sphere.m, self.sphere.n_minus_1, u, v, w, self.sphere.pixel_areas)
                 ret.append(np.dot(x, h))
 
         ret = np.array(ret)
@@ -395,12 +398,7 @@ class DiSkO(object):
 
         # logger.info("pixel areas:  {}".format(in_sphere.pixel_areas))
         for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
-            harmonic = (
-                np.exp(
-                    p2j * (u * in_sphere.l + v * in_sphere.m + w * in_sphere.n_minus_1)
-                )
-                * in_sphere.pixel_areas
-            )
+            harmonic = get_harmonic(p2j, in_sphere.l, in_sphere.m, in_sphere.n_minus_1, u, v, w, in_sphere.pixel_areas)
             assert harmonic.shape[0] == in_sphere.npix
             harmonic_list.append(harmonic)
         # self.harmonics[cache_key] = harmonic_list
