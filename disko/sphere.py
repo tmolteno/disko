@@ -528,7 +528,7 @@ class HealpixSphere(Sphere):
                         )
                     )
             else:
-                (r, g, b) = cmap((value - stats["min"]) / (stats["max"] - stats["min"]))
+                (r, g, b) = cmap((value - stats["min"]) / (1e-14 + stats["max"] - stats["min"]))
                 colour = svgwrite.rgb(r, g, b)
                 if min_lat > 0.07:  # Ignore points on, or below the horizon
                     svg_pixels.add(dwg.polygon(points=poly, fill=colour, stroke=colour))
@@ -545,7 +545,7 @@ class HealpixSphere(Sphere):
             )
             values = np.linspace(stats["min"], stats["max"], N)
 
-            rvals = (values - stats["min"]) / (stats["max"] - stats["min"])
+            rvals = (values - stats["min"]) / (1e-14 + stats["max"] - stats["min"])
 
             start_y = 0.05 * width
             stop_y = 2.05 * width

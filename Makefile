@@ -67,7 +67,7 @@ cygnus_fista:
 	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
 	
 tart:
-	${TIME} disko --healpix ${TART_ARGS} --SVG --alpha=0.0025 --tikhonov  --title 'tart'
+	${TIME} disko --healpix ${TART_ARGS} --SVG --alpha=0.025 --tikhonov  --title 'tart'
 tart_mesh:
 	${TIME} disko --mesh ${TART_ARGS} --alpha=0.0025 --tikhonov  --title 'tart_mesh'
 
@@ -93,7 +93,7 @@ NV_CYG=2000
 #	1281930
 mf_cyg:
 	rm -f disko.log
-	disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --alpha=0.001 --nvis ${NV_CYG} --fista --matrix-free --title 'mf_cyg' --niter 1000
+	disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --fista --matrix-free --alpha 40 --title 'mf_cyg' --niter 1000
 	
 
 profile:

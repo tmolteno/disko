@@ -345,13 +345,23 @@ class DiSkO(object):
             ms, num_vis, res_arcmin, chunks, channel, field_id
         )
 
-        ret = cls(u_arr, v_arr, w_arr, frequency)
-        ret.vis_arr = cv_vis / rms # Natural weighting  # np.array(cv_vis, dtype=COMPLEX_DATATYPE)
+        # Measurement sets do not return the conjugate pairs of visibilities
+        
+        full_u_arr = np.concatenate((u_arr, -u_arr),0)
+        full_v_arr = np.concatenate((v_arr, -v_arr),0)
+        full_w_arr = np.concatenate((w_arr, -w_arr),0)
+        full_rms = np.concatenate((rms, rms),0)
+        full_cv_vis = np.concatenate((cv_vis, np.conjugate(cv_vis)),0)
+
+        ret = cls(full_u_arr, full_v_arr, full_w_arr, frequency)
+        ret.vis_arr = full_cv_vis / full_rms # Natural weighting  # np.array(cv_vis, dtype=COMPLEX_DATATYPE)
         ret.timestamp = tstamp
-        ret.rms = rms
+        ret.rms = full_rms
         ret.info = hdr
         ret.indices = indices
         
+        logger.info(f"Visibilities: {ret.vis_arr.shape}")
+        logger.info(f"u,v,w: {ret.u_arr.shape}")
         return ret
 
     def vis_stats(self):
