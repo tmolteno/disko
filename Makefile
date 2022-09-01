@@ -59,7 +59,7 @@ dask:
 #        Maximum resident set size (kbytes): 3956904
 #         Maximum resident set size (kbytes): 2903484
 
-TART_ARGS=--fov 155deg --res 2deg --ms test_data/test.ms
+TART_ARGS=--fov 155deg --res 3deg --ms test_data/test.ms
 
 cygnus_lsmr:
 	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
@@ -79,22 +79,34 @@ sphere:
 
 tart_fista:
 	rm -f disko.log
-	disko --healpix ${TART_ARGS} --SVG --fista --matrix-free --title 'tart_fista'
+	disko --healpix ${TART_ARGS} --SVG --fista --matrix-free --alpha=0.01 --niter=1000 --title 'tart_fista'
 tart_lsmr:
 	rm -f disko.log
-	disko --healpix {TART_ARGS} --SVG --alpha=0.01 --lsmr --matrix-free --title 'tart_lsmr'
+	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsqr --matrix-free --title 'tart_lsmr'
+tart_lsqr:
+	rm -f disko.log
+	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsqr --matrix-free --title 'tart_lsqr'
+
+tart_lasso:
+	rm -f disko.log
+	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lasso --matrix-free --title 'tart_lasso'
 
 ## 1000 0.1074
 ## 2000 0.0696
 ## 4000 0.0281
 ## 4000 0.035 # 3.546681e-02
 ## 16000 8.996716e-03
-NV_CYG=2000 
+NV_CYG=5000 
 #	1281930
 mf_cyg:
 	rm -f disko.log
-	disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --fista --matrix-free --alpha 40 --title 'mf_cyg' --niter 1000
-	
+	disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --fista --matrix-free --alpha 100 --title 'mf_cyg' --niter 1000
+cygnus_lasso:
+	rm -f disko.log
+	disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --lasso --l1-ratio=0.02 --matrix-free --alpha 0.01 --title 'cygnus_lasso'
+
+mf_preview:
+	paraview --data=callback_..vtk
 
 profile:
 	python3 -m cProfile -o disko.prof ./bin/disko --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --SVG --arcmin=0.02 --alpha=-0.0695 --nvis 1000 --fista --matrix-free --title 'mf_cyg' --niter 10

@@ -26,12 +26,12 @@ class RadioObservation(object):
         pass
 
 
-def read_ms(ms, num_vis, resolution, chunks=1000, channel=0, field_id=0):
+def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0):
     """
     Use dask-ms to load the necessary data to create a telescope operator
     (will use uvw positions, and antenna positions)
 
-    -- resolution: Used to calculate the maximum baselines to consider.
+    -- angular_resolution: Used to calculate the maximum baselines to consider.
                    We want two pixels per smallest fringe
                    pix_res > fringe / 2
 
@@ -112,7 +112,7 @@ def read_ms(ms, num_vis, resolution, chunks=1000, channel=0, field_id=0):
                 #   Now calculate which indices we should use to get the required number of
                 #   visibilities.
                 #
-                bl_max = resolution.get_min_baseline(frequency)
+                bl_max = angular_resolution.get_min_baseline(frequency)
 
                 logger.info("Resolution Max UVW: {:g} meters".format(bl_max))
                 logger.info("Flags: {}".format(flags.shape))

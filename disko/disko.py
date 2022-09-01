@@ -32,6 +32,7 @@ from tart.imaging import elaz
 from .sphere import HealpixSphere
 from .ms_helper import read_ms
 from .multivariate_gaussian import MultivariateGaussian
+from .resolution import Resolution
 
 logger = logging.getLogger(__name__)
 logger.addHandler(
@@ -342,7 +343,7 @@ class DiSkO(object):
     @classmethod
     def from_ms(cls, ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
         u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices = read_ms(
-            ms, num_vis, res_arcmin, chunks, channel, field_id
+            ms, num_vis, Resolution.from_arcmin(res_arcmin), chunks, channel, field_id
         )
 
         # Measurement sets do not return the conjugate pairs of visibilities
@@ -477,9 +478,6 @@ class DiSkO(object):
         
         RESIDUAL_LIMIT = 10.0  # Arbitrary limit to show bad residuals.
         
-        bigguns = np.where(normalized_residuals > RESIDUAL_LIMIT)
-        
-        logger.info(f"Residuals {normalized_residuals[bigguns]}")
         
         # Now reshape data back into complex data (from real appended to complex)
         c_data = np.reshape(data, (2, self.n_v))
@@ -489,6 +487,10 @@ class DiSkO(object):
         c_res = c_res[0] + 1.0J * c_res[1]
 
         bigguns = np.where(np.abs(c_res) > RESIDUAL_LIMIT)[0]
+        
+        half_v = self.n_v // 2
+        bigguns = np.where(bigguns < half_v)[0] # Remove the conjugate data
+        
         logger.info(f"Residual problems {bigguns}")
         if self.indices is not None:
             logger.info(f"Residual List")
@@ -524,11 +526,20 @@ class DiSkO(object):
             if alpha is not None:
                 if alpha <= 0:
                     alpha = 10**(-np.log10(self.n_v) + 2) ## Empirical fit
-
+                eps = 1.0/alpha
+                if eps > 0.1:
+                    eps = 0.01
+            else:
+                eps = 1e-3
+            #sky, niter = pylops.optimization.sparsity.FISTA(
+                #Op=A, data=d, # SOp=Apre, x0=np.abs(Apre @ d), # 
+                #eigstol=1e-9, eigsiter=5, eps=eps,
+                #tol=1e-10, niter=niter, alpha=alpha, show=True,
+                ##A, d, niter=niter, alpha=None, show=True, x0=np.abs(Apre @ d),
+                #threshkind = "soft", callback=A
+            #)
             sky, niter = pylops.optimization.sparsity.FISTA(
-                A, d,  eigstol=1e-10, tol=1e-10, niter=niter, alpha=alpha, show=True,
-                #A, d, niter=niter, alpha=None, show=True, x0=np.abs(Apre @ d),
-                threshkind = "soft", callback=A
+                Op=A, data=d, niter=niter,  x0=np.zeros_like(Apre @ d), show=True, alpha=alpha, eps=eps
             )
             
             logger.info(f"FISTA complete: {sky.shape} niter={niter}")
@@ -547,7 +558,7 @@ class DiSkO(object):
                 arnorm,
                 xnorm,
                 var,
-            ) = spalg.lsqr(A, data, damp=alpha)
+            ) = spalg.lsqr(A, data, damp=alpha, show=True)
 
             residual = d - A @ sky
 
