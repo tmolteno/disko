@@ -172,7 +172,7 @@ class DiSkOOperator(pylops.LinearOperator):
             self.sphere.n[j],
         )  # The column index (one l,m,n element per pixel)
 
-        z = get_harmonic(p2j, l, m, n-1, u, v, w, self.sphere.pixel_areas)
+        z = get_harmonic(p2j, l, m, n-1, u, v, w, self.sphere.pixel_areas[j])
         #z = np.exp(-p2j * (u * l + v * m + w * (n - 1))) * self.sphere.pixel_areas[j]
         if i < n_vis:
             return np.real(z)
@@ -204,7 +204,6 @@ class DiSkOOperator(pylops.LinearOperator):
                 v = self.v_arr[i]
                 w = self.w_arr[i]
                 
-                #z = p2 * (u*self.sphere.l + v*self.sphere.m + w*self.sphere.n_minus_1)
                 h = get_harmonic(p2j, self.sphere.l, self.sphere.m, self.sphere.n_minus_1, u, v, w, self.sphere.pixel_areas)
 
                 re = np.real(h)
@@ -231,7 +230,6 @@ class DiSkOOperator(pylops.LinearOperator):
             for l, m, n_1, a in zip(
                     self.sphere.l, self.sphere.m, self.sphere.n_minus_1,
                         self.sphere.pixel_areas ): 
-                #theta = -p2 * (self.u_arr * l + self.v_arr * m + self.w_arr * n_1)
                 h = get_harmonic(-p2j, l, m, n_1, self.u_arr, self.v_arr, self.w_arr, a)
                 re = np.real(h)
                 im = np.imag(h)
@@ -341,9 +339,9 @@ class DiSkO(object):
         return ret
 
     @classmethod
-    def from_ms(cls, ms, num_vis, res_arcmin, chunks=50000, channel=0, field_id=0):
+    def from_ms(cls, ms, num_vis, res, chunks=50000, channel=0, field_id=0):
         u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices = read_ms(
-            ms, num_vis, Resolution.from_arcmin(res_arcmin), chunks, channel, field_id
+            ms, num_vis, res, chunks, channel, field_id
         )
 
         # Measurement sets do not return the conjugate pairs of visibilities

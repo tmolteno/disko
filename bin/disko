@@ -163,7 +163,7 @@ if __name__ == '__main__':
 
         min_res = sphere.min_res()
         logger.info(f"Min Res {min_res}")
-        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res_arcmin=min_res, channel=ARGS.channel, field_id=ARGS.field)
+        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res=min_res, channel=ARGS.channel, field_id=ARGS.field)
         # Convert from reduced Julian Date to timestamp.
         timestamp = disko.timestamp
         

@@ -285,6 +285,7 @@ class TestDiSkO(unittest.TestCase):
 
         for i in range(Op.M):
             for j in range(Op.N):
+                logger.info(f"{Op.A(i, j, p2j)} {tiny_gamma[i,j]}")
                 self.assertAlmostEqual(Op.A(i, j, p2j), tiny_gamma[i,j])
         
         for i in range(Op.N):
