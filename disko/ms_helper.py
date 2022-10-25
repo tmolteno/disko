@@ -26,7 +26,7 @@ class RadioObservation(object):
         pass
 
 
-def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0):
+def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0, ddid=0):
     """
     Use dask-ms to load the necessary data to create a telescope operator
     (will use uvw positions, and antenna positions)
@@ -66,24 +66,45 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0)
         # Create a dataset representing the field
         field_table = "::".join((ms, "FIELD"))
         for field_ds in xds_from_table(field_table):
-            phase_dir = np.array(field_ds.PHASE_DIR.data)[0].flatten()
-            name = field_ds.NAME.data.compute()
-            logger.info("Field {}: Phase Dir {}".format(name, np.degrees(phase_dir)))
+            if field_id >=  field_ds.sizes['row'] or field_id < 0:
+                raise RuntimeError(f"Selected field {field_id} is not a valid field identifier. "
+                                   f"Must be in [0, {field_ds.sizes['row']-1}]")
+            phase_dir = np.array(field_ds.PHASE_DIR.data)[field_id].flatten()
+            name = field_ds.NAME.data.compute()[field_id]
+            logger.info("Field {} (index {}): Phase Dir {}".format(name,
+                                                                   field_id,
+                                                                   np.degrees(phase_dir)))
 
         # Create datasets representing each row of the spw table
-        spw_table = "::".join((ms, "SPECTRAL_WINDOW"))
+        # we need a map to select SPW based on DDID first
+        # MAIN.DDID (FK) -> DATA_DESCRIPTOR.SPECTRAL_WINDOW_ID (FK) -> SPECTRAL_WINDOW.CHAN_FREQ
+        ddid_table = "::".join((ms, "DATA_DESCRIPTION"))
+        for ddid_ds in xds_from_table(ddid_table, group_cols="__row__"):
+            spw_ids = ddid_ds.SPECTRAL_WINDOW_ID.data.compute()
+            if ddid < 0 or ddid >= ddid_ds.sizes['row']:
+                raise RuntimeError(f"Selected DDID {ddid} is not a valid DDID identifier. "
+                                   f"Must be in [0, {ddid_ds.sizes['row']-1}]")
+            logger.info(f"Selecting Data Descriptor ID {int(ddid)} per user request")
+            logger.info(f"DDID {int(ddid)} selects IF / SPW ID {int(spw_ids[ddid])}")
+            # may be needed if we use mixed receivers in the future??
+            # although I suspect GNSS receivers are all just circular
+            pol_ids = ddid_ds.POLARIZATION_ID.data.compute()
 
+        spw_table = "::".join((ms, "SPECTRAL_WINDOW"))
         for spw_ds in xds_from_table(spw_table, group_cols="__row__"):
-            logger.info("CHAN_FREQ.values: {}".format(spw_ds.CHAN_FREQ.values.shape))
-            frequencies = dask.compute(spw_ds.CHAN_FREQ.values)[0].flatten()
+            logger.debug("CHAN_FREQ.shape: {}".format(spw_ds.CHAN_FREQ.values.shape))
+            frequencies = dask.compute(spw_ds.CHAN_FREQ.values)[int(spw_ids[ddid])].flatten()
             frequency = frequencies[channel]
-            logger.info("Frequencies = {}".format(frequencies))
-            logger.info("Frequency = {}".format(frequency))
-            logger.info("NUM_CHAN = %f" % np.array(spw_ds.NUM_CHAN.values)[0])
+            logger.info("Selected SPW {} Frequencies = {} MHz".format(spw_ids[ddid],
+                                                                  ",".join(map(lambda nu: f"{nu:.3f}",
+                                                                               frequencies * 1e-6))))
+            logger.info("Selected imaging Frequency = {}".format(frequency))
+            logger.debug("NUM_CHAN = %f" % np.array(spw_ds.NUM_CHAN.values)[0])
 
         # Create datasets from a partioning of the MS
-        datasets = list(xds_from_ms(ms, chunks={"row": chunks}))
-        logger.info("DataSets: N={}".format(len(datasets)))
+        group_cols = ["FIELD_ID", "DATA_DESC_ID"]
+        datasets = list(xds_from_ms(ms, chunks={"row": chunks}, group_cols=group_cols))
+        logger.debug("DataSets: N={}".format(len(datasets)))
 
         pol = 0
 
@@ -94,14 +115,16 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0)
             toc = time.perf_counter()
             logger.info("Elapsed {:04f} seconds".format(toc - tic))
             return ret
-
+        no_datasets_read = 0
         for i, ds in enumerate(datasets):
-            logger.info(
+            logger.debug(
                 "DATASET field_id={} shape: {}".format(ds.FIELD_ID, ds.DATA.data.shape)
             )
-            logger.info("UVW shape: {}".format(ds.UVW.data.shape))
-            logger.info("SIGMA shape: {}".format(ds.SIGMA.data.shape))
-            if int(field_id) == int(ds.FIELD_ID):
+            logger.debug("UVW shape: {}".format(ds.UVW.data.shape))
+            logger.debug("SIGMA shape: {}".format(ds.SIGMA.data.shape))
+            if int(field_id) == int(ds.FIELD_ID) and \
+               int(ddid) == int(ds.DATA_DESC_ID):
+                no_datasets_read += 1
                 uvw = read_np_array(ds.UVW.data, "UVW")
                 flags = read_np_array(
                     ds.FLAG.data[:, channel, pol], "FLAGS", dtype=np.int32
@@ -167,9 +190,8 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0)
                 )
 
                 epoch_seconds = np.array(ds.TIME.data)[0]
-
-        if "uvw" not in locals():
-            raise RuntimeError("FIELD_ID ({}) is invalid".format(field_id))
+        if no_datasets_read == 0:
+            raise RuntimeError("FIELD_ID ({}) or DDID ({}) contains no data".format(field_id, ddid))
 
         hdr = {
             "CTYPE1": ("RA---SIN", "Right ascension angle cosine"),
