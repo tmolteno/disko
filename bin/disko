@@ -57,6 +57,7 @@ if __name__ == '__main__':
     parser.add_argument('--vis', required=False, default=None, help="Use a local JSON file containing the visibilities to create the image.")
     parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
     parser.add_argument('--field', type=int, default=0, help="Use this FIELD_ID from the measurement set.")
+    parser.add_argument('--ddid', type=int, default=0, help="Use this DDID from the measurement set.")
 
     algo_group = parser.add_mutually_exclusive_group()
     algo_group.add_argument('--lsqr', action="store_true", help="Use lsqr in matrix-free")
@@ -163,7 +164,7 @@ if __name__ == '__main__':
 
         min_res = sphere.min_res()
         logger.info(f"Min Res {min_res}")
-        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res=min_res, channel=ARGS.channel, field_id=ARGS.field)
+        disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res=min_res, channel=ARGS.channel, field_id=ARGS.field, ddid=ARGS.ddid)
         # Convert from reduced Julian Date to timestamp.
         timestamp = disko.timestamp
         
@@ -197,7 +198,15 @@ if __name__ == '__main__':
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
 
     # Processing
-    
+
+    # CASAcore UVW is conjugated, so to make things consistent with data
+    # streaming off telescope we need the vis flipped about
+    if ARGS.ms:
+        disko.vis_arr = disko.vis_arr.conjugate()
+    elif ARGS.file:
+        pass
+    else:
+        pass
     
     if ARGS.show_sources:
         src_list = get_source_list(source_json, el_limit=ARGS.elevation, jy_limit=1e4)
