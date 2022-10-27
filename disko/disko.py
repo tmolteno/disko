@@ -527,18 +527,19 @@ class DiSkO(object):
                 eps = 1.0/alpha
                 if eps > 0.1:
                     eps = 0.01
+                eps = 1e-4
             else:
                 eps = 1e-3
-            #sky, niter = pylops.optimization.sparsity.FISTA(
-                #Op=A, data=d, # SOp=Apre, x0=np.abs(Apre @ d), # 
-                #eigstol=1e-9, eigsiter=5, eps=eps,
-                #tol=1e-10, niter=niter, alpha=alpha, show=True,
-                ##A, d, niter=niter, alpha=None, show=True, x0=np.abs(Apre @ d),
-                #threshkind = "soft", callback=A
-            #)
             sky, niter = pylops.optimization.sparsity.FISTA(
-                Op=A, data=d, niter=niter,  x0=np.zeros_like(Apre @ d), show=True, alpha=alpha, eps=eps
+                Op=A, data=d, x0=np.abs(Apre @ d), # SOp=Apre, 
+                eigstol=1e-9, eigsiter=5, eps=eps,
+                tol=1e-10, niter=niter, alpha=alpha, show=True,
+                #A, d, niter=niter, alpha=None, show=True, x0=np.abs(Apre @ d),
+                threshkind = "soft", callback=A
             )
+            #sky, niter = pylops.optimization.sparsity.FISTA(
+                #Op=A, data=d, niter=niter,  x0=np.zeros_like(Apre @ d), show=True, alpha=alpha, eps=eps
+            #)
             
             logger.info(f"FISTA complete: {sky.shape} niter={niter}")
 

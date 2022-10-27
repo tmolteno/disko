@@ -88,6 +88,31 @@ def area(cell, points):
 
         #return ret
 
+#import pygmsh
+#import gmsh 
+
+#def get_mesh_gmsh(radius_rad, edge_size):
+
+    #logger.info(f"Generating Mesh: Radius: {Resolution.from_rad(radius_rad)}, edge = {Resolution.from_rad(edge_size)}")
+    
+    #logger.info(f" Starting mesh generation {pygmsh.__version__}")
+
+    #with pygmsh.geo.Geometry() as geom:
+        #geom.add_circle(
+            #[0.0, 0.0, 0.0],
+            #1.0,
+            #mesh_size=edge_size
+        #)
+        #gmsh.option.setNumber("General.ExpertMode", 1)
+        #mesh = geom.generate_mesh()
+        #X = mesh.points
+        #cells = np.array(mesh.get_cells_type("triangle"), dtype=np.int64)
+
+    #logger.info("Optimizing Mesh")
+    #X, cells = optimesh.optimize_points_cells(X, cells,  "CVT (block-diagonal)", 1e-5, 10, verbose=False)
+
+    #return X*radius_rad, cells
+
 def get_mesh(radius_rad, edge_size):
 
     logger.info(f"Generating Mesh: Radius: {Resolution.from_rad(radius_rad)}, edge = {Resolution.from_rad(edge_size)}")
@@ -138,7 +163,7 @@ def get_lmn(radius_rad, edge_size):
     m = np.cos(az_r) * np.cos(el_r)
     n = np.sin(el_r)  # Often written in this weird way... np.sqrt(1.0 - l**2 - m**2)
 
-    return X, cells, pixel_areas, el_r, az_r, l,m,n
+    return centroids, cells, pixel_areas, el_r, az_r, l,m,n
 
     
 class AdaptiveMeshSphere(Sphere):

@@ -59,7 +59,7 @@ dask:
 #        Maximum resident set size (kbytes): 3956904
 #         Maximum resident set size (kbytes): 2903484
 
-TART_ARGS=--fov 155deg --res 3deg --ms test_data/test.ms
+TART_ARGS=--fov 155deg --res 1deg --ms test_data/test.ms
 
 cygnus_lsmr:
 	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
@@ -79,7 +79,7 @@ sphere:
 
 tart_fista:
 	rm -f disko.log
-	disko --healpix ${TART_ARGS} --SVG --fista --matrix-free --alpha=0.01 --niter=1000 --title 'tart_fista'
+	disko --healpix ${TART_ARGS} --SVG --fista --matrix-free --alpha=1 --niter=1000 --title 'tart_fista'
 tart_lsmr:
 	rm -f disko.log
 	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsqr --matrix-free --title 'tart_lsmr'
