@@ -341,7 +341,9 @@ class DiSkO(object):
     @classmethod
     def from_ms(cls, ms, num_vis, res, chunks=50000, channel=0, field_id=0, ddid=0):
         u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices = read_ms(
-            ms, num_vis, res, chunks, channel, field_id, ddid
+            ms, num_vis, angular_resolution=res, 
+            chunks=chunks, channel=channel, 
+            field_id=field_id, ddid=ddid
         )
 
         # Measurement sets do not return the conjugate pairs of visibilities

@@ -3,6 +3,7 @@ import distributed
 import logging
 import datetime
 import time
+import os
 
 import numpy as np
 
@@ -50,6 +51,8 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0,
     # logging.info("Using distributed scheduler "
     # "with address '{}'".format(address))
     # client = distributed.Client()
+    if not os.path.exists(ms):
+        raise RuntimeError(f"Measurement set {ms} not found")
 
     try:
         # Create a dataset representing the entire antenna table

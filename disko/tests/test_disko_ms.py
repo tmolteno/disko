@@ -25,7 +25,7 @@ class TestDiSkOMS(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Load data from a MS file
-        fname = 'test_data/test.ms'
+        fname = 'test_data/test2.ms'
         logger.info("Getting Data from MS file: {}".format(fname))
 
         res = Resolution.from_deg(180)
