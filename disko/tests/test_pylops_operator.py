@@ -16,33 +16,31 @@ from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere
 
 from tart.operation import settings
 from tart_tools import api_imaging
-from tart.imaging import elaz
-from tart.util import constants
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler()) # Add a null handler so logs can go somewhere
+logger.addHandler(logging.NullHandler())  # Add a null handler so logs can go somewhere
 logger.setLevel(logging.INFO)
 
 
 def dottest(Op, nr, nc, tol):
-    
-    pylops.utils.dottest(Op, nr, nc, rtol=1e-06, 
-                             complexflag=0, raiseerror=True, verb=True)
+
+    pylops.utils.dottest(Op, nr, nc, rtol=1e-06,
+                         complexflag=0, raiseerror=True, verb=True)
 
     u = np.random.randn(nc)  # random sky
     v = np.random.randn(nr)  # random vis
-    
+
     logger.info("u = {}".format(u))
     logger.info("v = {}".format(v))
-    
+
     y = Op.matvec(u)   # Op * u
     x = Op.rmatvec(v)  # Op'* v
-    
+
     logger.info("x = {}".format(x))
     logger.info("y = {}".format(y))
 
-    yy = np.dot(y, v) # (Op  * u)' * v
-    xx = np.dot(u, x) # u' * (Op' * v)
+    yy = np.dot(y, v)  # (Op  * u)' * v
+    xx = np.dot(u, x)  # u' * (Op' * v)
 
     err = np.abs((yy-xx)/((yy+xx+1e-15)/2))
     if err < tol:
@@ -50,6 +48,7 @@ def dottest(Op, nr, nc, tol):
         return True
     else:
         raise ValueError('Dot test failed, v^T(Opu)={} - u^T(Op^Tv)={}, err={}'.format(yy, xx, err))
+
 
 class TestPylopsOperator(unittest.TestCase):
 
@@ -70,9 +69,7 @@ class TestPylopsOperator(unittest.TestCase):
         gains_json = calib_info['gains']
         gains = np.asarray(gains_json['gain'])
         phase_offsets = np.asarray(gains_json['phase_offset'])
-        #config = settings.from_api_json(info['info'], cls.ant_pos)
 
-        measurements = []
         for d in calib_info['data']:
             vis_json, source_json = d
             cv, _timestamp = api_imaging.vis_calibrated(vis_json, config, gains, phase_offsets, flag_list)
@@ -81,16 +78,19 @@ class TestPylopsOperator(unittest.TestCase):
         cls.nside = 16
         cls.sphere = HealpixSphere(cls.nside)
         res_deg = 4.0
-        cls.subsphere = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0, 
-                                      theta = np.radians(0.0), phi=0.0, radius_rad=np.radians(89))
-        
-        cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=20, res_arcmax=res_deg*60, 
-                                                         theta=np.radians(0.0), 
-                                                         phi=0.0, radius_rad=np.radians(10))
+        cls.subsphere = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0,
+                                                         theta=np.radians(0.0),
+                                                         phi=0.0,
+                                                         radius_rad=np.radians(89))
+
+        cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=20,
+                                                                 res_arcmax=res_deg*60,
+                                                                 theta=np.radians(0.0),
+                                                                 phi=0.0,
+                                                                 radius_rad=np.radians(10))
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
         cls.subgamma = cls.disko.make_gamma(cls.subsphere)
-
 
     def test_pylops_dot(self):
         r'''
@@ -99,61 +99,62 @@ class TestPylopsOperator(unittest.TestCase):
         data = self.disko.vis_to_data()
         frequencies = [self.disko.frequency]
 
-        Op = disko.DiSkOOperator(self.disko.u_arr, 
+        Op = disko.DiSkOOperator(self.disko.u_arr,
                                  self.disko.v_arr,
-                                 self.disko.w_arr, 
+                                 self.disko.w_arr,
                                  data, frequencies, self.sphere)
         # Test that we have the same effect as matrix vector multiply
-        
-        sky = np.random.normal(0,1, self.sphere.npix)
+
+        sky = np.random.normal(0, 1, self.sphere.npix)
 
         vis1 = self.gamma @ sky
 
-        vis2 = Op @ sky # Op.matvec(sky)
+        vis2 = Op @ sky  # Op.matvec(sky)
         logger.info(f"vis1: {vis1[0:10]}")
         logger.info(f"vis2: {vis2[0:10]}")
-        
+
         self.assertEqual(vis1.shape, vis2.shape)
         self.assertTrue(np.allclose(vis1, vis2))
 
         dottest(Op, self.disko.n_v*2, self.sphere.npix, tol=1e-04)
 
-        Op = disko.DirectImagingOperator(self.disko.u_arr, 
-                                 self.disko.v_arr,
-                                 self.disko.w_arr, 
-                                 data, frequencies, self.sphere)
-        pylops.utils.dottest(Op, self.sphere.npix, self.disko.n_v*2, rtol=1e-06, 
-                             complexflag=0, raiseerror=True, verb=True)
+        Op = disko.DirectImagingOperator(self.disko.u_arr,
+                                         self.disko.v_arr,
+                                         self.disko.w_arr,
+                                         data, frequencies, self.sphere)
+        pylops.utils.dottest(Op, self.sphere.npix, self.disko.n_v*2,
+                             rtol=1e-06, complexflag=0,
+                             raiseerror=True, verb=True)
 
     def test_pylops_tiny(self):
         r'''
-            Test such a small gamma that we can inspect every element and 
+            Test such a small gamma that we can inspect every element and
             check that the matrix is what we expect it to be.
-            
-            
         '''
-        tiny_subsphere = HealpixSubSphere.from_resolution(res_arcmin=3600, 
-                                      theta = np.radians(0.0), phi=0.0, radius_rad=np.radians(80))
+        tiny_subsphere = HealpixSubSphere.from_resolution(res_arcmin=3600,
+                                                          theta=np.radians(0.0),
+                                                          phi=0.0,
+                                                          radius_rad=np.radians(80))
         self.assertEqual(tiny_subsphere.npix, 4)
 
         frequencies = [1.5e9]
         wavelength = 2.99793e8 / frequencies[0]
-        
+
         n_vis = 3
-        u = np.random.uniform(0,1, n_vis) 
-        v = np.random.uniform(0,1, n_vis)
-        w = np.random.uniform(0,1, n_vis)
-        tiny_disko = DiSkO(u,v,w, frequencies[0])
-        
+        u = np.random.uniform(0, 1, n_vis)
+        v = np.random.uniform(0, 1, n_vis)
+        w = np.random.uniform(0, 1, n_vis)
+        tiny_disko = DiSkO(u, v, w, frequencies[0])
+
         tiny_gamma = tiny_disko.make_gamma(tiny_subsphere)
         logger.info("Gamma={}".format(tiny_gamma))
-        
-        data = tiny_disko.vis_to_data(np.random.normal(0,1,tiny_disko.n_v) + 1.0j*np.random.normal(0,1,tiny_disko.n_v))
+
+        data = tiny_disko.vis_to_data(np.random.normal(0, 1, tiny_disko.n_v) +
+                                      1.0j*np.random.normal(0, 1, tiny_disko.n_v))
         p2j = 2*np.pi*1.0j / wavelength
 
         Op = disko.DiSkOOperator(tiny_disko.u_arr, tiny_disko.v_arr, tiny_disko.w_arr, data, frequencies, tiny_subsphere)
 
-        
         logger.info("Op Matrix")
         for i in range(Op.M):
             col = [Op.A(i, j, p2j) for j in range(Op.N)]
@@ -166,22 +167,20 @@ class TestPylopsOperator(unittest.TestCase):
 
         for i in range(Op.M):
             for j in range(Op.N):
-                self.assertAlmostEqual(Op.A(i, j, p2j), tiny_gamma[i,j])
-        
+                self.assertAlmostEqual(Op.A(i, j, p2j), tiny_gamma[i, j])
+
         for i in range(Op.N):
             for j in range(Op.M):
-                self.assertAlmostEqual(Op.Ah(i, j, p2j), tiny_gamma[j,i])
-        
+                self.assertAlmostEqual(Op.Ah(i, j, p2j), tiny_gamma[j, i])
+
         dottest(Op, Op.M, Op.N, 1e-6)
 
-        sky = np.random.normal(0,1, tiny_subsphere.npix)
+        sky = np.random.normal(0, 1, tiny_subsphere.npix)
         logger.info("sky={}".format(sky))
         vis1 = tiny_gamma @ sky
         vis2 = Op.matvec(sky)
         logger.info(vis1)
         logger.info(vis2)
-        
+
         self.assertEqual(vis1.shape, vis2.shape)
         self.assertTrue(np.allclose(vis1, vis2))
-
-        
