@@ -46,6 +46,7 @@ This should generate a suitable measurement set to image.
 ## Changelog
 
 
+0.9.3b4 Raise nicer errors when arguments aren't provided
 0.9.3b2 Fix indexing error in read_ms when the number of visibilities requested exceeded the number available.
         clean up the meshing 
         rework the command line interface. New resolution specification

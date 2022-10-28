@@ -29,7 +29,7 @@ from tart.imaging import elaz
 #from tart.util import constants
 
 
-from .sphere import HealpixSphere
+from .healpix_sphere import HealpixSphere
 from .ms_helper import read_ms
 from .multivariate_gaussian import MultivariateGaussian
 from .resolution import Resolution
@@ -728,6 +728,9 @@ class DiSkO(object):
         print(
             f"image_tikhonov({vis_arr.shape}, {sphere}, {alpha}, scale={scale}, usedask={usedask})"
         )
+
+        if alpha is None:
+            raise RuntimeError("The --alpha option must be specified when using --tikhonov")
 
         lambduh = alpha / np.sqrt(n_s)
         if usedask is False:

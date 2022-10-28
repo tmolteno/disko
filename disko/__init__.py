@@ -10,7 +10,7 @@ from .disko import (
     vis_to_real,
     get_all_uvw,
 )
-from .sphere import HealpixSphere, HealpixSubSphere, create_fov
+from .healpix_sphere import HealpixSphere, HealpixSubSphere, create_fov
 from .sphere_mesh import AdaptiveMeshSphere, area
 from .telescope_operator import (
     TelescopeOperator,

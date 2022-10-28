@@ -7,7 +7,7 @@ import numpy as np
 
 from scipy import misc
 
-from .sphere import HealpixSphere
+from .healpix_sphere import HealpixSphere
 from .disko import DiSkO
 from .telescope_operator import TelescopeOperator
 

@@ -19,7 +19,6 @@ import h5py
 
 from pathlib import Path
 
-from .sphere import HealpixSphere
 from .disko import vis_to_real
 from .multivariate_gaussian import MultivariateGaussian
 
