@@ -270,7 +270,7 @@ class TelescopeOperator:
             if use_cache:
                 logger.info("Writing to cache: {}".format(fname))
                 np.savez_compressed(
-                    fname, U=self.U, Vh=self.Vh, s=self.s, sigma=self.sigma, rank=rank
+                    fname, U=self.U, Vh=self.Vh, s=self.s, sigma=self.sigma, rank=self.rank
                 )
                 logger.info("Cache file {} saved".format(fname))
 
@@ -359,7 +359,7 @@ class TelescopeOperator:
     def null_to_sky(self, x_n):
         x = np.zeros(self.n_s)
         x[self.rank : -1] = x_n
-        return natural_to_sky(x)
+        return self.natural_to_sky(x)
 
     def image_visibilities(self, vis_arr, sphere, scale=True):
         """Create a gridless image from visibilities

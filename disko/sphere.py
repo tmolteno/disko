@@ -6,6 +6,8 @@ import logging
 import json
 
 import numpy as np
+import healpy as hp
+
 from .resolution import Resolution
 
 
@@ -268,7 +270,7 @@ class Sphere(object):
         hdu.writeto(fname, overwrite=True)
 
 
-
+'''
 class HexagonGenerator(object):
     """
     Returns a hexagon generator for hexagons of the specified size.
@@ -309,5 +311,5 @@ class HexagonSubSphere(Sphere):
                 draw.polygon(list(hexagon), Brush(color))
         draw.flush()
         image.show()
-
+'''
 

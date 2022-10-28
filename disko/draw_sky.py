@@ -55,6 +55,8 @@ def mask_to_sky(mask, nside):
 from argparse import ArgumentParser
 
 if __name__ == "__main__":
+    import argparse
+    
     parser = ArgumentParser(
         description="Draw something in the Null Space.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

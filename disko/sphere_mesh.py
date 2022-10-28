@@ -278,7 +278,7 @@ class AdaptiveMeshSphere(Sphere):
         gradients = []
         cell_pairs = []
         
-        #tri = Delaunay(self.points)
+        tri = Delaunay(self.points)
 
         r_min = self.res_min.radians() / self.fov.radians()
         logger.info(f"Gradient: r_min: {r_min}")

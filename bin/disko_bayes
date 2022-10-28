@@ -206,6 +206,8 @@ def handle_output(ARGS, timestamp, posterior, sphere):
 
     def save_images(image_title, source_list):
         # Save as a FITS file
+        global disko
+        
         if ARGS.FITS:
             sphere.to_fits(fname=path('fits', image_title), fov=ARGS.fov, info=disko.info)
         
