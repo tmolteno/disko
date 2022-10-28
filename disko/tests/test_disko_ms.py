@@ -1,24 +1,19 @@
 #
-# Copyright Tim Molteno 2017 tim@elec.ac.nz
+# Copyright Tim Molteno 2017-2022 tim@elec.ac.nz
 #
 
 import unittest
 import logging
-import json
 
 import numpy as np
 
 from disko import DiSkO
 from disko import HealpixSphere, HealpixSubSphere, Resolution
 
-#from tart.operation import settings
-#from tart_tools import api_imaging
-#from tart.imaging import elaz
-#from tart.util import constants
-
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler()) # Add a null handler so logs can go somewhere
+logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
+
 
 class TestDiSkOMS(unittest.TestCase):
 
@@ -33,8 +28,9 @@ class TestDiSkOMS(unittest.TestCase):
         cls.nside = 16
         cls.sphere = HealpixSphere(cls.nside)
         res_deg = 4.0
-        cls.subsphere = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0, 
-                                      theta = np.radians(0.0), phi=0.0, radius_rad=np.radians(89))
+        cls.subsphere = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0,
+                                                         theta=np.radians(0.0), phi=0.0,
+                                                         radius_rad=np.radians(89))
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
 
