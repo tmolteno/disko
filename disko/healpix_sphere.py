@@ -11,11 +11,9 @@ import numpy as np
 from .sphere import Sphere
 from .sphere import image_stats
 
-from .sphere import hp2elaz, elaz2lmn, PlotCoords, HpAngle
+from .sphere import hp2elaz, elaz2lmn, PlotCoords, HpAngle, elaz2hp, ElAz
 
 from .resolution import Resolution
-
-
 
 logger = logging.getLogger(__name__)
 logger.addHandler(
@@ -23,14 +21,14 @@ logger.addHandler(
 )  # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
+
 def create_fov(nside, fov, res, theta=0.0, phi=0.0):
     """
     Create an appropriate Sphere object based on:
 
     - fov : The field of view as a Resolution object
-s
     """
-    
+
     if nside is not None and fov is None:
         sphere = HealpixSphere(nside)
     elif nside is not None and fov is not None:
@@ -44,7 +42,7 @@ s
             res_arcmin=res_arcmin, theta=theta, phi=phi, radius_rad=radius_rad)
     else:
         raise RuntimeError("Either nside, or res_arcmin must be specified")
-    
+
     logger.info(f"create_fov -> {sphere}")
     return sphere
 
@@ -56,7 +54,6 @@ def cmap(fract):
     start = 1.0
     rot = -1.5
     sat = 1.5
-    _gamma = 1.0
 
     pi = 3.14159265
 
@@ -89,7 +86,7 @@ class HealpixSphere(Sphere):
         res = hp.nside2resol(nside, arcmin=True)
         self._min_res = Resolution.from_arcmin(res)
 
-        logger.info(f"New Sphere, nside={nside}. npix={self.npix}, res={self.min_res()} arcmin")
+        logger.info(f"New Sphere, nside={nside}. npix={self.npix}, res={self.min_res()}")
 
         self.pixel_indices = np.arange(self.npix)
         theta, phi = hp.pix2ang(nside, self.pixel_indices)
@@ -110,10 +107,10 @@ class HealpixSphere(Sphere):
 
     def __repr__(self):
         return f"HealpixSphere nside={self.nside}"
-    
+
     def min_res(self):
         return self._min_res
-    
+
     def get_lmn(self):
         return self.l, self.m, self.n
 
@@ -129,18 +126,10 @@ class HealpixSphere(Sphere):
         theta, phi = elaz2hp(el, az)
         hp.projplot(theta, phi, "ro", rot=(0, 90, 180))  #
 
-
     def corners(self, pixel):
         bounds = hp.boundaries(self.nside, pixel, step=1)
         bounds = np.array(bounds).T
         return bounds
-        # lat, lon = hp.vec2ang(bounds)
-        # ret = []
-        # for a,b in zip(lat, lon):
-        # ret.append([b,a])
-
-        # return ret
-
 
     def to_svg(
         self,
@@ -154,14 +143,9 @@ class HealpixSphere(Sphere):
 
         if self.fov is None:
             raise Exception("Field of view is required for SVG generation. Use PDF instead")
-        
         h = 4000
         w = 4200
-        # dwg = svgwrite.Drawing(filename=fname, size=(w,w), profile='tiny')
         dwg = svgwrite.Drawing(filename=fname, size=(w, h))
-
-        # dwg.add(dwg.line((0, 0), (10, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
-        # dwg.add(dwg.text('Test', insert=(0, 0.2), fill='red'))
 
         pc = PlotCoords(h, self.fov.radians()/2)
         line_size = pc.line_size
@@ -386,7 +370,7 @@ class HealpixSphere(Sphere):
                 stroke_linejoin="round",
                 stroke_dasharray="{},{}".format(5 * line_size, 10 * line_size),
             )
-            
+
             fov_rad = self.fov.radians()
 
             for rad in np.linspace(0, fov_rad / 2, 4)[1:]:  # three circles
@@ -413,6 +397,7 @@ class HealpixSphere(Sphere):
 
             dwg.add(grid_lines)
 
+        # TODO move to separate drawing over images tool
         if src_list is not None:
             angular_size = np.radians(2.0)
             source_circles = dwg.g(
@@ -460,7 +445,7 @@ def my_query_disk(nside, x0, radius):
     ret = []
     npix = hp.nside2npix(nside)
     all_pixels = np.array(range(npix))
-    all_vec = hp.pix2vec(nside, all_pixels)
+    # all_vec = hp.pix2vec(nside, all_pixels)
 
     for i in all_pixels:
         x1 = hp.pix2vec(nside, i)
@@ -486,7 +471,9 @@ class HealpixSubSphere(HealpixSphere):
     def from_resolution(
         cls, res_arcmin=None, nside=None, theta=0.0, phi=0.0, radius_rad=0.0
     ):
-        logger.info(f"HealpixSubSphere.from_resolution(res={res_arcmin} arcmin, nside={nside}, theta={theta}, phi={phi}, radius_rad={radius_rad})")
+        logger.info(r"HealpixSubSphere.from_resolution:")
+        logger.info(f"    res={res_arcmin} arcmin, nside={nside}")
+        logger.info(f"    theta={theta}, phi={phi}, radius_rad={radius_rad})")
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
 
@@ -507,7 +494,7 @@ class HealpixSubSphere(HealpixSphere):
         ).astype(int)
 
         ret.npix = ret.pixel_indices.shape[0]
-        
+
         ret.pixel_areas = np.ones(ret.npix)/ret.npix
 
         logger.info("New SubSphere, nside={}. npix={}".format(ret.nside, ret.npix))
@@ -578,6 +565,7 @@ class HealpixSubSphere(HealpixSphere):
         if src_list is not None:
             for s in src_list:
                 self.plot_x(plt, s.el_r, s.az_r)
+
 
 if __name__ == "__main__":
     sph = HealpixSphere(2)
