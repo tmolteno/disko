@@ -5,7 +5,7 @@ import h5py
 import numpy as np
 import dask.array as da
 
-from .util import log_array, da_identity, da_block_diag
+from .util import log_array
 
 logger = logging.getLogger(__name__)
 logger.addHandler(

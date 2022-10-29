@@ -26,8 +26,6 @@ from disko import DiSkO, get_source_list, AdaptiveMeshSphere, create_fov, Resolu
 
 
 if __name__ == '__main__':
-
-
     #parser.add_argument('--api', required=False, default='https://tart.elec.ac.nz/signal', help="Telescope API server URL.")
     #parser.add_argument('--catalog', required=False, default='https://tart.elec.ac.nz/catalog', help="Catalog API URL.")
         
@@ -119,17 +117,19 @@ if __name__ == '__main__':
     fov = Resolution.from_string(ARGS.fov)
     res = Resolution.from_string(ARGS.res)
     
+    sphere = None
     if ARGS.mesh:
-        
         if ARGS.res_min is None:
             res_min = res
         else:
             res_min = Resolution.from_string(ARGS.res_min)
-        
+
         sphere = AdaptiveMeshSphere.from_resolution(res_min=res_min, res_max=res, theta=np.radians(0.0), phi=0.0, fov=fov)
     if ARGS.healpix:
-        
         sphere = create_fov(ARGS.nside, fov=fov, res=res)
+
+    if sphere is None:
+        raise RuntimeError("Either --mesh or --healpix must be specified")
 
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
@@ -149,7 +149,7 @@ if __name__ == '__main__':
         gains = np.asarray(gains_json['gain'])
         phase_offsets = np.asarray(gains_json['phase_offset'])
         config = settings.from_api_json(info['info'], ant_pos)
-    
+
         measurements = []
         for d in calib_info['data']:
             vis_json, source_json = d
@@ -167,7 +167,7 @@ if __name__ == '__main__':
         disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res=min_res, channel=ARGS.channel, field_id=ARGS.field, ddid=ARGS.ddid)
         # Convert from reduced Julian Date to timestamp.
         timestamp = disko.timestamp
-        
+
     else:
         logger.info("Getting Data from API: {}".format(ARGS.api))
 
@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     if not ARGS.show_sources:
         src_list = None
-    #api_imaging.rotate_vis(ARGS.rotation, cv, reference_positions = deepcopy(config.get_antenna_positions()))
+    # api_imaging.rotate_vis(ARGS.rotation, cv, reference_positions = deepcopy(config.get_antenna_positions()))
     
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
 
@@ -207,10 +207,10 @@ if __name__ == '__main__':
         pass
     else:
         pass
-    
+
     if ARGS.show_sources:
         src_list = get_source_list(source_json, el_limit=ARGS.elevation, jy_limit=1e4)
-    
+
     if ARGS.lasso:
         logger.info("L1 regularization alpha=%f" %ARGS.alpha)
         sky = disko.image_lasso(disko.vis_arr, sphere, alpha=ARGS.alpha, l1_ratio=ARGS.l1_ratio, scale=False, use_cv=ARGS.cv)
@@ -221,7 +221,7 @@ if __name__ == '__main__':
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, usedask=ARGS.dask)
-                    
+       
         if ARGS.mesh:
             for i in range(ARGS.adaptive):
                 sphere.write_mesh(f"{ARGS.title}_round_{i}.vtk")

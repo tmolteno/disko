@@ -12,13 +12,14 @@ import pylops
 
 from disko import DiSkO
 import disko
-from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere
+from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere, Resolution
 
 from tart.operation import settings
 from tart_tools import api_imaging
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())  # Add a null handler so logs can go somewhere
+# Add a null handler so logs can go somewhere
+logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
 
 
@@ -44,10 +45,12 @@ def dottest(Op, nr, nc, tol):
 
     err = np.abs((yy-xx)/((yy+xx+1e-15)/2))
     if err < tol:
-        logger.info('Dot test passed, v^T(Opu)={} - u^T(Op^Tv)={}, err={}'.format(yy, xx, err))
+        logger.info(
+            'Dot test passed, v^T(Opu)={} - u^T(Op^Tv)={}, err={}'.format(yy, xx, err))
         return True
     else:
-        raise ValueError('Dot test failed, v^T(Opu)={} - u^T(Op^Tv)={}, err={}'.format(yy, xx, err))
+        raise ValueError(
+            'Dot test failed, v^T(Opu)={} - u^T(Op^Tv)={}, err={}'.format(yy, xx, err))
 
 
 class TestPylopsOperator(unittest.TestCase):
@@ -72,7 +75,8 @@ class TestPylopsOperator(unittest.TestCase):
 
         for d in calib_info['data']:
             vis_json, source_json = d
-            cv, _timestamp = api_imaging.vis_calibrated(vis_json, config, gains, phase_offsets, flag_list)
+            cv, _timestamp = api_imaging.vis_calibrated(
+                vis_json, config, gains, phase_offsets, flag_list)
 
         cls.disko = DiSkO.from_cal_vis(cv)
         cls.nside = 16
@@ -83,11 +87,11 @@ class TestPylopsOperator(unittest.TestCase):
                                                          phi=0.0,
                                                          radius_rad=np.radians(89))
 
-        cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_arcmin=20,
-                                                                 res_arcmax=res_deg*60,
-                                                                 theta=np.radians(0.0),
-                                                                 phi=0.0,
-                                                                 radius_rad=np.radians(10))
+        cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_min=Resolution.from_arcmin(20),
+                                                                 res_max=Resolution.from_deg(
+                                                                     res_deg),
+                                                                 theta=np.radians(0.0), phi=0.0,
+                                                                 fov=Resolution.from_deg(10))
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
         cls.subgamma = cls.disko.make_gamma(cls.subsphere)
@@ -132,7 +136,8 @@ class TestPylopsOperator(unittest.TestCase):
             check that the matrix is what we expect it to be.
         '''
         tiny_subsphere = HealpixSubSphere.from_resolution(res_arcmin=3600,
-                                                          theta=np.radians(0.0),
+                                                          theta=np.radians(
+                                                              0.0),
                                                           phi=0.0,
                                                           radius_rad=np.radians(80))
         self.assertEqual(tiny_subsphere.npix, 4)
@@ -153,7 +158,8 @@ class TestPylopsOperator(unittest.TestCase):
                                       1.0j*np.random.normal(0, 1, tiny_disko.n_v))
         p2j = 2*np.pi*1.0j / wavelength
 
-        Op = disko.DiSkOOperator(tiny_disko.u_arr, tiny_disko.v_arr, tiny_disko.w_arr, data, frequencies, tiny_subsphere)
+        Op = disko.DiSkOOperator(tiny_disko.u_arr, tiny_disko.v_arr,
+                                 tiny_disko.w_arr, data, frequencies, tiny_subsphere)
 
         logger.info("Op Matrix")
         for i in range(Op.M):

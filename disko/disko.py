@@ -583,11 +583,11 @@ class DiSkO(object):
             sky, info = pylops.optimization.leastsquares.NormalEquationsInversion(
                 A, Regs=None, data=d, x0=x0, epsI=alpha, returninfo=True
             )
-            # logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))
-            # logger.info("A M={} N={}".format(A.M, A.N))
+            # logger.info(f"Matrix free solve elapsed={time.time()-t0} x={sky.shape}, stop={lstop}, itn={itn} r1norm={r1norm}")
+            # logger.info(f"A M={} N={}".format(A.M, A.N))
 
             # sky, lstop, itn, normr, mormar, morma, conda, normx = spalg.lsmr(A, data, damp=alpha)
-            # logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} normr={}".format(time.time() - t0, sky.shape, lstop, itn, normr))
+            # logger.info(f"Matrix free solve elapsed={time.time()-t0} x={sky.shape}, stop={lstop}, itn={itn} normr={normr}")
         # sky = np.abs(sky)
 
         self.handle_residuals(A, d, sky)
