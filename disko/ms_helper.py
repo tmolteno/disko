@@ -1,5 +1,4 @@
 import dask
-import distributed
 import logging
 import datetime
 import time
@@ -7,10 +6,8 @@ import os
 
 import numpy as np
 
-from daskms import xds_from_table, xds_from_ms, xds_to_table, TableProxy
+from daskms import xds_from_table, xds_from_ms
 
-from dask.diagnostics import ProgressBar
-from dask.distributed import progress
 
 from .resolution import Resolution
 
@@ -21,13 +18,13 @@ logger.addHandler(
 logger.setLevel(logging.INFO)
 
 
-
 class RadioObservation(object):
     def __init__(self):
         pass
 
 
-def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0, ddid=0):
+def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0,
+            field_id=0, ddid=0):
     """
     Use dask-ms to load the necessary data to create a telescope operator
     (will use uvw positions, and antenna positions)
@@ -69,7 +66,7 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0,
         # Create a dataset representing the field
         field_table = "::".join((ms, "FIELD"))
         for field_ds in xds_from_table(field_table):
-            if field_id >=  field_ds.sizes['row'] or field_id < 0:
+            if field_id >= field_ds.sizes['row'] or field_id < 0:
                 raise RuntimeError(f"Selected field {field_id} is not a valid field identifier. "
                                    f"Must be in [0, {field_ds.sizes['row']-1}]")
             phase_dir = np.array(field_ds.PHASE_DIR.data)[field_id].flatten()
@@ -99,7 +96,7 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0,
             frequencies = dask.compute(spw_ds.CHAN_FREQ.values)[int(spw_ids[ddid])].flatten()
             frequency = frequencies[channel]
             logger.info("Selected SPW {} Frequencies = {} MHz".format(spw_ids[ddid],
-                                                                  ",".join(map(lambda nu: f"{nu:.3f}",
+                                                                      ",".join(map(lambda nu: f"{nu:.3f}",
                                                                                frequencies * 1e-6))))
             logger.info("Selected imaging Frequency = {}".format(frequency))
             logger.debug("NUM_CHAN = %f" % np.array(spw_ds.NUM_CHAN.values)[0])
@@ -169,8 +166,6 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0,
                         "       U[{}]: {:5.2f} {:5.2f} {:5.2f}".format(i, p05, p50, p95)
                     )
 
-                n_ant = len(ant_p)
-
                 n_max = len(good_data)
 
                 if n_max <= num_vis:
@@ -203,7 +198,7 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0, field_id=0,
             "CTYPE2": ("DEC--SIN", "Declination angle cosine "),
             "CRVAL2": np.degrees(phase_dir)[1],
             "CUNIT2": "deg     ",
-            "CTYPE3": "FREQ    ",  #           / Central frequency  ",
+            "CTYPE3": "FREQ    ",  # Central frequency
             "CRPIX3": 1.0,
             "CRVAL3": "{}".format(frequency),
             "CDELT3": 10026896.158854,

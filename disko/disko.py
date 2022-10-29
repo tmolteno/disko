@@ -4,12 +4,6 @@
 #
 # Tim Molteno 2017-2019 tim@elec.ac.nz
 #
-import os
-import argparse
-import sys
-import threading
-import datetime
-import json
 import logging
 import time
 import pylops
@@ -18,21 +12,18 @@ import scipy
 import numpy as np
 import healpy as hp
 import dask.array as da
+import scipy.sparse.linalg as spalg
 
 
-from copy import deepcopy
 from scipy.optimize import minimize
 from sklearn import linear_model
-from sklearn.metrics import mean_squared_error
 
 from tart.imaging import elaz
-#from tart.util import constants
 
 
 from .healpix_sphere import HealpixSphere
 from .ms_helper import read_ms
 from .multivariate_gaussian import MultivariateGaussian
-from .resolution import Resolution
 
 logger = logging.getLogger(__name__)
 logger.addHandler(
@@ -40,21 +31,19 @@ logger.addHandler(
 )  # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
-"""
-    Little helper function to get the UVW positions from the antennas positions.
-    The test (i != j) can be changed to (i > j) to avoid the duplicated conjugate
-    measurements.
-"""
-
 
 def get_all_uvw(ant_pos):
     """
-    ant pos is an array of (N_ant, 3)
+        Little helper function to get the UVW positions from the antennas positions.
+        The test (i != j) can be changed to (i > j) to avoid the duplicated conjugate
+        measurements.
+        ant pos is an array of (N_ant, 3)
     """
     # logger.info(f"get_all_uvw({ant_pos})")
     if ant_pos.shape[1] != 3:
         raise RuntimeError(
-            "Ant pos (shape={}) must be an array of (N_ant, 3)".format(ant_pos.shape)
+            "Ant pos (shape={}) must be an array of (N_ant, 3)".format(
+                ant_pos.shape)
         )
     baselines = []
     num_ant = len(ant_pos)
@@ -80,7 +69,8 @@ def vis_to_real(vis_arr):
 def get_source_list(source_json, el_limit, jy_limit):
     src_list = []
     if source_json is not None:
-        src_list = elaz.from_json(source_json, el_limit=el_limit, jy_limit=jy_limit)
+        src_list = elaz.from_json(
+            source_json, el_limit=el_limit, jy_limit=jy_limit)
     return src_list
 
 
@@ -113,8 +103,6 @@ def get_harmonic(p2j, l, m, n_minus_1, u, v, w, pixel_areas):
     return harmonic
 
 
-import scipy.sparse.linalg as spalg
-
 class DiSkOOperator(pylops.LinearOperator):
     """
     Linear operator for the telescope with a discrete sky
@@ -130,8 +118,9 @@ class DiSkOOperator(pylops.LinearOperator):
 
         try:
             self.n_v, self.n_freq, self.npol = data.shape
-        except:
-            raise RuntimeError("Data must be of the shape [n_v*2, n_freq, n_pol]")
+        except Exception:
+            raise RuntimeError(
+                "Data must be of the shape [n_v*2, n_freq, n_pol]")
 
         if self.n_v != len(self.u_arr) * 2:
             raise RuntimeError(
@@ -146,8 +135,9 @@ class DiSkOOperator(pylops.LinearOperator):
         self.sphere = sphere
 
         if (self.sphere.l.shape[0] != self.N):
-            raise RuntimeError(f"self.sphere.l.shape != self.N, {self.sphere.l.shape} != {self.N}")
-        
+            raise RuntimeError(
+                f"self.sphere.l.shape != self.N, {self.sphere.l.shape} != {self.N}")
+
         self.shape = (self.M, self.N)
         self.explicit = False  # Can't be directly inverted
         logger.info("Creating DiSkOOperator data={}".format(self.shape))
@@ -158,7 +148,7 @@ class DiSkOOperator(pylops.LinearOperator):
             logger.info(f"callback {self.sphere} {x.shape}")
             self.sphere.callback(x, self.iteration_count)
         self.iteration_count = self.iteration_count + 1
-        
+
     def A(self, i, j, p2j):
         n_vis = len(self.u_arr)
         u, v, w = (
@@ -173,7 +163,7 @@ class DiSkOOperator(pylops.LinearOperator):
         )  # The column index (one l,m,n element per pixel)
 
         z = get_harmonic(p2j, l, m, n-1, u, v, w, self.sphere.pixel_areas[j])
-        #z = np.exp(-p2j * (u * l + v * m + w * (n - 1))) * self.sphere.pixel_areas[j]
+        # z = np.exp(-p2j * (u * l + v * m + w * (n - 1))) * self.sphere.pixel_areas[j]
         if i < n_vis:
             return np.real(z)
         else:
@@ -183,7 +173,6 @@ class DiSkOOperator(pylops.LinearOperator):
         return np.conj(self.A(j, i, p2j))
 
     def _matvec(self, x):
-        
         """
         Multiply by the sky x, producing the set of measurements y
         Returns returns A * x.
@@ -192,10 +181,10 @@ class DiSkOOperator(pylops.LinearOperator):
           v_imag )     T_imag)
         """
         n_u = self.u_arr.shape[0]
-        
+
         y_re = np.zeros(n_u)
         y_im = np.zeros(n_u)
-        
+
         for f in self.frequencies:
             p2j = jomega(f)
             # For each visibility
@@ -203,8 +192,9 @@ class DiSkOOperator(pylops.LinearOperator):
                 u = self.u_arr[i]
                 v = self.v_arr[i]
                 w = self.w_arr[i]
-                
-                h = get_harmonic(p2j, self.sphere.l, self.sphere.m, self.sphere.n_minus_1, u, v, w, self.sphere.pixel_areas)
+
+                h = get_harmonic(p2j, self.sphere.l, self.sphere.m,
+                                 self.sphere.n_minus_1, u, v, w, self.sphere.pixel_areas)
 
                 re = np.real(h)
                 im = np.imag(h)
@@ -229,8 +219,9 @@ class DiSkOOperator(pylops.LinearOperator):
             # for each pixel
             for l, m, n_1, a in zip(
                     self.sphere.l, self.sphere.m, self.sphere.n_minus_1,
-                        self.sphere.pixel_areas ): 
-                h = get_harmonic(-p2j, l, m, n_1, self.u_arr, self.v_arr, self.w_arr, a)
+                    self.sphere.pixel_areas):
+                h = get_harmonic(-p2j, l, m, n_1, self.u_arr,
+                                 self.v_arr, self.w_arr, a)
                 re = np.real(h)
                 im = np.imag(h)
 
@@ -256,8 +247,9 @@ class DirectImagingOperator(pylops.LinearOperator):
 
         try:
             self.n_v, self.n_freq, self.npol = data.shape
-        except:
-            raise RuntimeError("Data must be of the shape [n_v, n_freq, n_pol]")
+        except Exception:
+            raise RuntimeError(
+                "Data must be of the shape [n_v, n_freq, n_pol]")
 
         self.M = self.n_v * self.n_freq
 
@@ -265,7 +257,8 @@ class DirectImagingOperator(pylops.LinearOperator):
         self.sphere = sphere
 
         if (self.sphere.l.shape[0] != self.N):
-            raise RuntimeError(f"self.sphere.l.shape != self.N, {self.sphere.l.shape} != {self.N}")
+            raise RuntimeError(
+                f"self.sphere.l.shape != self.N, {self.sphere.l.shape} != {self.N}")
 
         self.shape = (self.N, self.M)
         self.explicit = False  # Can't be directly inverted
@@ -276,7 +269,8 @@ class DirectImagingOperator(pylops.LinearOperator):
         Multiply by the measurements v, producing the sky
         Returns returns A * v.
 
-        This is treating the v as a vector in a vector space where the basis vectors are the harmonics. This operator is a transformation from v to R^N
+        This is treating the v as a vector in a vector space where the basis vectors are the harmonics.
+        This operator is a transformation from v to R^N
 
         sky = sum_v h_i * v_i
 
@@ -286,14 +280,15 @@ class DirectImagingOperator(pylops.LinearOperator):
         """
         n_vis = self.n_v // 2
         vis_complex = v[0:n_vis] + 1.0j*v[n_vis:]
-        
+
         sky = np.zeros(self.N, dtype=self.dtype)
 
         for f in self.frequencies:
             p2j = jomega(f)
 
             for u, v, w, vis in zip(self.u_arr, self.v_arr, self.w_arr, vis_complex):
-                h = get_harmonic(p2j, self.sphere.l, self.sphere.m, self.sphere.n_minus_1, u, v, w, self.sphere.pixel_areas)
+                h = get_harmonic(p2j, self.sphere.l, self.sphere.m,
+                                 self.sphere.n_minus_1, u, v, w, self.sphere.pixel_areas)
                 sky += np.real(vis * h)
 
         return sky
@@ -313,7 +308,8 @@ class DirectImagingOperator(pylops.LinearOperator):
 
             # Vector version
             for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
-                h = get_harmonic(-p2j, self.sphere.l, self.sphere.m, self.sphere.n_minus_1, u, v, w, self.sphere.pixel_areas)
+                h = get_harmonic(-p2j, self.sphere.l, self.sphere.m,
+                                 self.sphere.n_minus_1, u, v, w, self.sphere.pixel_areas)
                 ret.append(np.dot(x, h))
 
         ret = np.array(ret)
@@ -332,7 +328,7 @@ class DiSkO(object):
 
     @classmethod
     def from_ant_pos(cls, ant_pos, frequency):
-        ## Get u, v, w from the antenna positions
+        # Get u, v, w from the antenna positions
         baselines, u_arr, v_arr, w_arr = get_all_uvw(ant_pos)
         ret = cls(u_arr, v_arr, w_arr, frequency)
         ret.info = {}
@@ -341,26 +337,27 @@ class DiSkO(object):
     @classmethod
     def from_ms(cls, ms, num_vis, res, chunks=50000, channel=0, field_id=0, ddid=0):
         u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices = read_ms(
-            ms, num_vis, angular_resolution=res, 
-            chunks=chunks, channel=channel, 
+            ms, num_vis, angular_resolution=res,
+            chunks=chunks, channel=channel,
             field_id=field_id, ddid=ddid
         )
 
         # Measurement sets do not return the conjugate pairs of visibilities
-        
-        full_u_arr = np.concatenate((u_arr, -u_arr),0)
-        full_v_arr = np.concatenate((v_arr, -v_arr),0)
-        full_w_arr = np.concatenate((w_arr, -w_arr),0)
-        full_rms = np.concatenate((rms, rms),0)
-        full_cv_vis = np.concatenate((cv_vis, np.conjugate(cv_vis)),0)
+
+        full_u_arr = np.concatenate((u_arr, -u_arr), 0)
+        full_v_arr = np.concatenate((v_arr, -v_arr), 0)
+        full_w_arr = np.concatenate((w_arr, -w_arr), 0)
+        full_rms = np.concatenate((rms, rms), 0)
+        full_cv_vis = np.concatenate((cv_vis, np.conjugate(cv_vis)), 0)
 
         ret = cls(full_u_arr, full_v_arr, full_w_arr, frequency)
-        ret.vis_arr = full_cv_vis / full_rms # Natural weighting  # np.array(cv_vis, dtype=COMPLEX_DATATYPE)
+        # Natural weighting  # np.array(cv_vis, dtype=COMPLEX_DATATYPE)
+        ret.vis_arr = full_cv_vis / full_rms
         ret.timestamp = tstamp
         ret.rms = full_rms
         ret.info = hdr
         ret.indices = indices
-        
+
         logger.info(f"Visibilities: {ret.vis_arr.shape}")
         logger.info(f"u,v,w: {ret.u_arr.shape}")
         return ret
@@ -370,7 +367,8 @@ class DiSkO(object):
 
         p05, p50, p95, p100 = np.percentile(vabs, [5, 50, 95, 100])
         logger.info(
-            "Vis Range: [{:5.4g} {:5.4g} {:5.4g} {:5.4g}]".format(p05, p50, p95, p100)
+            "Vis Range: [{:5.4g} {:5.4g} {:5.4g} {:5.4g}]".format(
+                p05, p50, p95, p100)
         )
 
         logger.info("Vis Energy: {:5.4g}".format(np.sum(vabs)))
@@ -391,7 +389,8 @@ class DiSkO(object):
         ret = cls(u_arr, v_arr, w_arr, c.get_operating_frequency())
         ret.vis_arr = []
         for bl in baselines:
-            v = cal_vis.get_visibility(bl[0], bl[1])  # Handles the conjugate bit
+            # Handles the conjugate bit
+            v = cal_vis.get_visibility(bl[0], bl[1])
             ret.vis_arr.append(v)
             # logger.info("vis={}, bl={}".format(v, bl))
         ret.vis_arr = np.array(ret.vis_arr, dtype=COMPLEX_DATATYPE)
@@ -409,7 +408,8 @@ class DiSkO(object):
 
         # logger.info("pixel areas:  {}".format(in_sphere.pixel_areas))
         for u, v, w in zip(self.u_arr, self.v_arr, self.w_arr):
-            harmonic = get_harmonic(p2j, in_sphere.l, in_sphere.m, in_sphere.n_minus_1, u, v, w, in_sphere.pixel_areas)
+            harmonic = get_harmonic(
+                p2j, in_sphere.l, in_sphere.m, in_sphere.n_minus_1, u, v, w, in_sphere.pixel_areas)
             assert harmonic.shape[0] == in_sphere.npix
             harmonic_list.append(harmonic)
         # self.harmonics[cache_key] = harmonic_list
@@ -437,7 +437,6 @@ class DiSkO(object):
         for h, vis in zip(harmonic_list, vis_arr):
             pixels += vis * h
 
-        t1 = time.time()
         logger.info("Elapsed {}s".format(time.time() - t0))
 
         sphere.set_visible_pixels(np.abs(pixels))
@@ -475,28 +474,29 @@ class DiSkO(object):
     def handle_residuals(self, operator, data, sky):
         residual = data - operator @ sky
         normalized_residuals = residual / np.std(residual)
-        
+
         RESIDUAL_LIMIT = 10.0  # Arbitrary limit to show bad residuals.
-        
-        
+
         # Now reshape data back into complex data (from real appended to complex)
         c_data = np.reshape(data, (2, self.n_v))
         c_data = c_data[0] + 1.0J * c_data[1]
-        
+
         c_res = np.reshape(normalized_residuals, (2, self.n_v))
         c_res = c_res[0] + 1.0J * c_res[1]
 
         bigguns = np.where(np.abs(c_res) > RESIDUAL_LIMIT)[0]
-        
+
         half_v = self.n_v // 2
-        bigguns = np.where(bigguns < half_v)[0] # Remove the conjugate data
-        
+        bigguns = np.where(bigguns < half_v)[0]  # Remove the conjugate data
+
         logger.info(f"Residual problems {bigguns}")
         if self.indices is not None:
-            logger.info(f"Residual List")
-            logger.info(f"    MS_INDEX,    INDEX, RES (sd),     U,        V,        W,         VIS")
-            for b,i in zip(bigguns.tolist(), self.indices[bigguns]):
-                logger.info(f"    {i:8d}, {b:8d}, {np.abs(c_res[b]):5.2f},   {self.u_arr[b]:8.2f}, {self.v_arr[b]:8.2f}, {self.w_arr[b]:8.2f}, {c_data[b]:4.2f}")
+            logger.info("Residual List")
+            logger.info(
+                r"    MS_INDEX,    INDEX, RES (sd),     U,        V,        W,         VIS")
+            for b, i in zip(bigguns.tolist(), self.indices[bigguns]):
+                logger.info(
+                    f"    {i:8d}, {b:8d}, {np.abs(c_res[b]):5.2f},   {self.u_arr[b]:8.2f}, {self.v_arr[b]:8.2f}, {self.w_arr[b]:8.2f}, {c_data[b]:4.2f}")  # nopep8
 
     def solve_matrix_free(
         self, data, sphere, alpha=0.0, scale=True, fista=False, lsqr=True, lsmr=False, niter=25
@@ -507,12 +507,11 @@ class DiSkO(object):
         logger.info(f"Solving Visabilities sphere={sphere} data={data.shape}")
         assert data.shape[0] == self.n_v * 2
 
-        t0 = time.time()
-
         frequencies = [self.frequency]
         logger.info("frequencies: {}".format(frequencies))
 
-        A = DiSkOOperator(self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere)
+        A = DiSkOOperator(self.u_arr, self.v_arr, self.w_arr,
+                          data, frequencies, sphere)
         Apre = DirectImagingOperator(
             self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere
         )
@@ -525,7 +524,7 @@ class DiSkO(object):
         if fista:
             if alpha is not None:
                 if alpha <= 0:
-                    alpha = 10**(-np.log10(self.n_v) + 2) ## Empirical fit
+                    alpha = 10**(-np.log10(self.n_v) + 2)  # Empirical fit
                 eps = 1.0/alpha
                 if eps > 0.1:
                     eps = 0.01
@@ -533,16 +532,16 @@ class DiSkO(object):
             else:
                 eps = 1e-3
             sky, niter = pylops.optimization.sparsity.FISTA(
-                Op=A, data=d, x0=np.abs(Apre @ d), # SOp=Apre, 
+                Op=A, data=d, x0=np.abs(Apre @ d),  # SOp=Apre,
                 eigstol=1e-9, eigsiter=5, eps=eps,
                 tol=1e-10, niter=niter, alpha=alpha, show=True,
-                #A, d, niter=niter, alpha=None, show=True, x0=np.abs(Apre @ d),
-                threshkind = "soft", callback=A
+                # A, d, niter=niter, alpha=None, show=True, x0=np.abs(Apre @ d),
+                threshkind="soft", callback=A
             )
-            #sky, niter = pylops.optimization.sparsity.FISTA(
-                #Op=A, data=d, niter=niter,  x0=np.zeros_like(Apre @ d), show=True, alpha=alpha, eps=eps
-            #)
-            
+            # sky, niter = pylops.optimization.sparsity.FISTA(
+            # Op=A, data=d, niter=niter,  x0=np.zeros_like(Apre @ d), show=True, alpha=alpha, eps=eps
+            # )
+
             logger.info(f"FISTA complete: {sky.shape} niter={niter}")
 
         if lsqr:
@@ -572,11 +571,10 @@ class DiSkO(object):
 
             logger.info(
                 "Alpha: {}: Loss: {}: rnorm: {}: snorm: {}: mse: {}: mser: {}".format(
-                    alpha, itn, r2norm, solution_norm, solution_norm, r2norm
+                    alpha, itn, r2norm, solution_norm, residual_norm, r2norm
                 )
             )
 
-            # logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} r1norm={}".format(time.time() - t0, sky.shape, lstop, itn, r1norm))
         if lsmr:
             if alpha < 0:
                 alpha = np.mean(self.rms)
@@ -591,9 +589,9 @@ class DiSkO(object):
             # sky, lstop, itn, normr, mormar, morma, conda, normx = spalg.lsmr(A, data, damp=alpha)
             # logger.info("Matrix free solve elapsed={} x={}, stop={}, itn={} normr={}".format(time.time() - t0, sky.shape, lstop, itn, normr))
         # sky = np.abs(sky)
-        
+
         self.handle_residuals(A, d, sky)
-        
+
         sphere.set_visible_pixels(sky, scale)
         return sky.reshape(-1, 1)
 
@@ -704,7 +702,8 @@ class DiSkO(object):
         p05, p50, p95, p100 = self.vis_stats()
         var = p95 * p95
         logger.info("Sky Prior variance={}".format(var))
-        prior = MultivariateGaussian(np.zeros(n_s) + p50, sigma=var * np.identity(n_s))
+        prior = MultivariateGaussian(
+            np.zeros(n_s) + p50, sigma=var * np.identity(n_s))
 
         #
         # Create a likelihood covariance
@@ -730,7 +729,8 @@ class DiSkO(object):
         )
 
         if alpha is None:
-            raise RuntimeError("The --alpha option must be specified when using --tikhonov")
+            raise RuntimeError(
+                "The --alpha option must be specified when using --tikhonov")
 
         lambduh = alpha / np.sqrt(n_s)
         if usedask is False:
@@ -739,7 +739,8 @@ class DiSkO(object):
 
             vis_aux = vis_to_real(vis_arr)
             logger.info(
-                "vis mean: {} shape: {}".format(np.mean(vis_aux), vis_aux.shape)
+                "vis mean: {} shape: {}".format(
+                    np.mean(vis_aux), vis_aux.shape)
             )
 
             tol = min(alpha / 1e4, 1e-10)
@@ -776,12 +777,13 @@ class DiSkO(object):
                 reg.fit(gamma, vis_aux)
                 logger.info("    Solve Complete, iter={}".format(reg.n_iter_))
 
-                sky = reg.coef_ # np.from_array(reg.coef_)
+                sky = reg.coef_  # np.from_array(reg.coef_)
 
                 residual = vis_aux - gamma @ sky
 
                 sky, residual_norm, solution_norm = (
-                    sky, np.linalg.norm(residual) ** 2, np.linalg.norm(sky) ** 2
+                    sky, np.linalg.norm(
+                        residual) ** 2, np.linalg.norm(sky) ** 2
                 )
 
                 score = reg.score(gamma, vis_aux)
@@ -801,7 +803,8 @@ class DiSkO(object):
             logger.info("Starting Dask Client")
 
             if True:
-                cluster = LocalCluster(dashboard_address=":8231", processes=False)
+                cluster = LocalCluster(
+                    dashboard_address=":8231", processes=False)
                 client = Client(cluster)
             else:
                 client = Client("tcp://localhost:8786")
@@ -827,7 +830,7 @@ class DiSkO(object):
                     / np.sqrt(sphere.npix),
                     chunks=(n_s,),
                 )
-                harminc = client.persist(harmonic)
+                harmonic = client.persist(harmonic)
                 harmonic_list.append(harmonic)
 
             gamma = da.stack(harmonic_list)
@@ -841,7 +844,8 @@ class DiSkO(object):
             logger.info("Building Augmented Operator...")
             proj_operator_real = da.real(gamma)
             proj_operator_imag = da.imag(gamma)
-            proj_operator = da.block([[proj_operator_real], [proj_operator_imag]])
+            proj_operator = da.block(
+                [[proj_operator_real], [proj_operator_imag]])
 
             proj_operator = client.persist(proj_operator)
 
@@ -858,7 +862,6 @@ class DiSkO(object):
             en = dask_glm.regularizers.ElasticNet(weight=0.01)
             en = dask_glm.regularizers.L2()
             # dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
-            ##dT = da.from_array(proj_operator, chunks=(-1, 'auto'))
             # dv = da.from_array(vis_aux)
 
             dask.config.set({"array.chunk-size": "1024MiB"})
@@ -882,7 +885,7 @@ class DiSkO(object):
             score = reg.score(proj_operator, vis_aux)
             try:
                 logger.info("Loss function: {}".format(score.compute()))
-            except:
+            except Exception:
                 logger.info("Loss function: {}".format(score))
 
         logger.info("Solving Complete: sky = {}".format(sky.shape))

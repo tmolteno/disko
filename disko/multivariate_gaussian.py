@@ -1,7 +1,6 @@
 import scipy
 import logging
 import h5py
-import json
 
 import numpy as np
 import dask.array as da
@@ -51,7 +50,7 @@ class MultivariateGaussian:
         self.dtype = np.float64
         try:
             self.D = mu.shape[0]
-        except:
+        except Exception:
             raise ValueError("Mean mu {} must be a vector".format(mu.shape))
 
         if (sigma is None) and (sigma_inv is None):
@@ -121,7 +120,9 @@ class MultivariateGaussian:
 
         The self variable is the prior.
 
-        See https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf p92
+        See
+        https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf
+         p92
         """
         logger.info(
             "bayes_update({}, {}, {})".format(precision_y.shape, y.shape, A.shape)
