@@ -5,7 +5,7 @@ test:
 	pytest-3  # python3 setup.py test
 	
 develop:
-	pip3 install -e .
+	python3 -m pip install .
 
 install:
 	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-dask
