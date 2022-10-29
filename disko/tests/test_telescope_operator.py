@@ -8,8 +8,7 @@ import json
 
 import numpy as np
 
-#from spotless import sphere
-from disko import TelescopeOperator, HealpixSphere, DiSkO, normal_svd, dask_svd
+from disko import TelescopeOperator, HealpixSphere, DiSkO
 
 from tart.operation import settings
 from tart_tools import api_imaging
@@ -44,12 +43,11 @@ class TestTelescopeOperator(unittest.TestCase):
         phase_offsets = np.asarray(gains_json['phase_offset'])
         config = settings.from_api_json(info['info'], ant_pos)
 
-        measurements = []
         for d in calib_info['data']:
             vis_json, source_json = d
             cv, timestamp = api_imaging.vis_calibrated(
                 vis_json, config, gains, phase_offsets, flag_list)
-            src_list = elaz.from_json(source_json, 0.0)
+            # src_list = elaz.from_json(source_json, 0.0)
 
         cls.disko = DiSkO.from_cal_vis(cv)
         cls.nside = 16
@@ -77,7 +75,7 @@ class TestTelescopeOperator(unittest.TestCase):
 
             h_i = h_re + 1.0j*h_im
             dot = h_i @ h_i.conj().T
-            #dot = np.dot(h_re, h_re) + np.dot(h_im, h_im)
+            # dot = np.dot(h_re, h_re) + np.dot(h_im, h_im)
             self.assertAlmostEqual(dot.compute(), 1.0)
 
     def test_null_harmonics(self):
@@ -114,43 +112,22 @@ class TestTelescopeOperator(unittest.TestCase):
         s2 = self.to.natural_to_sky(x)
         self.assertTrue(np.allclose(s, s2))
 
-    # def test_dask_vs_numpy_svd(self):
-        # Check orthogonality of the harmonics.
-        # rows = 4 # 276
-        # columns = 16 # 3072
-        #x = np.random.rand(rows, 1)
-        #y = np.random.rand(1, columns)
-        #A = np.outer(x,y)
-        #A = np.random.rand(rows, columns)
-
-        #[u, s, vt], r = normal_svd(A)
-        #[u1, s1, vt1], r1 = dask_svd(A)
-
-        #self.assertEqual(r, r1)
-        #logger.info("u = {}".format(u))
-        #logger.info("u_dask = {}".format(u1))
-        #logger.info("vT = {}".format(vt))
-        #logger.info("vT_dask = {}".format(vt1))
-        #self.assertTrue(np.allclose(s, s1))
-        #self.assertTrue(np.allclose(np.abs(u), np.abs(u1)))
-        #self.assertTrue(np.allclose(np.abs(vt), np.abs(vt1), atol=0.01))
-
     def test_vis(self):
         # Check that v = A_r x_r is the same as Gamma s
         sky = self.get_point_sky()
 
         vis = np.array(self.to.gamma @ sky)
-        #logger.info("vis = {}".format(vis[:,0]))
+        # logger.info("vis = {}".format(vis[:,0]))
 
         x = self.to.sky_to_natural(sky)
 
         A = self.to.U @ self.to.sigma
         vis2 = np.array(A @ x)
-        #logger.info("vis2 = {}".format(vis2[:,0]))
+        # logger.info("vis2 = {}".format(vis2[:,0]))
 
         x_r = x[0:self.to.rank]
         vis3 = np.array(self.to.A_r @ x_r)
-        #logger.info("vis3 = {}".format(vis3[:,0]))
+        # logger.info("vis3 = {}".format(vis3[:,0]))
 
         for v1, v2, v3 in zip(vis[:, 0], vis2[:, 0], vis3[:, 0]):
             logger.info("{},{},{}".format(v1, v2, v3))
@@ -165,11 +142,11 @@ class TestTelescopeOperator(unittest.TestCase):
         sky = self.get_point_sky()
 
         vis = self.to.gamma @ sky
-        #logger.info("vis = {}".format(vis))
+        # logger.info("vis = {}".format(vis))
 
         sky_r = self.to.P_r() @ sky
         vis2 = self.to.gamma @ sky_r
-        #logger.info("vis2 = {}".format(vis2))
+        # logger.info("vis2 = {}".format(vis2))
 
         self.assertTrue(np.allclose(vis, vis2))
 

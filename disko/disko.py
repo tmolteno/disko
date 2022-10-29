@@ -109,6 +109,7 @@ class DiSkOOperator(pylops.LinearOperator):
     """
 
     def __init__(self, u_arr, v_arr, w_arr, data, frequencies, sphere):
+        super().__init__()
         self.N = sphere.npix  # Number of pixels
         self.u_arr = u_arr
         self.v_arr = v_arr
@@ -462,6 +463,9 @@ class DiSkO(object):
         return sky.reshape(-1, 1)
 
     def vis_to_data(self, vis_arr=None):
+        '''
+            Create some data with the correct shape (it has to have two additional dimensions)
+        '''
         data = np.zeros((self.n_v * 2, 1, 1), dtype=REAL_DATATYPE)
         if vis_arr is not None:
             data[:, 0, 0] = vis_to_real(vis_arr)
@@ -596,7 +600,10 @@ class DiSkO(object):
         return sky.reshape(-1, 1)
 
     def make_gamma(self, sphere, makecomplex=False):
-
+        '''
+        Build the telescope operator matrix. This v = Gamma s
+        where s is the sky, and Gamma is the matrix
+        '''
         logger.info("Making Gamma Matrix npix={}".format(sphere.npix))
 
         harmonic_list = self.get_harmonics(sphere)
@@ -606,7 +613,7 @@ class DiSkO(object):
 
         gamma = np.asarray(harmonic_list)  # , dtype=COMPLEX_DATATYPE)
         gamma = gamma.reshape((n_v, n_s))
-        gamma = gamma.conj()  # .rechunk('auto')
+        # gamma = gamma.conj()  # .rechunk('auto')
 
         if makecomplex:
             return gamma

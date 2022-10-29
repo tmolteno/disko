@@ -10,7 +10,7 @@ import numpy as np
 
 import pylops
 
-from disko import DiSkO
+from disko import DiSkO, jomega
 import disko
 from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere, Resolution
 
@@ -269,7 +269,6 @@ class TestDiSkO(unittest.TestCase):
         self.assertEqual(tiny_subsphere.npix, 4)
 
         frequencies = [1.5e9]
-        wavelength = 2.99793e8 / frequencies[0]
 
         n_vis = 3
         u = np.random.uniform(0, 1, n_vis)
@@ -282,8 +281,8 @@ class TestDiSkO(unittest.TestCase):
 
         data = tiny_disko.vis_to_data(np.random.normal(0, 1, tiny_disko.n_v) +
                                       1.0j*np.random.normal(0, 1, tiny_disko.n_v))
-        p2j = 2*np.pi*1.0j / wavelength
-
+        p2j = disko.jomega(frequencies[0])
+        
         Op = disko.DiSkOOperator(tiny_disko.u_arr, tiny_disko.v_arr,
                                  tiny_disko.w_arr, data, frequencies,
                                  tiny_subsphere)
@@ -300,7 +299,7 @@ class TestDiSkO(unittest.TestCase):
 
         for i in range(Op.M):
             for j in range(Op.N):
-                logger.info(f"{Op.A(i, j, p2j)} {tiny_gamma[i,j]}")
+                logger.info(f"[{i},{j}] {Op.A(i, j, p2j)} {tiny_gamma[i,j]}")
                 self.assertAlmostEqual(Op.A(i, j, p2j), tiny_gamma[i, j])
 
         for i in range(Op.N):
