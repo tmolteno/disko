@@ -99,7 +99,7 @@ class MultivariateGaussian:
         # A = MultivariateGaussian.square_rechunk(A)
         # b = da_identity(D, chunks=A.chunks)
         b = np.identity(D, dtype=A.dtype)
-        Ainv = scipy.linalg.solve(A, b, sym_pos=True)
+        Ainv = scipy.linalg.solve(A, b, assume_a="pos")
         return Ainv
 
     def sigma_inv(self):
