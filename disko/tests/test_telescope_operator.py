@@ -12,7 +12,6 @@ from disko import TelescopeOperator, HealpixSphere, DiSkO
 
 from tart.operation import settings
 from tart_tools import api_imaging
-from tart.imaging import elaz
 
 
 logger = logging.getLogger(__name__)

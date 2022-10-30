@@ -10,9 +10,8 @@ import numpy as np
 
 import pylops
 
-from disko import DiSkO, jomega
 import disko
-from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere, Resolution
+from disko import DiSkO, HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere, Resolution
 
 from tart.operation import settings
 from tart_tools import api_imaging
@@ -282,7 +281,7 @@ class TestDiSkO(unittest.TestCase):
         data = tiny_disko.vis_to_data(np.random.normal(0, 1, tiny_disko.n_v) +
                                       1.0j*np.random.normal(0, 1, tiny_disko.n_v))
         p2j = disko.jomega(frequencies[0])
-        
+
         Op = disko.DiSkOOperator(tiny_disko.u_arr, tiny_disko.v_arr,
                                  tiny_disko.w_arr, data, frequencies,
                                  tiny_subsphere)

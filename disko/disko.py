@@ -15,7 +15,6 @@ import dask.array as da
 import scipy.sparse.linalg as spalg
 
 
-from scipy.optimize import minimize
 from sklearn import linear_model
 
 from tart.imaging import elaz
@@ -240,6 +239,7 @@ class DirectImagingOperator(pylops.LinearOperator):
     """
 
     def __init__(self, u_arr, v_arr, w_arr, data, frequencies, sphere):
+        super().__init__()
         self.N = sphere.npix  # Number of pixels
         self.u_arr = u_arr
         self.v_arr = v_arr
@@ -500,7 +500,7 @@ class DiSkO(object):
                 r"    MS_INDEX,    INDEX, RES (sd),     U,        V,        W,         VIS")
             for b, i in zip(bigguns.tolist(), self.indices[bigguns]):
                 logger.info(
-                    f"    {i:8d}, {b:8d}, {np.abs(c_res[b]):5.2f},   {self.u_arr[b]:8.2f}, {self.v_arr[b]:8.2f}, {self.w_arr[b]:8.2f}, {c_data[b]:4.2f}")  # nopep8
+                    f"    {i:8d}, {b:8d}, {np.abs(c_res[b]):5.2f},   {self.u_arr[b]:8.2f}, {self.v_arr[b]:8.2f}, {self.w_arr[b]:8.2f}, {c_data[b]:4.2f}")  # noflake8
 
     def solve_matrix_free(
         self, data, sphere, alpha=0.0, scale=True, fista=False, lsqr=True, lsmr=False, niter=25
