@@ -5,7 +5,7 @@ test:
 	pytest-3  # python3 setup.py test
 	
 develop:
-	python3 -m pip install .
+	python3 -m pip install -e .
 
 install:
 	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-dask
@@ -80,7 +80,7 @@ sphere:
 
 tart_fista:
 	rm -f disko.log
-	disko --healpix ${TART_ARGS} --SVG --fista --matrix-free --alpha=-1 --niter=1000 --title 'tart_fista'
+	disko --healpix ${TART_ARGS} --SVG --fista --matrix-free --alpha=200 --niter=30 --title 'tart_fista'
 tart_lsmr:
 	rm -f disko.log
 	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsqr --matrix-free --title 'tart_lsmr'
