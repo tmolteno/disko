@@ -538,9 +538,9 @@ class DiSkO(object):
                 eps = 1e-4
             else:
                 eps = 1e-3
-            sky, niter = pylops.optimization.sparsity.FISTA(
-                Op=A, data=d, x0=np.abs(Apre @ d),  # SOp=Apre,
-                eigstol=1e-9, eigsiter=5, eps=eps,
+            sky, niter = pylops.optimization.sparsity.fista(
+                Op=A, y=d, x0=np.abs(Apre @ d),  # SOp=Apre,
+                eps=eps,
                 tol=1e-10, niter=niter, alpha=alpha, show=True,
                 # A, d, niter=niter, alpha=None, show=True, x0=np.abs(Apre @ d),
                 threshkind="soft", callback=A
