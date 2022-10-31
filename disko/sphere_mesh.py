@@ -117,7 +117,7 @@ def get_mesh(radius_rad, edge_size):
     logger.info(
         f"Generating Mesh: Radius: {Resolution.from_rad(radius_rad)}, edge = {Resolution.from_rad(edge_size)}")
     geo = dmsh.Circle(x0=[0.0, 0.0], r=1)
-    X, cells = dmsh.generate(geo, target_edge_size=edge_size/radius_rad,
+    X, cells = dmsh.generate(geo, edge_size/radius_rad,
                              tol=edge_size / 250,
                              max_steps=1000,
                              verbose=False)

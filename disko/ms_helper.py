@@ -187,7 +187,7 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0,
                     ds.DATA.data[indices, channel, pol], "DATA", dtype=np.complex64
                 )
 
-                epoch_seconds = np.array(ds.TIME.data)[0]
+                epoch_seconds = np.mean(np.array(ds.TIME.data))
         if no_datasets_read == 0:
             raise RuntimeError("FIELD_ID ({}) or DDID ({}) contains no data".format(field_id, ddid))
 

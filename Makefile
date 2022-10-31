@@ -59,8 +59,8 @@ dask:
 #        Maximum resident set size (kbytes): 3956904
 #         Maximum resident set size (kbytes): 2903484
 
-# TART_ARGS=--fov 155deg --res 1deg --ms test_data/test.ms
-TART_ARGS=--fov 155deg --res 1deg --file test_data/test_data.json --show-sources
+TART_ARGS=--fov 155deg --res 1deg --ms test_data/test.ms --field 1
+#TART_ARGS=--fov 155deg --res 1deg --file test_data/test_data.json --show-sources
 
 cygnus_lsmr:
 	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
