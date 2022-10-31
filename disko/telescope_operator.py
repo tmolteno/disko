@@ -5,6 +5,7 @@
 # of the telescope
 #
 #
+from .util import log_array, da_identity, da_diagsvd
 import logging
 import time
 import scipy
@@ -29,9 +30,7 @@ logger.addHandler(
 logger.setLevel(logging.INFO)
 
 SVD_TOL = 1e-3
-USE_DASK=True
-
-from .util import log_array, da_identity, da_diagsvd
+USE_DASK = True
 
 
 def plot_spectrum(s, n_s, n_v, rank, name):
@@ -39,7 +38,8 @@ def plot_spectrum(s, n_s, n_v, rank, name):
     plt.plot(s)
     plt.grid(True)
     plt.title(
-        "Singular Value Spectrum $N_s={}$,  $N_v={}$, $r={}$".format(n_s, n_v, rank)
+        "Singular Value Spectrum $N_s={}$,  $N_v={}$, $r={}$".format(
+            n_s, n_v, rank)
     )
     plt.xlabel("Rank ($i$)")
     plt.ylabel("Singular value $\\sigma_i$")
@@ -216,7 +216,7 @@ class TelescopeOperator:
         self.n_v = _gamma.shape[0]
         self.n_s = _gamma.shape[1]
 
-        ## Create temporary file for gamma
+        # Create temporary file for gamma
         # with h5py.File('gamma.hdf', "w") as h5f:
         # log_array("_gamma", _gamma)
         # h5f.create_dataset('gamma',data=_gamma, chunks=(10, self.n_v))
@@ -246,23 +246,24 @@ class TelescopeOperator:
             self.sigma = npzfile["sigma"]
             self.rank = npzfile["rank"]
             self.V = self.Vh.conj().T
-            self.V_1 = self.V[:, 0 : self.rank]
-            self.V_2 = self.V[:, self.rank :]
+            self.V_1 = self.V[:, 0: self.rank]
+            self.V_2 = self.V[:, self.rank:]
 
         else:
             logger.info("Performing SVD.")
 
-            ### Take the SVD of the gamma matrix.
+            # Take the SVD of the gamma matrix.
             if USE_DASK:
-                [self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(self.gamma)
+                [self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(
+                    self.gamma)
             else:
                 [self.U, self.sigma, self.Vh], self.s, self.rank = normal_svd(
                     np.array(self.gamma)
                 )
 
             self.V = self.Vh.T
-            self.V_1 = self.V[:, 0 : self.rank]
-            self.V_2 = self.V[:, self.rank :]
+            self.V_1 = self.V[:, 0: self.rank]
+            self.V_2 = self.V[:, self.rank:]
             # logger.info("Calculating orthogonal projections")
 
             # self._P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
@@ -280,10 +281,10 @@ class TelescopeOperator:
 
         logger.info("rank = {}".format(self.rank))
 
-        self.U_1 = self.U[:, 0 : self.rank]
-        self.U_2 = self.U[:, self.rank :]
+        self.U_1 = self.U[:, 0: self.rank]
+        self.U_2 = self.U[:, self.rank:]
 
-        self.sigma_1 = self.sigma[0 : self.rank, 0 : self.rank]
+        self.sigma_1 = self.sigma[0: self.rank, 0: self.rank]
 
         self.A_r = self.U_1 @ self.sigma_1  #
 
@@ -358,7 +359,7 @@ class TelescopeOperator:
 
     def null_to_sky(self, x_n):
         x = np.zeros(self.n_s)
-        x[self.rank : -1] = x_n
+        x[self.rank: -1] = x_n
         return self.natural_to_sky(x)
 
     def image_visibilities(self, vis_arr, sphere, scale=True):
@@ -374,11 +375,13 @@ class TelescopeOperator:
 
         if vis_arr.shape[0] != self.n_v:
             raise ValueError(
-                "Visibility array {} wrong shape {}".format(vis_arr.shape, self.n_v)
+                "Visibility array {} wrong shape {}".format(
+                    vis_arr.shape, self.n_v)
             )
 
         logger.info(
-            "Imaging Direct gamma={}, vis={}".format(self.gamma.shape, vis_arr.shape)
+            "Imaging Direct gamma={}, vis={}".format(
+                self.gamma.shape, vis_arr.shape)
         )
         t0 = time.time()
 
@@ -408,7 +411,7 @@ class TelescopeOperator:
         logger.info("Imaging Natural nside={}".format(sphere.nside))
         t0 = time.time()
 
-        s = self.s[0 : self.rank]
+        s = self.s[0: self.rank]
         D = np.diag(s)  # / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
 
         # x_r = D @ self.U_1.T @ vis_arr # np.linalg.solve(self.A_r, vis_arr)
@@ -527,7 +530,8 @@ class TelescopeOperator:
     def plot_uv(self, name):
         uv = []
 
-        plt.figure(num=None, figsize=(5, 4), dpi=300, facecolor="w", edgecolor="k")
+        plt.figure(num=None, figsize=(5, 4), dpi=300,
+                   facecolor="w", edgecolor="k")
         for u, v, w in zip(self.grid.u_arr, self.grid.v_arr, self.grid.w_arr):
             plt.plot(u, v, ".", color="black")
 
