@@ -20,10 +20,10 @@ class TestDiSkOMS(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Load data from a MS file
-        fname = 'test_data/test2.ms'
+        fname = 'test_data/test.ms'
         logger.info("Getting Data from MS file: {}".format(fname))
 
-        res = Resolution.from_deg(180)
+        res = Resolution.from_deg(3)
         cls.disko = DiSkO.from_ms(fname, res=res, num_vis=500)
         cls.nside = 16
         cls.sphere = HealpixSphere(cls.nside)

@@ -113,7 +113,7 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0,
             logger.info("Reading {}...".format(title))
             ret = np.array(da, dtype=dtype)
             toc = time.perf_counter()
-            logger.info("Elapsed {:04f} seconds".format(toc - tic))
+            logger.info(f"Shape {ret.shape} Elapsed {toc - tic :04f} seconds")
             return ret
         no_datasets_read = 0
         for i, ds in enumerate(datasets):
@@ -220,7 +220,8 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0,
 
         rms_arr = sigma.T
 
-        logger.info("Max vis {}".format(np.max(np.abs(cv_vis))))
+        logger.info(f"vis {cv_vis.shape}")
+        logger.info(f"Max vis {np.max(np.abs(cv_vis))}")
 
         # Convert from reduced Julian Date to timestamp.
         timestamp = datetime.datetime(
@@ -228,7 +229,7 @@ def read_ms(ms, num_vis, angular_resolution, chunks=1000, channel=0,
         ) + datetime.timedelta(seconds=epoch_seconds)
 
     except Exception as e:
-        logger.info("Exception {}".format(e))
+        logger.error("Exception {}".format(e), exc_info=True)
         logger.exception(e)
 
     # finally:
