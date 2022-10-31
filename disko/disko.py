@@ -212,24 +212,27 @@ class DiSkOOperator(pylops.LinearOperator):
         """
         assert v.shape == (self.M,)
 
-        ret = []
+        ret = np.zeros(self.N)
 
         for f in self.frequencies:
             p2j = jomega(f)
             # for each pixel
-            for l, m, n_1, a in zip(
-                    self.sphere.l, self.sphere.m, self.sphere.n_minus_1,
-                    self.sphere.pixel_areas):
+            for i in range(self.N):
+                l = self.sphere.l[i]
+                m = self.sphere.m[i]
+                n_1 = self.sphere.n_minus_1[i]
+                a = self.sphere.pixel_areas[i]
+
                 h = get_harmonic(-p2j, l, m, n_1, self.u_arr,
                                  self.v_arr, self.w_arr, a)
                 re = np.real(h)
-                im = np.imag(h)
+                im = -np.imag(h)
 
                 reim = np.concatenate((re, im))
                 assert reim.shape == (self.M,)
-                ret.append(np.dot(v, reim))
+                ret[i] = np.dot(v, reim)
 
-        return np.array(ret)
+        return ret
 
 
 class DirectImagingOperator(pylops.LinearOperator):
