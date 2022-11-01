@@ -551,7 +551,7 @@ class DiSkO(object):
 
             logger.info(f"FISTA complete: {sky.shape} niter={niter}")
 
-        if lsqr:
+        if lsqr is True:
             if alpha < 0:
                 alpha = np.mean(self.rms)
             (
@@ -582,13 +582,13 @@ class DiSkO(object):
                 )
             )
 
-        if lsmr:
+        if lsmr is True:
             if alpha < 0:
                 alpha = np.mean(self.rms)
             x0 = Apre @ d
 
-            sky, info = pylops.optimization.leastsquares.NormalEquationsInversion(
-                A, Regs=None, data=d, x0=x0, epsI=alpha, returninfo=True
+            sky, info = pylops.optimization.leastsquares.normal_equations_inversion(
+                A, Regs=None, y=d, x0=x0, epsI=alpha, show=True
             )
             # logger.info(f"Matrix free solve elapsed={time.time()-t0} x={sky.shape}, stop={lstop}, itn={itn} r1norm={r1norm}")
             # logger.info(f"A M={} N={}".format(A.M, A.N))

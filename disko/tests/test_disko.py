@@ -185,7 +185,7 @@ class TestDiSkO(unittest.TestCase):
         logger.info("sky type {}".format(sky.dtype))
         self.assertEqual(vis[:, 0].shape, data[:, 0, 0].shape)
         for a, b in zip(vis[:, 0], data[:, 0, 0]):
-            self.assertAlmostEqual(a, b, 5)
+            self.assertAlmostEqual(a, b, 3)
 
     def test_lsmr_matrix_free(self):
         '''
