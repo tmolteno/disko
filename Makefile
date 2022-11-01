@@ -90,7 +90,7 @@ tart_lsqr:
 
 tart_lasso:
 	rm -f disko.log
-	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lasso --matrix-free --title 'tart_lasso'
+	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lasso --title 'tart_lasso'
 
 ## 1000 0.1074
 ## 2000 0.0696

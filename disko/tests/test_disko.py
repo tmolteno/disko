@@ -210,8 +210,8 @@ class TestDiSkO(unittest.TestCase):
         Generate fake data with a frequency axis and an npol axis.
         '''
         data = self.disko.vis_to_data()
-        sky = self.disko.solve_matrix_free(data, self.subsphere,
-                                           alpha=None, scale=False,
+        sky = self.disko.solve_matrix_free(data, self.subsphere, niter=400,
+                                           alpha=30, scale=False,
                                            fista=True, lsqr=False, lsmr=False)
         self.assertEqual(sky.shape[0], 1504)
 
@@ -221,7 +221,7 @@ class TestDiSkO(unittest.TestCase):
         logger.info("sky type {}".format(sky.dtype))
         self.assertEqual(vis[:, 0].shape, data[:, 0, 0].shape)
         for a, b in zip(vis[:, 0], data[:, 0, 0]):
-            self.assertAlmostEqual(a, b, 5)
+            self.assertAlmostEqual(a, b, 3)
 
     def test_dot_matrix_free(self):
         r'''
