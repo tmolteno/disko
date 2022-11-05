@@ -19,6 +19,7 @@ from sklearn import linear_model
 
 from tart.imaging import elaz
 
+from astropy import constants as const
 
 from .healpix_sphere import HealpixSphere
 from .ms_helper import read_ms
@@ -76,14 +77,12 @@ def get_source_list(source_json, el_limit, jy_limit):
 REAL_DATATYPE = np.float64
 COMPLEX_DATATYPE = np.complex128
 
-C = 2.99793e8
-
 
 def omega(freq):
     r"""
     Little routine to convert a frequency into omega
     """
-    wavelength = C / freq
+    wavelength = const.c.value / freq
     return 2 * np.pi / wavelength
 
 

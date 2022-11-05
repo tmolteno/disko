@@ -13,6 +13,7 @@ import pylops
 from disko import DiSkO
 import disko
 from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere, Resolution
+import astropy.constants as const
 
 from tart.operation import settings
 from tart_tools import api_imaging
@@ -143,7 +144,7 @@ class TestPylopsOperator(unittest.TestCase):
         self.assertEqual(tiny_subsphere.npix, 4)
 
         frequencies = [1.5e9]
-        wavelength = 2.99793e8 / frequencies[0]
+        wavelength = const.c.value / frequencies[0]
 
         n_vis = 3
         u = np.random.uniform(0, 1, n_vis)

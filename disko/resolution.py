@@ -1,5 +1,6 @@
 import numpy as np
 
+import astropy.constants as const
 
 def parse_ending(x_str, ending):
     if x_str.endswith(ending):
@@ -99,8 +100,7 @@ class Resolution:
 
             so d = spacing / theta
         '''
-        c = 2.99793e8
-        wavelength = c / frequency
+        wavelength = const.c.value / frequency
         spacing = wavelength / self.x_rad
         return spacing*2    # Nyquist requires twice this...
 
@@ -110,8 +110,7 @@ class Resolution:
             Return the angular resolution that will be
             given by a particular baseline length
         '''
-        c = 2.99793e8
-        wavelength = c / frequency
+        wavelength = const.c.value / frequency
 
         res_limit = wavelength / bl
         return cls(res_limit / 2)  # Nyquist requires twice this

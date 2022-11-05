@@ -414,17 +414,20 @@ class TelescopeOperator:
         s = self.s[0: self.rank]
         D = np.diag(s)  # / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
 
-        # x_r = D @ self.U_1.T @ vis_arr # np.linalg.solve(self.A_r, vis_arr)
-        x_r = np.linalg.solve(self.A_r, vis_arr)
+        logger.info("vis_arr = {}".format(vis_arr.shape))
+        logger.info("A_r = {}".format(self.A_r.shape))
+
+        x_r = D @ self.U_1.T @ vis_arr # np.linalg.solve(self.A_r, vis_arr)
+        # x_r = np.linalg.solve(self.A_r, vis_arr)
         # x_n = np.zeros(self.n_n())
-        # logging.info("x_r = {}".format(x_r.shape))
-        # logging.info("x_n = {}".format(x_n.shape))
+        logger.info("x_r = {}".format(x_r.shape))
 
         # x = np.block([x_r.flatten(), x_n])
         # logging.info("x = {}".format(x.shape))
 
         # sky = self.natural_to_sky(x)
         sky = self.V_1 @ x_r
+        logger.info("sky = {}".format(sky.shape))
         sphere.set_visible_pixels(sky.flatten(), scale)
 
         logger.info("Elapsed {}s".format(time.time() - t0))
