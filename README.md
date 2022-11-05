@@ -46,6 +46,7 @@ This should generate a suitable measurement set to image.
 ## Changelog
 
 
+0.9.3b6 Use speed of light from astropy.constants.
 0.9.3b5 Fix bug in the Matrix Free Linear Operator which wasn't conjugated.
 0.9.3b4 Raise nicer errors when arguments aren't provided
 0.9.3b2 Fix indexing error in read_ms when the number of visibilities requested exceeded the number available.
