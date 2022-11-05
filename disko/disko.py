@@ -614,21 +614,22 @@ class DiSkO(object):
         n_v = len(harmonic_list)
 
         gamma = np.asarray(harmonic_list)  # , dtype=COMPLEX_DATATYPE)
+        logger.info("Gamma Shape: {}".format(gamma.shape))
         gamma = gamma.reshape((n_v, n_s))
+        logger.info("Complex Gamma Shape: {}".format(gamma.shape))
         # gamma = gamma.conj()  # .rechunk('auto')
 
         if makecomplex:
             return gamma
 
-        # g_real = np.real(gamma).astype(REAL_DATATYPE)
-        # g_imag = np.imag(gamma).astype(REAL_DATATYPE)
+        # Build an augmented matrix for separating the real and imaginary
+        # parts, so that the operator matrix can be real-valued
         g_real = np.real(gamma)
         g_imag = np.imag(gamma)
-        ret = np.block([[g_real], [g_imag]])  # .rechunk('auto')
+        ret = np.block([[g_real], 
+                        [g_imag]])  # .rechunk('auto')
 
-        logger.info("Gamma Shape: {}".format(gamma.shape))
-        # for i, h in enumerate(harmonic_list):
-        # gamma[i,:] = h[0]
+        logger.info("Real Gamma Shape: {}".format(ret.shape))
 
         return ret
 

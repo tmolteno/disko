@@ -66,7 +66,7 @@ class TestTelescopeOperator(unittest.TestCase):
                         np.dot(self.to.V, self.to.Vh)))
 
     def test_harmonics(self):
-        # Check the harmonics are normalized.
+        # Check the harmonics are normalized. The value is modified by the number of pixels in the sky
         n_h = self.to.n_v // 2
         for i in range(0, n_h):
             h_re = self.to.harmonic(i)
@@ -74,8 +74,9 @@ class TestTelescopeOperator(unittest.TestCase):
 
             h_i = h_re + 1.0j*h_im
             dot = h_i @ h_i.conj().T
+
             # dot = np.dot(h_re, h_re) + np.dot(h_im, h_im)
-            self.assertAlmostEqual(dot.compute(), 1.0)
+            self.assertAlmostEqual(dot.compute() * self.to.n_s, 1.0)
 
     def test_null_harmonics(self):
         # Check the harmonics are normalized and are in the null space of Gamma.
