@@ -9,14 +9,16 @@ import argparse
 import datetime
 import json
 import logging
-from copy import deepcopy
+import pkg_resources  # part of setuptools
+import sys
+
 
 import numpy as np
 
 
+from copy import deepcopy
 from tart.operation import settings
 
-#from tart_tools import api_handler
 from tart_tools import api_imaging
 from tart.imaging import elaz
 
@@ -44,8 +46,8 @@ if __name__ == '__main__':
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,  parents=[parser_mesh, parser_sphere])
 
 
-    parser.add_argument('--fov', type=str, required=True, help="Field of view. E.g. 1.3deg, 12\", 11', 8uas, 6mas...")
-    parser.add_argument('--res', type=str, required=True, help="Maximim Resolution of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
+    parser.add_argument('--fov', type=str, default="180deg", help="Field of view. E.g. 1.3deg, 12\", 11', 8uas, 6mas...")
+    parser.add_argument('--res', type=str, default="2deg", help="Maximim Resolution of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
 
     data_group = parser.add_mutually_exclusive_group()
     data_group.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
@@ -83,6 +85,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--cv', action="store_true", help="Use Cross Validation")
     parser.add_argument('--dask', action="store_true", help="Use dask")
+    
+    parser.add_argument('--version', action="store_true", help="Display the current version")
 
 
     source_json = None
@@ -110,13 +114,16 @@ if __name__ == '__main__':
     #logger.addHandler(ch)
     logger.addHandler(fh)
     
-    #client = Client()
-    #nside = ARGS.nside
-    #radius = np.radians(ARGS.fov / 2.0)
+    if ARGS.version:
+        version = pkg_resources.require("disko")[0].version
+        print(f"DiSkO: Version {version}")
+        print("       (c) 2022 Tim Molteno")
+        sys.exit(0)
     
     fov = Resolution.from_string(ARGS.fov)
     res = Resolution.from_string(ARGS.res)
     
+
     sphere = None
     if ARGS.mesh:
         if ARGS.res_min is None:
