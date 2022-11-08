@@ -9,7 +9,7 @@ with open('README.md') as f:
     readme = f.read()
 
 setup(name='disko',
-      version='0.9.3b6',
+      version='0.9.4b1',
       description='Discrete Sky Operator (DiSkO) Aperture Synthesis Radio Imaging',
       long_description=readme,
       long_description_content_type="text/markdown",
@@ -19,7 +19,7 @@ setup(name='disko',
       tests_require=['nose'],
       author_email='tim@elec.ac.nz',
       license='GPLv3',
-      install_requires=['numpy', 'matplotlib', 'healpy', 'astropy', 'tart', 'tart-tools', 'h5py',
+      install_requires=['numpy', 'matplotlib', 'healpy', 'astropy', 'tart', 'tart-tools', 'tart2ms', 'h5py',
                         'scipy', 'svgwrite', 'dask', 'scikit-learn', 'dask-ms', 'distributed',
                         'pylops', 'toolz', 'dmsh', 'optimesh', 'imageio'],
       packages=['disko'],

@@ -8,16 +8,11 @@ import json
 import numpy as np
 import healpy as hp
 
-from .resolution import Resolution
-
-
 logger = logging.getLogger(__name__)
 logger.addHandler(
     logging.NullHandler()
 )  # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
-
-
 
 PI_OVER_2 = np.pi / 2
 
@@ -84,7 +79,6 @@ class ElAz(object):
     # }
 
 
-
 class PlotCoords(object):
     """
     The image is w x h, with the center at h/2 and h/2.
@@ -125,7 +119,8 @@ class PlotCoords(object):
 def elaz2lmn(el_r, az_r):
     l = np.sin(az_r) * np.cos(el_r)
     m = np.cos(az_r) * np.cos(el_r)
-    n = np.sin(el_r)  # Often written in this weird way... np.sqrt(1.0 - l**2 - m**2)
+    # Often written in this weird way... np.sqrt(1.0 - l**2 - m**2)
+    n = np.sin(el_r)
     return l, m, n
 
 
@@ -191,16 +186,16 @@ class Sphere(object):
     """
     A base class for all sphere's including grids.
     """
-    
+
     def __init__(self):
         self.pixels = None
         self.fov = None
-        
+
     def callback(self, x, i):
         fname = f"callback_{i:05d}.svg"
         stats = self.set_visible_pixels(x)
         self.to_svg(fname, title=f"Iteration {i}")
-    
+
     def min_res(self):
         raise Exception("min_res not implemented for this sphere")
 
@@ -226,7 +221,8 @@ class Sphere(object):
             # fact = factors(n_s)
             # rpix = exposure.equalize_adapthist(rpix.reshape((n_s//fact, -1)), clip_limit=0.03)
         self.pixels = rpix.reshape((len(pix),))
-        logger.info(f"Pixels Set {self.pixels.shape}, Image stats: {json.dumps(stats, sort_keys=True)}")
+        logger.info(
+            f"Pixels Set {self.pixels.shape}, Image stats: {json.dumps(stats, sort_keys=True)}")
         return stats
 
     def to_fits(self, fname, title=None, info={}):
@@ -312,4 +308,3 @@ class HexagonSubSphere(Sphere):
         draw.flush()
         image.show()
 '''
-

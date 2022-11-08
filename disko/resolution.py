@@ -1,6 +1,11 @@
+#
+# Copyright Tim Molteno 2022 tim@elec.ac.nz
+#
+
 import numpy as np
 
 import astropy.constants as const
+
 
 def parse_ending(x_str, ending):
     if x_str.endswith(ending):
@@ -15,9 +20,21 @@ MILLIARCSECONDS = 'mas'
 MICROARCSECONDS = 'uas'
 
 
+def rayleigh_criterion(bl, frequency):
+    '''
+        The accepted criterion for determining the diffraction limit to resolution
+        developed by Lord Rayleigh in the 19th century.
+
+        approx resolution given by first order Bessel functions
+        assuming array is a flat disk of length bl
+    '''
+    min_wl = const.c.value / frequency
+    return (1.220 * min_wl / bl)
+
+
 class Resolution:
     '''
-        Degrees (°), minutes ('), seconds (") 
+        Degrees (°), minutes ('), seconds (")
     '''
 
     def __init__(self, x_rad):
@@ -86,8 +103,8 @@ class Resolution:
 
     def get_min_baseline(self, frequency):
         '''
-            Get the shortest baseline that will resolve 
-            this resolution, and the specified frequency.
+            Get the shortest baseline length (in meters) that will resolve
+            this resolution, at the specified frequency.
 
             Double-slit interferometer (spacing d). Fringe maxima
             occur at angles where
@@ -106,11 +123,5 @@ class Resolution:
 
     @classmethod
     def from_baseline(cls, bl, frequency):
-        '''
-            Return the angular resolution that will be
-            given by a particular baseline length
-        '''
-        wavelength = const.c.value / frequency
-
-        res_limit = wavelength / bl
-        return cls(res_limit / 2)  # Nyquist requires twice this
+        res_limit = rayleigh_criterion(bl, frequency)
+        return cls(res_limit / 2)  # Nyquist requires twice the resolution

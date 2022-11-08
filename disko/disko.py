@@ -22,7 +22,7 @@ from tart.imaging import elaz
 from astropy import constants as const
 
 from .healpix_sphere import HealpixSphere
-from .ms_helper import read_ms
+from tart2ms import read_ms
 from .multivariate_gaussian import MultivariateGaussian
 
 logger = logging.getLogger(__name__)
@@ -340,7 +340,7 @@ class DiSkO(object):
     @classmethod
     def from_ms(cls, ms, num_vis, res, chunks=50000, channel=0, field_id=0, ddid=0):
         u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices = read_ms(
-            ms, num_vis, angular_resolution=res,
+            ms, num_vis, angular_resolution=res.degrees(),
             chunks=chunks, channel=channel,
             field_id=field_id, ddid=ddid
         )

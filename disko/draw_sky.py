@@ -1,3 +1,7 @@
+#
+# Copyright Tim Molteno 2017-2022 tim@elec.ac.nz
+#
+
 import json
 import logging
 

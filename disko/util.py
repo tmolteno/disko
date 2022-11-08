@@ -74,7 +74,7 @@ def da_block_diag(*arrs):
     out = da.zeros(np.sum(shapes, axis=0), dtype=out_dtype)
     r, c = 0, 0
     for i, (rr, cc) in enumerate(shapes):
-        out[r : r + rr, c : c + cc] = arrs[i]
+        out[r: r + rr, c: c + cc] = arrs[i]
         r += rr
         c += cc
     return out
