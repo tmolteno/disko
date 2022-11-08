@@ -193,9 +193,10 @@ class TestTelescopeOperator(unittest.TestCase):
 
         vis3 = (self.to.gamma @ imaged_sky)
         # Now check that the visibilities from the imaged sky match the original visibiities
+        logger.info(f"pixel_areas = {self.sphere.pixel_areas}")
 
         for v1, v2 in zip(vis, vis3):
-            logger.info("a,b = {} {}".format(v1, v2))
+            logger.info(f"a,b = {v1.compute()} {v2.compute()} {(v1*self.sphere.pixel_areas[0]).compute()}")
             self.assertAlmostEqual(v1[0].compute(), v2[0].compute())
 
     def test_bayes(self):

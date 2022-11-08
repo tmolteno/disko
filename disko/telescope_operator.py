@@ -179,7 +179,7 @@ class TelescopeOperator:
     The projection of a sky vector into the N(Gamma) is V_2 V_2^H
 
     The projection of a visibility vector into the R(Gamma) is U_1 U_1^H
-    The projection of a visibility vector into the N(Gamma^H) is U_2 U_2^H
+    The projection of a sky vector into the N(Gamma^H) is U_2 U_2^H
 
     U_1 are the basis vectors (columns) for the range space of A
 
@@ -198,7 +198,7 @@ class TelescopeOperator:
 
 
     (2) The null space of the telescope consists of vectors V_2 (in the sky space).
-    (3) The range space of the telescope (in the sky space) consists of vectors V_1
+    (3) The range space of the telescope Adjoint (in the sky space) consists of vectors V_1
     (4) Imaging v = U_1 \SIgma_1 V_1^H s, implies
              Sigma_1^{-1} U_1^H v = V_1^H s
              V_1 Sigma_1^{-1} U_1^H v = s
@@ -212,7 +212,7 @@ class TelescopeOperator:
         self.grid = grid
         self.sphere = sphere
 
-        _gamma = grid.make_gamma(sphere)  # , makecomplex=True)
+        _gamma = grid.make_gamma(sphere)  #, makecomplex=True)
         self.n_v = _gamma.shape[0]
         self.n_s = _gamma.shape[1]
 
@@ -338,7 +338,6 @@ class TelescopeOperator:
     """
         Convert the natural-basis vector x into the sky basis
     """
-
     def natural_to_sky(self, x):
         return self.V @ x
 
@@ -402,6 +401,7 @@ class TelescopeOperator:
 
         then sky = to_sky(x_r)
 
+        Since in the natural basis, A_r is diagonal.
         Args:
 
             vis_arr (np.array): An array of visibilities
@@ -417,8 +417,10 @@ class TelescopeOperator:
         logger.info("vis_arr = {}".format(vis_arr.shape))
         logger.info("A_r = {}".format(self.A_r.shape))
 
-        x_r = D @ self.U_1.T @ vis_arr # np.linalg.solve(self.A_r, vis_arr)
-        # x_r = np.linalg.solve(self.A_r, vis_arr)
+        #x_r = D @ self.U_1.T @ vis_arr 
+        v_n = self.U_1.T @ vis_arr
+        
+        x_r = np.linalg.solve(self.A_r, v_n)
         # x_n = np.zeros(self.n_n())
         logger.info("x_r = {}".format(x_r.shape))
 
