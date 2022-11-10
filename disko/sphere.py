@@ -196,6 +196,9 @@ class Sphere(object):
         stats = self.set_visible_pixels(x)
         self.to_svg(fname, title=f"Iteration {i}")
 
+    def index_of(self, el, az):
+        raise RuntimeError("index_of not implemented for this sphere")
+    
     def min_res(self):
         raise Exception("min_res not implemented for this sphere")
 
