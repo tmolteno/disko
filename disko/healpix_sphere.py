@@ -424,7 +424,6 @@ class HealpixSphere(Sphere):
 
     def plot(self, plt, src_list):
         rot = (0, 90, 0)
-        plt.figure()  # (figsize=(6,6))
         logger.info("self.pixels: {}".format(self.pixels.shape))
         if True:
             hp.orthview(
@@ -512,12 +511,6 @@ class HealpixSubSphere(HealpixSphere):
         ret.l, ret.m, ret.n = elaz2lmn(ret.el_r, ret.az_r)
         ret.n_minus_1 = ret.n - 1
 
-        if False:
-            import matplotlib.pyplot as plt
-
-            # plt.plot(ret.l, ret.m, 'x')
-            plt.plot(el_r, az_r, "x")
-            plt.show()
         return ret
 
     def __repr__(self):
@@ -551,7 +544,6 @@ class HealpixSubSphere(HealpixSphere):
         all_pixels[self.pixel_indices] = self.pixels
 
         rot = (0, 90, 0)
-        plt.figure()  # (figsize=(6,6))
         logger.info("self.pixels: {}".format(self.pixels.shape))
         if True:
             hp.orthview(
