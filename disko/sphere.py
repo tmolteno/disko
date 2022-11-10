@@ -199,6 +199,9 @@ class Sphere(object):
     def min_res(self):
         raise Exception("min_res not implemented for this sphere")
 
+    def area(self):
+        raise Exception("area() not implemented for this sphere")
+
     def to_svg(
         self,
         fname,

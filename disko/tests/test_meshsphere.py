@@ -25,6 +25,9 @@ class TestMeshsphere(unittest.TestCase):
                                                          theta=np.radians(0.0), phi=0.0,
                                                          fov=Resolution.from_deg(20))
 
+    def test_area(self):
+        self.assertAlmostEqual(self.sphere.area(), 1.0)
+
     def test_sizes(self):
         self.assertEqual(self.sphere.npix, self.sphere.el_r.shape[0])
         self.assertEqual(self.sphere.npix, self.sphere.l.shape[0])

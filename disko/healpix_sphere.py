@@ -95,7 +95,7 @@ class HealpixSphere(Sphere):
         # healpy.query_polygon
 
         self.pixels = np.zeros(self.npix)  # + hp.UNSEEN
-        self.pixel_areas = np.ones(self.npix)/self.npix
+        self.pixel_areas = 4*np.pi*np.ones(self.npix)/self.npix
 
         el_r, az_r = hp2elaz(theta, phi)
 
@@ -108,6 +108,9 @@ class HealpixSphere(Sphere):
     def __repr__(self):
         return f"HealpixSphere nside={self.nside}"
 
+    def area(self):
+        return np.sum(self.pixel_areas)
+    
     def min_res(self):
         return self._min_res
 
@@ -494,7 +497,6 @@ class HealpixSubSphere(HealpixSphere):
 
         ret.npix = ret.pixel_indices.shape[0]
 
-        ret.pixel_areas = np.ones(ret.npix)/ret.npix
 
         logger.info("New SubSphere, nside={}. npix={}".format(ret.nside, ret.npix))
 
@@ -502,6 +504,9 @@ class HealpixSubSphere(HealpixSphere):
 
         ret.fov = Resolution.from_rad(radius_rad * 2)
         ret.pixels = np.zeros(ret.npix)  # + hp.UNSEEN
+        
+        area = 4*np.pi*(ret.npix / hp.nside2npix(nside))
+        ret.pixel_areas = area*np.ones(ret.npix)/ret.npix
 
         el_r, az_r = hp2elaz(theta, phi)
 
