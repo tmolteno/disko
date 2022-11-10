@@ -400,6 +400,16 @@ class DiSkO(object):
         ret.info = {}
         return ret
 
+    def get_beam_width(self):
+        max_u = np.max(np.abs(self.u_arr))
+        max_v = np.max(np.abs(self.v_arr))
+        max_w = np.max(np.abs(self.w_arr))
+
+        beam_width = Resolution.from_baseline(bl=np.max([max_u, max_v, max_w]),
+                                              frequency=self.frequency)
+        logger.info(f"Resolution ({max_u}, {max_v}, {max_w}) : {beam_width}")
+        return beam_width
+
     def get_harmonics(self, in_sphere):
         """Create the harmonics for this arrangement of sphere pixels"""
         # cache_key = "{}:".format(in_sphere.npix)
@@ -906,7 +916,6 @@ class DiSkO(object):
     @classmethod
     def plot(self, plt, sphere, src_list):
         rot = (0, 90, 0)
-        plt.figure()  # (figsize=(6,6))
         logger.info("sphere.pixels: {}".format(sphere.pixels.shape))
         if True:
             hp.orthview(

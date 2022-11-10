@@ -46,6 +46,8 @@ This should generate a suitable measurement set to image.
 ## Changelog
 
 
+0.9.4b2 Add helper method to calculate beam size. 
+        Add area() method to sphere. Make it work.
 0.9.4b1 Use read_ms from tart2ms (moved there). 
 0.9.3b6 Use speed of light from astropy.constants. 
         Add a --version option to print the current version and exit.

@@ -24,6 +24,15 @@ class TestSubsphere(unittest.TestCase):
         self.sphere = HealpixSubSphere.from_resolution(res_arcmin=60.0,
                                                        theta=np.radians(10.0),
                                                        phi=0.0, radius_rad=np.radians(1))
+    def test_area(self):
+        sky = HealpixSphere(nside=128)
+        
+        self.assertAlmostEqual(sky.area(), 4*np.pi)
+
+        hemisphere = HealpixSubSphere.from_resolution(res_arcmin=60.0,
+                                                       theta=np.radians(0.0),
+                                                       phi=0.0, radius_rad=np.radians(90))
+        self.assertAlmostEqual(hemisphere.area(), 2*np.pi, 1)
 
     def test_big_subsphere(self):
         # Check that a full subsphere is the same as the sphere.
