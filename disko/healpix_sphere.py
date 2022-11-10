@@ -4,6 +4,7 @@
 
 import logging
 import svgwrite
+import copy
 
 import healpy as hp
 import numpy as np
@@ -107,9 +108,6 @@ class HealpixSphere(Sphere):
 
     def __repr__(self):
         return f"HealpixSphere nside={self.nside}"
-
-    def area(self):
-        return np.sum(self.pixel_areas)
     
     def min_res(self):
         return self._min_res

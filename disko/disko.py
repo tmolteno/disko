@@ -412,9 +412,12 @@ class DiSkO(object):
 
     def get_harmonics(self, in_sphere):
         """Create the harmonics for this arrangement of sphere pixels"""
-        # cache_key = "{}:".format(in_sphere.npix)
-        # if (cache_key in self.harmonics):
-        # return self.harmonics[cache_key]
+        cache_key = f"{in_sphere.npix}_{self.u_arr.shape[0]}"
+        if (cache_key in self.harmonics):
+            harmonic_list = self.harmonics[cache_key]
+            assert (harmonic_list[0].shape[0] == in_sphere.npix)
+            return harmonic_list
+
 
         harmonic_list = []
         p2j = jomega(self.frequency)
@@ -425,9 +428,8 @@ class DiSkO(object):
                 p2j, in_sphere.l, in_sphere.m, in_sphere.n_minus_1, u, v, w, in_sphere.pixel_areas)
             assert harmonic.shape[0] == in_sphere.npix
             harmonic_list.append(harmonic)
-        # self.harmonics[cache_key] = harmonic_list
+        self.harmonics[cache_key] = harmonic_list
 
-        # assert(harmonic_list[0].shape[0] == in_sphere.npix)
         return harmonic_list
 
     def image_visibilities(self, vis_arr, sphere):
@@ -438,7 +440,7 @@ class DiSkO(object):
         Args:
 
             vis_arr (np.array): An array of complex visibilities
-            sphere (int):       he healpix sphere.
+            sphere (Sphere):    a sphere to place 
         """
 
         assert len(vis_arr) == len(self.u_arr)

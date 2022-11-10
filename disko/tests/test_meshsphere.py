@@ -24,6 +24,11 @@ class TestMeshsphere(unittest.TestCase):
                                                          res_max=Resolution.from_arcmin(60),
                                                          theta=np.radians(0.0), phi=0.0,
                                                          fov=Resolution.from_deg(20))
+    def test_copy(self):
+        sph3 = self.sphere.copy()
+        sph3.pixels += 1
+        self.assertFalse(np.allclose(self.sphere.pixels, sph3.pixels))
+        self.assertTrue(np.allclose(self.sphere.pixel_areas, sph3.pixel_areas))
 
     def test_area(self):
         self.assertAlmostEqual(self.sphere.area(), 1.0)

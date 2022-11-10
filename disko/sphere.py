@@ -4,6 +4,7 @@
 
 import logging
 import json
+import copy
 
 import numpy as np
 import healpy as hp
@@ -189,6 +190,7 @@ class Sphere(object):
 
     def __init__(self):
         self.pixels = None
+        self.pixel_areas = None
         self.fov = None
 
     def callback(self, x, i):
@@ -196,14 +198,25 @@ class Sphere(object):
         stats = self.set_visible_pixels(x)
         self.to_svg(fname, title=f"Iteration {i}")
 
+    def copy(self):
+        return copy.deepcopy(self)
+    
     def index_of(self, el, az):
-        raise RuntimeError("index_of not implemented for this sphere")
+        raise RuntimeError("index_of() not implemented for this sphere")
     
     def min_res(self):
-        raise Exception("min_res not implemented for this sphere")
+        raise Exception("min_res() not implemented for this sphere")
 
-    def area(self):
-        raise Exception("area() not implemented for this sphere")
+    def get_area(self):
+        return np.sum(self.pixel_areas)
+
+    def get_power(self):
+        # Total flux of this image.
+        # This is the sum of the pixel intensities
+        return np.sum((self.pixels**2/self.pixel_areas))
+
+    def rms(self):
+        return np.sqrt(np.mean(self.pixels**2))
 
     def to_svg(
         self,

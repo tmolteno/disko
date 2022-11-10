@@ -211,7 +211,7 @@ class TestDiSkO(unittest.TestCase):
         '''
         data = self.disko.vis_to_data()
         sky = self.disko.solve_matrix_free(data, self.subsphere, niter=400,
-                                           alpha=30, scale=False,
+                                           alpha=None, scale=False,
                                            fista=True, lsqr=False, lsmr=False)
         self.assertEqual(sky.shape[0], 1504)
 
