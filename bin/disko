@@ -24,7 +24,7 @@ from tart.imaging import elaz
 
 from dask.distributed import Client
 
-from disko import DiSkO, get_source_list, AdaptiveMeshSphere, create_fov, Resolution
+from disko import DiSkO, get_source_list, AdaptiveMeshSphere, sphere_from_args, sphere_add_args
 
 
 if __name__ == '__main__':
@@ -35,19 +35,21 @@ if __name__ == '__main__':
     parser_mesh.add_argument('--mesh', action="store_true", help="Use a non-structured mesh in the image space")
     parser_mesh.add_argument('--adaptive', type=int, default=0, help="Use N cycles of adaptive meshing")
     parser_mesh.add_argument('--res-min', type=str, default=None, help="Highest allowed res of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
-
-
+    
+    
     parser_sphere = argparse.ArgumentParser(add_help=False)
     parser_sphere.add_argument('--healpix', action="store_true", help="Use HealPix tiling")
     parser_sphere.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
 
+    parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image.',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                                     parents=[parser_mesh, parser_sphere])
 
-    parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image using the web api of a TART radio telescope.', 
-                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter,  parents=[parser_mesh, parser_sphere])
-
-
+    
     parser.add_argument('--fov', type=str, default="180deg", help="Field of view. E.g. 1.3deg, 12\", 11', 8uas, 6mas...")
     parser.add_argument('--res', type=str, default="2deg", help="Maximim Resolution of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
+    
+    # sphere_add_args(parser)
 
     data_group = parser.add_mutually_exclusive_group()
     data_group.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
@@ -120,24 +122,9 @@ if __name__ == '__main__':
         print("       (c) 2022 Tim Molteno")
         sys.exit(0)
     
-    fov = Resolution.from_string(ARGS.fov)
-    res = Resolution.from_string(ARGS.res)
+
+    sphere = sphere_from_args(ARGS)
     
-
-    sphere = None
-    if ARGS.mesh:
-        if ARGS.res_min is None:
-            res_min = res
-        else:
-            res_min = Resolution.from_string(ARGS.res_min)
-
-        sphere = AdaptiveMeshSphere.from_resolution(res_min=res_min, res_max=res, theta=np.radians(0.0), phi=0.0, fov=fov)
-    if ARGS.healpix:
-        sphere = create_fov(ARGS.nside, fov=fov, res=res)
-
-    if sphere is None:
-        raise RuntimeError("Either --mesh or --healpix must be specified")
-
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
         # Load data from a JSON file

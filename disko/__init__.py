@@ -11,7 +11,8 @@ from .disko import (
     get_all_uvw,
     jomega,
 )
-from .healpix_sphere import HealpixSphere, HealpixSubSphere, create_fov
+from .healpix_sphere import HealpixSphere, HealpixSubSphere
+from .parser_support import sphere_from_args, sphere_add_args
 from .sphere_mesh import AdaptiveMeshSphere, area
 from .telescope_operator import (
     TelescopeOperator,

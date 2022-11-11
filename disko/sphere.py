@@ -9,11 +9,13 @@ import copy
 import numpy as np
 import healpy as hp
 
+
 logger = logging.getLogger(__name__)
 logger.addHandler(
     logging.NullHandler()
 )  # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
+
 
 PI_OVER_2 = np.pi / 2
 
