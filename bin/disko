@@ -24,32 +24,19 @@ from tart.imaging import elaz
 
 from dask.distributed import Client
 
-from disko import DiSkO, get_source_list, AdaptiveMeshSphere, sphere_from_args, sphere_add_args
+from disko import DiSkO, get_source_list, AdaptiveMeshSphere, sphere_from_args, sphere_args_parser
 
 
 if __name__ == '__main__':
     #parser.add_argument('--api', required=False, default='https://tart.elec.ac.nz/signal', help="Telescope API server URL.")
     #parser.add_argument('--catalog', required=False, default='https://tart.elec.ac.nz/catalog', help="Catalog API URL.")
-        
-    parser_mesh = argparse.ArgumentParser(add_help=False)
-    parser_mesh.add_argument('--mesh', action="store_true", help="Use a non-structured mesh in the image space")
-    parser_mesh.add_argument('--adaptive', type=int, default=0, help="Use N cycles of adaptive meshing")
-    parser_mesh.add_argument('--res-min', type=str, default=None, help="Highest allowed res of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
-    
-    
-    parser_sphere = argparse.ArgumentParser(add_help=False)
-    parser_sphere.add_argument('--healpix', action="store_true", help="Use HealPix tiling")
-    parser_sphere.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
+
+    sphere_parsers = sphere_args_parser()
 
     parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                     parents=[parser_mesh, parser_sphere])
-
+                                     parents=sphere_parsers)
     
-    parser.add_argument('--fov', type=str, default="180deg", help="Field of view. E.g. 1.3deg, 12\", 11', 8uas, 6mas...")
-    parser.add_argument('--res', type=str, default="2deg", help="Maximim Resolution of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
-    
-    # sphere_add_args(parser)
 
     data_group = parser.add_mutually_exclusive_group()
     data_group.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")

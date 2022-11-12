@@ -1,32 +1,29 @@
 import argparse
-
+import numpy as np
 
 from .resolution import Resolution
 from .healpix_sphere import create_fov
 from .sphere_mesh import AdaptiveMeshSphere
 
 
-def sphere_add_args(parser):
-    
-    parent_parser = argparse.ArgumentParser(add_help=False)
-    parent_parser.add_argument('--fov', type=str, default="180deg",
-                        help="Field of view. E.g. 1.3deg, 12\", 11', 8uas, 6mas...")
-    parent_parser.add_argument('--res', type=str, default="2deg",
-                        help="Maximim Resolution of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
+def sphere_args_parser():
+    parser_resolution = argparse.ArgumentParser(add_help=False)
+    parser_resolution.add_argument('--fov', type=str, default="180deg", help="Field of view. E.g. 1.3deg, 12\", 11', 8uas, 6mas...")
+    parser_resolution.add_argument('--res', type=str, default="2deg", help="Maximim Resolution of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
 
-    sphere_subparsers = parser.add_subparsers(dest='sphere_type')
-    mesh_parser = sphere_subparsers.add_parser('--mesh',
-                                        help='Use a non-structured mesh in the image space',
-                                        parents = [parent_parser])
-    mesh_parser.add_argument('--adaptive', type=int, default=0,
-                             help="Use N cycles of adaptive meshing")
-    mesh_parser.add_argument('--res-min', type=str, default=None,
-                             help="Highest allowed res of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
+    parser_mesh = argparse.ArgumentParser(add_help=False)
+    parser_mesh.add_argument('--mesh', action="store_true", help="Use a non-structured mesh in the image space")
+    parser_mesh.add_argument('--adaptive', type=int, default=0, help="Use N cycles of adaptive meshing")
+    parser_mesh.add_argument('--res-min', type=str, default=None, help="Highest allowed res of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
     
-    parser_healpix = sphere_subparsers.add_parser('--healpix', 
-                                                  help='Use HealPix tiling',
-                                                  parents=[parent_parser])
-    parser_healpix.add_argument('--nside', type=int, default=None, help="Healpix nside parameter")
+    
+    parser_sphere = argparse.ArgumentParser(add_help=False)
+
+    parser_sphere.add_argument('--healpix', action="store_true", help="Use HealPix tiling")
+    parser_sphere.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
+
+    return [parser_resolution, parser_mesh, parser_sphere]
+
 
 def sphere_from_args(args):
     fov = Resolution.from_string(args.fov)

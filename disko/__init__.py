@@ -12,7 +12,7 @@ from .disko import (
     jomega,
 )
 from .healpix_sphere import HealpixSphere, HealpixSubSphere
-from .parser_support import sphere_from_args, sphere_add_args
+from .parser_support import sphere_from_args, sphere_args_parser
 from .sphere_mesh import AdaptiveMeshSphere, area
 from .telescope_operator import (
     TelescopeOperator,
