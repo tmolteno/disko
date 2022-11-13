@@ -393,18 +393,18 @@ class AdaptiveMeshSphere(Sphere):
 
         return list(self.tri.points[new_indices].copy())
 
-    def plot(self):
-        import matplotlib.pyplot as plt
+    def plot(self, plt, src_list):
+        self.tri = Delaunay(self.points)
 
         # plt.plot(pts[:,0], pts[:,1], '.')
         plt.clf()
         plt.plot(self.tri.points[:, 0], self.tri.points[:, 1], "o")
         plt.plot(self.points[:, 0], self.points[:, 1], ".")
         plt.triplot(
-            self.tri.points[:, 0], self.tri.points[:,
-                                                   1], self.tri.simplices.copy()
+            self.tri.points[:, 0], 
+            self.tri.points[:, 1], 
+            self.tri.simplices.copy()
         )
-        plt.show()
 
     def callback(self, x, i):
         fname = f"callback_{i:05d}.vtk"

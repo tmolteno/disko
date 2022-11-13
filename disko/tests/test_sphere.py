@@ -6,7 +6,8 @@ import unittest
 
 import numpy as np
 
-from disko import sphere
+from disko import sphere, HealpixSphere
+from disko import fov
 
 
 class TestUtil(unittest.TestCase):
@@ -33,3 +34,13 @@ class TestUtil(unittest.TestCase):
         theta, phi = sphere.elaz2hp(el, az)
         self.assertEqual(theta, 0)
         self.assertEqual(phi, 0)
+
+    def test_load_save(self):
+        
+        sph = HealpixSphere(nside=64)
+        sph.to_hdf('test.h5')
+        
+        sph2 = fov.from_hdf('test.h5')
+        
+        self.assertTrue(np.allclose(sph.pixels, sph2.pixels))
+        self.assertTrue(np.allclose(sph.pixel_areas, sph2.pixel_areas))

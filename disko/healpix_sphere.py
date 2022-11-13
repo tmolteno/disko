@@ -5,6 +5,7 @@
 import logging
 import svgwrite
 import copy
+import h5py
 
 import healpy as hp
 import numpy as np
@@ -92,9 +93,6 @@ class HealpixSphere(Sphere):
         self.pixel_indices = np.arange(self.npix)
         theta, phi = hp.pix2ang(nside, self.pixel_indices)
 
-        # For limited fields of view
-        # healpy.query_polygon
-
         self.pixels = np.zeros(self.npix)  # + hp.UNSEEN
         self.pixel_areas = 4*np.pi*np.ones(self.npix)/self.npix
 
@@ -131,6 +129,21 @@ class HealpixSphere(Sphere):
         bounds = hp.boundaries(self.nside, pixel, step=1)
         bounds = np.array(bounds).T
         return bounds
+    
+    def to_hdf(self, filename):
+        with h5py.File(filename, "w") as h5f:
+            self.to_hdf_header(h5f)
+            h5f.create_dataset('nside', data=[self.nside])
+            h5f.create_dataset('pixels', data=self.pixels)
+
+    @classmethod
+    def from_hdf(cls, h5f):
+
+        nside = h5f['nside'][:][0]
+
+        ret = cls(nside)
+        ret.pixels = h5f['pixels'][:]
+        return ret 
 
     def to_svg(
         self,
@@ -495,7 +508,6 @@ class HealpixSubSphere(HealpixSphere):
 
         ret.npix = ret.pixel_indices.shape[0]
 
-
         logger.info("New SubSphere, nside={}. npix={}".format(ret.nside, ret.npix))
 
         theta, phi = hp.pix2ang(nside, ret.pixel_indices)
@@ -518,6 +530,22 @@ class HealpixSubSphere(HealpixSphere):
 
     def __repr__(self):
         return f"HealpixSubSphere fov={self.fov}, nside={self.nside}"
+
+    def to_hdf(self, filename):
+        with h5py.File(filename, "w") as h5f:
+            self.to_hdf_header(h5f)
+            h5f.create_dataset('nside', data=[self.nside])
+            h5f.create_dataset('pixels', data=self.pixels)
+
+    @classmethod
+    def from_hdf(cls, h5f):
+
+        nside = h5f['nside'][:][0]
+
+        ret = cls(nside)
+        ret.pixels = h5f['pixels'][:]
+        return ret 
+
 
     def split(self, n):
         ret = []

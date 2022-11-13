@@ -22,7 +22,7 @@ setup(name='disko',
       install_requires=['numpy', 'matplotlib', 'healpy', 'astropy', 'tart', 'tart-tools', 'tart2ms', 'h5py',
                         'scipy', 'svgwrite', 'dask', 'scikit-learn', 'dask-ms', 'distributed',
                         'pylops', 'toolz', 'dmsh', 'optimesh', 'imageio'],
-      packages=['disko'],
+      packages=['disko', 'disko.fov'],
       scripts=['bin/disko', 'bin/disko_svd', 'bin/disko_bayes'],
       classifiers=[
           "Development Status :: 4 - Beta",

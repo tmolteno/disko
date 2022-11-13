@@ -47,6 +47,9 @@ This should generate a suitable measurement set to image.
 
 
 0.9.4b4 Expose parent parsers.
+        Refer to min_res() rather than nside for spheres
+        Fix bugs in display of mesh spheres
+        add disko.fov namespace
 0.9.4b3 Move sphere args parser to the sphere object.
 0.9.4b2 Add helper method to calculate beam size. 
         Add area(), get_power() method to sphere. Make it work.

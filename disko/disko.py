@@ -444,7 +444,7 @@ class DiSkO(object):
         """
 
         assert len(vis_arr) == len(self.u_arr)
-        logger.info("Imaging Visabilities nside={}".format(sphere.nside))
+        logger.info("Imaging Visabilities resolution={}".format(sphere.min_res()))
         t0 = time.time()
 
         pixels = np.zeros(sphere.npix, dtype=COMPLEX_DATATYPE)
@@ -460,7 +460,7 @@ class DiSkO(object):
 
     def solve_vis(self, vis_arr, sphere, scale=True):
 
-        logger.info("Solving Visabilities nside={}".format(sphere.nside))
+        logger.info("Solving Visabilities res={}".format(sphere.min_res()))
         t0 = time.time()
 
         gamma = self.make_gamma(sphere)
@@ -550,7 +550,7 @@ class DiSkO(object):
             else:
                 eps = 1e-3
             sky, niter, cost_history = pylops.optimization.sparsity.fista(
-                Op=A, y=d,  # x0=np.abs(Apre @ d),  # SOp=Apre,
+                Op=A, y=d, x0=np.abs(Apre @ d),  # SOp=Apre,
                 eps=eps,
                 tol=1e-10, niter=niter, alpha=alpha, show=True,
                 # A, d, niter=niter, alpha=None, show=True, x0=np.abs(Apre @ d),

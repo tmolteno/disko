@@ -92,3 +92,18 @@ class TestSubsphere(unittest.TestCase):
         big.to_fits(fname=fname)
         self.assertTrue(os.path.isfile(fname))
         os.remove(fname)
+        
+        
+    def test_load_save(self):
+        
+        big = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0,
+                                               theta=np.radians(0.0), phi=0.0,
+                                               radius_rad=np.radians(45))
+        sph.to_hdf('test.h5')
+        
+        sph2 = fov.from_hdf('test.h5')
+        
+        self.assertTrue(np.allclose(sph.pixels, sph2.pixels))
+        self.assertTrue(np.allclose(sph.pixel_areas, sph2.pixel_areas))
+        self.assertTrue(np.allclose(sph.pixel_indices, sph2.pixel_indices))
+

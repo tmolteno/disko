@@ -5,6 +5,7 @@
 import logging
 import json
 import copy
+import h5py
 
 import numpy as np
 import healpy as hp
@@ -219,6 +220,18 @@ class Sphere(object):
 
     def rms(self):
         return np.sqrt(np.mean(self.pixels**2))
+
+    def to_hdf_header(self, h5f):
+        dt = h5py.special_dtype(vlen=bytes)
+
+        config = {}
+        config['fov_type'] = type(self).__name__
+        conf_dset = h5f.create_dataset('information', (1,), dtype=dt)
+        conf_dset[0] = json.dumps(config)
+
+    def to_hdf(self, filename):
+        raise Exception("to_hdf() not implemented for this sphere")
+
 
     def to_svg(
         self,

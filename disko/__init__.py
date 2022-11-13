@@ -12,7 +12,6 @@ from .disko import (
     jomega,
 )
 from .healpix_sphere import HealpixSphere, HealpixSubSphere
-from .parser_support import sphere_from_args, sphere_args_parser
 from .sphere_mesh import AdaptiveMeshSphere, area
 from .telescope_operator import (
     TelescopeOperator,
@@ -25,3 +24,4 @@ from .draw_sky import mask_to_sky
 from .projection_lsqr import plsqr
 from .multivariate_gaussian import MultivariateGaussian
 from .resolution import Resolution
+from .parser_support import sphere_from_args, sphere_args_parser
