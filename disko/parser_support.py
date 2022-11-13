@@ -24,8 +24,7 @@ def sphere_args_parser():
                          help="Use N cycles of adaptive meshing")
     par_msh.add_argument('--res-min', type=str, default=None,
                          help="Highest allowed res of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
-    
-    
+
     par_sph = argparse.ArgumentParser(add_help=False)
     par_sph.add_argument('--healpix', action="store_true",
                          help="Use HealPix tiling")
