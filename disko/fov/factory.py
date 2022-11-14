@@ -4,7 +4,7 @@ import h5py
 import numpy as np
 
 from ..healpix_sphere import HealpixSphere, HealpixSubSphere
-
+from ..sphere import GeoLocation
 
 def from_hdf(filename):
     ret = None
@@ -14,7 +14,7 @@ def from_hdf(filename):
         
         fov_type = info_json['fov_type']
         timestamp = info_json['timestamp']
-        geolocation = info_json['geolocation']
+        geolocation = GeoLocation.from_json(info_json['geolocation'])
         centre = info_json['center']
 
         if fov_type == 'HealpixSphere':

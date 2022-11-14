@@ -6,10 +6,13 @@ import logging
 import json
 import copy
 import h5py
+import datetime
+import json
 
 import numpy as np
 import healpy as hp
 
+from astropy.coordinates import EarthLocation
 
 logger = logging.getLogger(__name__)
 logger.addHandler(
@@ -21,6 +24,25 @@ logger.setLevel(logging.INFO)
 PI_OVER_2 = np.pi / 2
 
 
+class GeoLocation(object):
+    '''
+        Utility class to serialize astropy EarthLocation
+    '''
+    
+    def __init__(self, lon, lat, height):
+        self.loc = EarthLocation.from_geodetic(lon=lon, lat=lat, height=height)
+
+    @classmethod
+    def from_json(cls, json_string):
+        data = json.loads(json_string)
+        pass
+    
+    def to_json(self):
+        ret = {'lat': self.loc.lat.value,
+               'lon': self.loc.lon.value,
+               'height': self.loc.height.value}
+        return json.dumps(ret)
+    
 class LonLat(object):
     def __init__(self, lon, lat):
         self.lon = lon
@@ -195,12 +217,13 @@ class Sphere(object):
         self.pixels = None
         self.pixel_areas = None
         self.fov = None
-        self.timestamp = None
+        self.timestamp = datetime.datetime.utcnow()
+        self.geolocation = GeoLocation(lon=0, lat=0, height=0)
 
     def callback(self, x, i):
-        fname = f"callback_{i:05d}.svg"
+        fname = f"callback_{i:05d}.hdf"
         stats = self.set_visible_pixels(x)
-        self.to_svg(fname, title=f"Iteration {i}")
+        self.to_hdf(fname)
 
     def copy(self):
         return copy.deepcopy(self)
@@ -233,7 +256,7 @@ class Sphere(object):
         info_json = {}
         info_json['fov_type'] = type(self).__name__
         info_json['timestamp'] = self.timestamp.isoformat()
-        info_json['geolocation'] = self.geolocation
+        info_json['geolocation'] = self.geolocation.to_json()
         info_json['center'] = 2
 
         conf_dset = h5f.create_dataset('information', (1,), dtype=dt)

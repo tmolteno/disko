@@ -45,12 +45,12 @@ def sphere_from_args(args):
         else:
             res_min = Resolution.from_string(args.res_min)
 
-        sphere = AdaptiveMeshSphere.from_resolution(res_min=res_min,
-                                                    res_max=res,
-                                                    theta=np.radians(0.0),
-                                                    phi=0.0, fov=fov)
+        sphere = AdaptiveMeshSphere(res_min=res_min,
+                                    res_max=res,
+                                    theta=np.radians(0.0),
+                                    phi=0.0, fov=fov)
     if args.healpix:
-        sphere = create_fov(args.nside, fov=fov, res=res)
+        sphere = create_fov(args.nside, fov=fov, res=res, theta=theta, phi=phi)
     if sphere is None:
         raise RuntimeError("Either --mesh or --healpix must be specified (healpix recommended)")
 

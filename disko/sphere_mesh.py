@@ -172,14 +172,20 @@ class AdaptiveMeshSphere(Sphere):
     An adaptive mesh sphere.
     """
 
-    def __init__(self, res_min, res_max, fov):
+    def __init__(self):
+        logger.info("New AdaptiveMeshSphere()")
+
+    def __init__(self, res_min, res_max, fov, theta, phi):
         logger.info(
-            f"New AdaptiveMeshSphere(fov={fov}) res_min={res_min}, res_max={res_max}")
+            f"New AdaptiveMeshSphere(fov={fov}) res_min={res_min}, res_max={res_max})")
         self.radius_rad = fov.radians() / 2
         self.fov = fov
         self.res_arcmin = res_max
         self.res_max = res_max
         self.res_min = res_min
+
+        self.theta = theta
+        self.phi = phi
 
         points, simplices, pixel_areas, el_r, az_r, l, m, n = get_lmn(
             self.radius_rad, self.res_max.radians())
@@ -208,15 +214,26 @@ class AdaptiveMeshSphere(Sphere):
     def __repr__(self):
         return f"AdaptiveMeshSphere fov={self.fov}, res_min={self.res_min}, N={self.npix}"
 
-    @classmethod
-    def from_resolution(cls, res_min=None, res_max=None, theta=0.0, phi=0.0, fov=None):
-        # Theta is co-latitude measured southward from the north pole
-        # Phi is [0..2pi]
+    def to_hdf(self, filename):
+        with h5py.File(filename, "w") as h5f:
+            self.to_hdf_header(h5f)
 
-        ret = cls(res_min, res_max, fov)
-        logger.info(f"AdaptiveMeshSphere from_res, npix={ret.npix}")
-
-        return ret
+            h5f.create_dataset('npix', data=[self.npix])
+            h5f.create_dataset('res_arcmin', data=[self.res_arcmin])
+            h5f.create_dataset('theta', data=[self.theta])
+            h5f.create_dataset('phi', data=[self.phi])
+            h5f.create_dataset('radius_rad', data=[self.radius_rad])
+            
+            h5f.create_dataset('pixels', data=self.pixels)
+            h5f.create_dataset('points', data=self.points)
+            h5f.create_dataset('simplices', data=self.simplices)
+            h5f.create_dataset('pixel_areas', data=self.pixel_areas)
+            h5f.create_dataset('l', data=self.l)
+            h5f.create_dataset('m', data=self.m)
+            h5f.create_dataset('n', data=self.n)
+            h5f.create_dataset('n_minus_1', data=self.n_minus_1)
+            h5f.create_dataset('el_r', data=self.el_r)
+            h5f.create_dataset('az_r', data=self.az_r)
 
     def fast_mesh(self, pts, simplices):
 

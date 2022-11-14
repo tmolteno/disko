@@ -9,6 +9,7 @@ import os
 import numpy as np
 
 from disko import AdaptiveMeshSphere, area, HealpixSubSphere, Resolution
+from disko import fov
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler())  # Add a null handler so logs can go somewhere
@@ -20,10 +21,10 @@ class TestMeshsphere(unittest.TestCase):
     def setUp(self):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
-        self.sphere = AdaptiveMeshSphere.from_resolution(res_min=Resolution.from_arcmin(60),
-                                                         res_max=Resolution.from_arcmin(60),
-                                                         theta=np.radians(0.0), phi=0.0,
-                                                         fov=Resolution.from_deg(20))
+        self.sphere = AdaptiveMeshSphere(res_min=Resolution.from_arcmin(60),
+                                         res_max=Resolution.from_arcmin(60),
+                                         theta=np.radians(0.0), phi=0.0,
+                                         fov=Resolution.from_deg(20))
     def test_copy(self):
         sph3 = self.sphere.copy()
         sph3.pixels += 1
@@ -31,7 +32,7 @@ class TestMeshsphere(unittest.TestCase):
         self.assertTrue(np.allclose(self.sphere.pixel_areas, sph3.pixel_areas))
 
     def test_area(self):
-        self.assertAlmostEqual(self.sphere.area(), 1.0)
+        self.assertAlmostEqual(self.sphere.get_area(), 1.0)
 
     def test_sizes(self):
         self.assertEqual(self.sphere.npix, self.sphere.el_r.shape[0])
@@ -83,3 +84,14 @@ class TestMeshsphere(unittest.TestCase):
         self.sphere.to_fits(fname=fname)
         self.assertTrue(os.path.isfile(fname))
         os.remove(fname)
+        
+        
+    def test_load_save(self):
+        
+        self.sphere.to_hdf('test.h5')
+        
+        sph2 = fov.from_hdf('test.h5')
+        
+        self.assertTrue(np.allclose(self.sphere.pixels, sph2.pixels))
+        self.assertTrue(np.allclose(self.sphere.pixel_areas, sph2.pixel_areas))
+
