@@ -3,7 +3,7 @@ import h5py
 
 import numpy as np
 
-from ..healpix_sphere import HealpixSphere
+from ..healpix_sphere import HealpixSphere, HealpixSubSphere
 
 
 def from_hdf(filename):

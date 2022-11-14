@@ -75,7 +75,7 @@ class TestDiSkO(unittest.TestCase):
         cls.nside = 16
         cls.sphere = HealpixSphere(cls.nside)
         res = Resolution.from_deg(4.0)
-        cls.subsphere = HealpixSubSphere.from_resolution(res_arcmin=res.arcmin(),
+        cls.subsphere = HealpixSubSphere(res_arcmin=res.arcmin(),
                                                          theta=np.radians(0.0),
                                                          phi=0.0,
                                                          radius_rad=np.radians(89))
@@ -261,10 +261,10 @@ class TestDiSkO(unittest.TestCase):
             Test such a small gamma that we can inspect every element and
             check that the matrix is what we expect it to be.
         '''
-        tiny_subsphere = HealpixSubSphere.from_resolution(res_arcmin=3600,
-                                                          theta=np.radians(0.0),
-                                                          phi=0.0,
-                                                          radius_rad=np.radians(80))
+        tiny_subsphere = HealpixSubSphere(res_arcmin=3600,
+                                          theta=np.radians(0.0),
+                                          phi=0.0,
+                                          radius_rad=np.radians(80))
         self.assertEqual(tiny_subsphere.npix, 4)
 
         frequencies = [1.5e9]

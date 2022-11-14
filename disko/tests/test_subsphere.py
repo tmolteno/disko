@@ -9,6 +9,7 @@ import os
 import numpy as np
 
 from disko import HealpixSubSphere, HealpixSphere
+from disko import fov
 
 LOGGER = logging.getLogger(__name__)
 # Add a null handler so logs can go somewhere
@@ -21,7 +22,7 @@ class TestSubsphere(unittest.TestCase):
     def setUp(self):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
-        self.sphere = HealpixSubSphere.from_resolution(res_arcmin=60.0,
+        self.sphere = HealpixSubSphere(res_arcmin=60.0,
                                                        theta=np.radians(10.0),
                                                        phi=0.0, radius_rad=np.radians(1))
     def test_area(self):
@@ -29,7 +30,7 @@ class TestSubsphere(unittest.TestCase):
         
         self.assertAlmostEqual(sky.get_area(), 4*np.pi)
 
-        hemisphere = HealpixSubSphere.from_resolution(res_arcmin=60.0,
+        hemisphere = HealpixSubSphere(res_arcmin=60.0,
                                                        theta=np.radians(0.0),
                                                        phi=0.0, radius_rad=np.radians(90))
         self.assertAlmostEqual(hemisphere.get_area(), 2*np.pi, 1)
@@ -49,7 +50,7 @@ class TestSubsphere(unittest.TestCase):
     def test_big_subsphere(self):
         # Check that a full subsphere is the same as the sphere.
         res_deg = 3.0
-        big = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0,
+        big = HealpixSubSphere(res_arcmin=res_deg*60.0,
                                                theta=np.radians(0.0), phi=0.0,
                                                radius_rad=np.radians(180))
         old = HealpixSphere(32)
@@ -60,7 +61,7 @@ class TestSubsphere(unittest.TestCase):
     def test_tiny_subsphere(self):
         # Check that a full subsphere is the same as the sphere.
         res_deg = 0.5
-        tiny = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0,
+        tiny = HealpixSubSphere(res_arcmin=res_deg*60.0,
                                                 theta=np.radians(0.0),
                                                 phi=0.0, radius_rad=np.radians(5))
 
@@ -74,7 +75,7 @@ class TestSubsphere(unittest.TestCase):
     def test_svg(self):
         res_deg = 10
         fname = 'test.svg'
-        big = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0,
+        big = HealpixSubSphere(res_arcmin=res_deg*60.0,
                                                theta=np.radians(0.0), phi=0.0,
                                                radius_rad=np.radians(45))
 
@@ -85,7 +86,7 @@ class TestSubsphere(unittest.TestCase):
     def test_fits(self):
         res_deg = 10
         fname = 'test.fits'
-        big = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0,
+        big = HealpixSubSphere(res_arcmin=res_deg*60.0,
                                                theta=np.radians(0.0), phi=0.0,
                                                radius_rad=np.radians(45))
 
@@ -95,8 +96,8 @@ class TestSubsphere(unittest.TestCase):
         
         
     def test_load_save(self):
-        
-        big = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0,
+        res_deg = 10
+        sph = HealpixSubSphere(res_arcmin=res_deg*60.0,
                                                theta=np.radians(0.0), phi=0.0,
                                                radius_rad=np.radians(45))
         sph.to_hdf('test.h5')

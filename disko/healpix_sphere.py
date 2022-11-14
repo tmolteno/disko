@@ -35,13 +35,15 @@ def create_fov(nside, fov, res, theta=0.0, phi=0.0):
         sphere = HealpixSphere(nside)
     elif nside is not None and fov is not None:
         radius_rad = fov.radians() / 2
-        sphere = HealpixSubSphere.from_resolution(
-            nside=nside, theta=theta, phi=phi, radius_rad=radius_rad)
+        sphere = HealpixSubSphere(nside=nside, 
+                                  theta=theta, phi=phi, 
+                                  radius_rad=radius_rad)
     elif res is not None and fov is not None:
         radius_rad = fov.radians() / 2
         res_arcmin = res.arcmin()
-        sphere = HealpixSubSphere.from_resolution(
-            res_arcmin=res_arcmin, theta=theta, phi=phi, radius_rad=radius_rad)
+        sphere = HealpixSubSphere(res_arcmin=res_arcmin, 
+                                  theta=theta, phi=phi, 
+                                  radius_rad=radius_rad)
     else:
         raise RuntimeError("Either nside, or res_arcmin must be specified")
 
@@ -473,18 +475,9 @@ class HealpixSubSphere(HealpixSphere):
     """
     A healpix subset of a sphere bounded by a range in theta and phi
     """
-
-    def __init__(self, nside):
-        res = hp.nside2resol(nside, arcmin=True)
-        self.nside = nside
-        self._min_res = Resolution.from_arcmin(res)
-        logger.info(f"New SubSphere, nside={self.nside}, res={self._min_res}")
-
-    @classmethod
-    def from_resolution(
-        cls, res_arcmin=None, nside=None, theta=0.0, phi=0.0, radius_rad=0.0
-    ):
-        logger.info(r"HealpixSubSphere.from_resolution:")
+    
+    def __init__(self, res_arcmin=None, nside=None, theta=0.0, phi=0.0, radius_rad=0.0):
+        logger.info(r"HealpixSubSphere:")
         logger.info(f"    res={res_arcmin} arcmin, nside={nside}")
         logger.info(f"    theta={theta}, phi={phi}, radius_rad={radius_rad})")
         # Theta is co-latitude measured southward from the north pole
@@ -496,37 +489,41 @@ class HealpixSubSphere(HealpixSphere):
                 logger.info(f"nside={nside} res={hp.nside2resol(nside, arcmin=True)}")
                 nside *= 2
 
-        ret = cls(nside)
-
+        self.nside = nside
+        self.res_arcmin = res_arcmin
+        self.theta = theta
+        self.phi = phi
+        res = hp.nside2resol(nside, arcmin=True)
+        self._min_res = Resolution.from_arcmin(res)
+        self.radius_rad = radius_rad
+        
         # The coordinates of the unit vector defining the center
         x0 = hp.ang2vec(theta, phi)
 
         # https://healpy.readthedocs.io/en/latest/generated/healpy.query_polygon.html
-        ret.pixel_indices = hp.query_disc(
+        self.pixel_indices = hp.query_disc(
             nside=nside, vec=x0, radius=radius_rad, inclusive=False, nest=False
         ).astype(int)
 
-        ret.npix = ret.pixel_indices.shape[0]
+        self.npix = self.pixel_indices.shape[0]
 
-        logger.info("New SubSphere, nside={}. npix={}".format(ret.nside, ret.npix))
+        logger.info(f"New SubSphere, nside={self.nside} npix={self.npix}, res={self._min_res}")
 
-        theta, phi = hp.pix2ang(nside, ret.pixel_indices)
+        theta, phi = hp.pix2ang(nside, self.pixel_indices)
 
-        ret.fov = Resolution.from_rad(radius_rad * 2)
-        ret.pixels = np.zeros(ret.npix)  # + hp.UNSEEN
+        self.fov = Resolution.from_rad(radius_rad * 2)
+        self.pixels = np.zeros(self.npix)  # + hp.UNSEEN
         
-        area = 4*np.pi*(ret.npix / hp.nside2npix(nside))
-        ret.pixel_areas = area*np.ones(ret.npix)/ret.npix
+        area = 4*np.pi*(self.npix / hp.nside2npix(nside))
+        self.pixel_areas = area*np.ones(self.npix)/self.npix
 
         el_r, az_r = hp2elaz(theta, phi)
 
-        ret.el_r = el_r
-        ret.az_r = az_r
+        self.el_r = el_r
+        self.az_r = az_r
 
-        ret.l, ret.m, ret.n = elaz2lmn(ret.el_r, ret.az_r)
-        ret.n_minus_1 = ret.n - 1
-
-        return ret
+        self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
+        self.n_minus_1 = self.n - 1
 
     def __repr__(self):
         return f"HealpixSubSphere fov={self.fov}, nside={self.nside}"
@@ -534,37 +531,33 @@ class HealpixSubSphere(HealpixSphere):
     def to_hdf(self, filename):
         with h5py.File(filename, "w") as h5f:
             self.to_hdf_header(h5f)
+
             h5f.create_dataset('nside', data=[self.nside])
+            h5f.create_dataset('res_arcmin', data=[self.res_arcmin])
+            h5f.create_dataset('theta', data=[self.theta])
+            h5f.create_dataset('phi', data=[self.phi])
+            h5f.create_dataset('radius_rad', data=[self.radius_rad])
+            
             h5f.create_dataset('pixels', data=self.pixels)
+            h5f.create_dataset('pixel_indices', data=self.pixel_indices)
+            
 
     @classmethod
     def from_hdf(cls, h5f):
 
         nside = h5f['nside'][:][0]
+        res_arcmin = h5f['res_arcmin'][:][0]
+        theta = h5f['theta'][:][0]
+        phi = h5f['phi'][:][0]
+        radius_rad = h5f['radius_rad'][:][0]
 
-        ret = cls(nside)
+        ret = HealpixSubSphere(nside=nside, res_arcmin=res_arcmin,
+                               theta=theta, phi=phi,
+                               radius_rad=radius_rad)
+        
         ret.pixels = h5f['pixels'][:]
+        ret.pixel_indices = h5f['pixel_indices'][:]
         return ret 
-
-
-    def split(self, n):
-        ret = []
-        pixel_list = np.array_split(self.pixels, n)
-        pixel_indices = np.array(range(self.npix))
-        pixel_indices_list = np.array_split(pixel_indices, n)
-        el_list = np.array_split(self.el_r, n)
-        az_list = np.array_split(self.az_r, n)
-
-        for pix, idx, el, az in zip(pixel_list, pixel_indices_list, el_list, az_list):
-            subs = HealpixSubSphere(self.nside)
-            subs.pixels = np.zeros_like(pix)
-            subs.parent_indices = idx
-            subs.npix = pix.shape[0]
-            subs.el_r = el
-            subs.az_r = az
-            subs.l, subs.m, subs.n = elaz2lmn(subs.el_r, subs.az_r)
-            ret.append(subs)
-        return ret
 
     def plot(self, plt, src_list):
         """
@@ -590,19 +583,3 @@ class HealpixSubSphere(HealpixSphere):
                 self.plot_x(plt, s.el_r, s.az_r)
 
 
-if __name__ == "__main__":
-    sph = HealpixSphere(2)
-    sph.to_svg(fname="sph.svg", pixels_only=True)
-
-    res_deg = 5
-    print("Done")
-    big = HealpixSubSphere(
-        resolution=res_deg * 60.0,
-        theta=np.radians(20.0),
-        phi=0.0,
-        radius=np.radians(35),
-    )
-    print(big.nside)
-    big.to_svg(fname="test.svg", pixels_only=True, show_grid=True)
-    big.set_visible_pixels(np.random.rand(big.npix))
-    big.to_svg(fname="test_map.svg", show_grid=True)

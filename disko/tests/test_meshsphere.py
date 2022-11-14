@@ -48,9 +48,9 @@ class TestMeshsphere(unittest.TestCase):
             self.assertTrue(a > 0.0)
 
     def test_lmn(self):
-        hp_sphere = HealpixSubSphere.from_resolution(res_arcmin=60.0,
-                                                     theta=np.radians(0.0),
-                                                     phi=0.0, radius_rad=np.radians(10))
+        hp_sphere = HealpixSubSphere(res_arcmin=60.0,
+                                     theta=np.radians(0.0),
+                                     phi=0.0, radius_rad=np.radians(10))
 
         self.assertAlmostEqual(self.sphere.fov.degrees(), hp_sphere.fov.degrees())
 
