@@ -23,7 +23,7 @@ setup(name='disko',
                         'scipy', 'svgwrite', 'dask', 'scikit-learn', 'dask-ms', 'distributed',
                         'pylops', 'toolz', 'dmsh', 'optimesh', 'imageio'],
       packages=['disko', 'disko.fov'],
-      scripts=['bin/disko', 'bin/disko_svd', 'bin/disko_bayes'],
+      scripts=['bin/disko', 'bin/disko_svd', 'bin/disko_bayes', 'bin/disko_draw'],
       classifiers=[
           "Development Status :: 4 - Beta",
           "Topic :: Scientific/Engineering",

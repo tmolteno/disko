@@ -195,6 +195,7 @@ class Sphere(object):
         self.pixels = None
         self.pixel_areas = None
         self.fov = None
+        self.timestamp = None
 
     def callback(self, x, i):
         fname = f"callback_{i:05d}.svg"
@@ -226,6 +227,7 @@ class Sphere(object):
 
         config = {}
         config['fov_type'] = type(self).__name__
+        config['timestamp'] = self.timestamp.isoformat()
         conf_dset = h5f.create_dataset('information', (1,), dtype=dt)
         conf_dset[0] = json.dumps(config)
 
