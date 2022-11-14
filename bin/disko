@@ -72,6 +72,9 @@ if __name__ == '__main__':
     parser.add_argument('--VTK', action="store_true", help="Generate a VTK mesh format image.")
     parser.add_argument('--FITS', action="store_true", help="Generate a FITS format image.")
 
+    parser.add_argument('--HDF', required=False, default=None,
+                        help="Generate an HDF format representation of the field of view")
+
     parser.add_argument('--cv', action="store_true", help="Use Cross Validation")
     parser.add_argument('--dask', action="store_true", help="Use dask")
     
@@ -172,6 +175,8 @@ if __name__ == '__main__':
         cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains['gain'], gains['phase_offset'], flag_list=[])
         disko = DiSkO.from_cal_vis(cv)
 
+    sphere.set_info(timestamp = timestamp)
+    
     if not ARGS.show_sources:
         src_list = None
     # api_imaging.rotate_vis(ARGS.rotation, cv, reference_positions = deepcopy(config.get_antenna_positions()))
@@ -215,6 +220,10 @@ if __name__ == '__main__':
         sky = disko.solve_vis(disko.vis_arr, sphere)
 
     image_title = f"{ARGS.title}_{time_repr}"
+
+    if ARGS.HDF:
+        hdf_path = os.path.join(ARGS.dir, ARGS.HDF)
+        sphere.to_hdf(hdf_path)
 
     def path(ending, image_title):
         os.makedirs(ARGS.dir, exist_ok=True)

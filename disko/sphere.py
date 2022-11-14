@@ -222,14 +222,22 @@ class Sphere(object):
     def rms(self):
         return np.sqrt(np.mean(self.pixels**2))
 
+    def set_info(self, timestamp, loc, center):
+        self.timestamp = timestamp
+        self.geolocation = loc
+        self.center = center
+        
     def to_hdf_header(self, h5f):
         dt = h5py.special_dtype(vlen=bytes)
 
-        config = {}
-        config['fov_type'] = type(self).__name__
-        config['timestamp'] = self.timestamp.isoformat()
+        info_json = {}
+        info_json['fov_type'] = type(self).__name__
+        info_json['timestamp'] = self.timestamp.isoformat()
+        info_json['geolocation'] = self.geolocation
+        info_json['center'] = 2
+
         conf_dset = h5f.create_dataset('information', (1,), dtype=dt)
-        conf_dset[0] = json.dumps(config)
+        conf_dset[0] = json.dumps(info_json)
 
     def to_hdf(self, filename):
         raise Exception("to_hdf() not implemented for this sphere")

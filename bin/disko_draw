@@ -21,7 +21,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Draw and visualize discrete fields of view',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('filename')           # positional argument
+    parser.add_argument('filename', help="The HDF5 field of view file")
 
     parser.add_argument('--catalog', required=False,
                         default='https://tart.elec.ac.nz/catalog', help="Catalog API URL.")
