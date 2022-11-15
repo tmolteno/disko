@@ -235,6 +235,28 @@ class AdaptiveMeshSphere(Sphere):
             h5f.create_dataset('el_r', data=self.el_r)
             h5f.create_dataset('az_r', data=self.az_r)
 
+    @classmethod
+    def from_hdf(cls, h5f):
+        ret = AdaptiveMeshSphere()
+        
+        ret.npix = h5f['npix'][:][0]
+        ret.res_arcmin = h5f['res_arcmin'][:][0]
+        ret.theta = h5f['theta'][:][0]
+        phi = h5f['phi'][:][0]
+        ret.radius_rad = h5f['radius_rad'][:][0]
+
+        ret.pixels = h5f['pixels'][:]
+        ret.points = h5f['points'][:]
+        ret.simplices = h5f['simplices'][:]
+        ret.pixel_areas = h5f['pixel_areas'][:]
+        ret.l = h5f['l'][:]
+        ret.m = h5f['m'][:]
+        ret.n = h5f['n'][:]
+        ret.n_minus_1 = h5f['n_minus_1'][:]
+        ret.el_r = h5f['el_r'][:]
+        ret.az_r = h5f['az_r'][:]
+        return ret 
+
     def fast_mesh(self, pts, simplices):
 
         self.npix = simplices.shape[0]

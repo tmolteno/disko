@@ -217,8 +217,12 @@ class Sphere(object):
         self.pixels = None
         self.pixel_areas = None
         self.fov = None
+        self.set_info(timestamp=datetime.datetime.utcnow(),
+                      lon=0, lat=0, height=0)
+
+    def set_info(self, timestamp, lon, lat, height):
         self.timestamp = datetime.datetime.utcnow()
-        self.geolocation = GeoLocation(lon=0, lat=0, height=0)
+        self.geolocation = GeoLocation(lon=lon, lat=lat, height=height)
 
     def callback(self, x, i):
         fname = f"callback_{i:05d}.hdf"

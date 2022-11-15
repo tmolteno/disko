@@ -94,4 +94,7 @@ class TestMeshsphere(unittest.TestCase):
         
         self.assertTrue(np.allclose(self.sphere.pixels, sph2.pixels))
         self.assertTrue(np.allclose(self.sphere.pixel_areas, sph2.pixel_areas))
+        self.assertTrue(np.allclose(self.sphere.l, sph2.l))
+        self.assertTrue(np.allclose(self.sphere.m, sph2.m))
+        self.assertTrue(np.allclose(self.sphere.n, sph2.n))
 
