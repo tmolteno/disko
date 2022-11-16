@@ -7,6 +7,7 @@
 
 import logging
 import dmsh
+import h5py
 
 import optimesh
 
@@ -172,41 +173,39 @@ class AdaptiveMeshSphere(Sphere):
     An adaptive mesh sphere.
     """
 
-    def __init__(self):
-        logger.info("New AdaptiveMeshSphere()")
-
-    def __init__(self, res_min, res_max, fov, theta, phi):
+    def __init__(self, res_min, res_max, fov, theta, phi, recompute=True):
         logger.info(
             f"New AdaptiveMeshSphere(fov={fov}) res_min={res_min}, res_max={res_max})")
         self.radius_rad = fov.radians() / 2
         self.fov = fov
-        self.res_arcmin = res_max
+        self.res_arcmin = res_max.arcmin()
         self.res_max = res_max
         self.res_min = res_min
 
         self.theta = theta
         self.phi = phi
 
-        points, simplices, pixel_areas, el_r, az_r, l, m, n = get_lmn(
-            self.radius_rad, self.res_max.radians())
+        if recompute:
+            points, simplices, pixel_areas, el_r, az_r, l, m, n = get_lmn(
+                self.radius_rad, self.res_max.radians())
 
-        self.l = l
-        self.m = m
-        self.n_minus_1 = n - 1
+            self.l = l
+            self.m = m
+            self.n_minus_1 = n - 1
 
-        self.el_r = el_r
-        self.az_r = az_r
+            self.el_r = el_r
+            self.az_r = az_r
 
-        self.npix = simplices.shape[0]
-        self.pixels = np.zeros(self.npix)
+            self.npix = simplices.shape[0]
+            self.pixels = np.zeros(self.npix)
 
-        self.points = points
+            self.points = points
 
-        self.simplices = simplices
-        total_area = np.sum(pixel_areas)
-        logger.info(f"Total area {total_area}")
+            self.simplices = simplices
+            total_area = np.sum(pixel_areas)
+            logger.info(f"Total area {total_area}")
 
-        self.pixel_areas = pixel_areas / total_area
+            self.pixel_areas = pixel_areas / total_area
 
     def min_res(self):
         return self.res_min
@@ -219,7 +218,9 @@ class AdaptiveMeshSphere(Sphere):
             self.to_hdf_header(h5f)
 
             h5f.create_dataset('npix', data=[self.npix])
-            h5f.create_dataset('res_arcmin', data=[self.res_arcmin])
+            h5f.create_dataset('res_min', data=[self.res_min.radians()])
+            h5f.create_dataset('res_max', data=[self.res_max.radians()])
+            h5f.create_dataset('fov', data=[self.fov.radians()])
             h5f.create_dataset('theta', data=[self.theta])
             h5f.create_dataset('phi', data=[self.phi])
             h5f.create_dataset('radius_rad', data=[self.radius_rad])
@@ -230,28 +231,31 @@ class AdaptiveMeshSphere(Sphere):
             h5f.create_dataset('pixel_areas', data=self.pixel_areas)
             h5f.create_dataset('l', data=self.l)
             h5f.create_dataset('m', data=self.m)
-            h5f.create_dataset('n', data=self.n)
             h5f.create_dataset('n_minus_1', data=self.n_minus_1)
             h5f.create_dataset('el_r', data=self.el_r)
             h5f.create_dataset('az_r', data=self.az_r)
 
     @classmethod
     def from_hdf(cls, h5f):
-        ret = AdaptiveMeshSphere()
-        
-        ret.npix = h5f['npix'][:][0]
-        ret.res_arcmin = h5f['res_arcmin'][:][0]
-        ret.theta = h5f['theta'][:][0]
+        res_min = h5f['res_min'][:][0]
+        res_max = h5f['res_max'][:][0]
+        fov = h5f['fov'][:][0]
+        theta = h5f['theta'][:][0]
         phi = h5f['phi'][:][0]
-        ret.radius_rad = h5f['radius_rad'][:][0]
+        radius_rad = h5f['radius_rad'][:][0]
 
+        ret = AdaptiveMeshSphere(Resolution.from_rad(res_min), 
+                                 Resolution.from_rad(res_max),
+                                 Resolution.from_rad(fov),
+                                 theta, phi, recompute=False)
+
+        ret.npix = h5f['npix'][:][0]
         ret.pixels = h5f['pixels'][:]
         ret.points = h5f['points'][:]
         ret.simplices = h5f['simplices'][:]
         ret.pixel_areas = h5f['pixel_areas'][:]
         ret.l = h5f['l'][:]
         ret.m = h5f['m'][:]
-        ret.n = h5f['n'][:]
         ret.n_minus_1 = h5f['n_minus_1'][:]
         ret.el_r = h5f['el_r'][:]
         ret.az_r = h5f['az_r'][:]

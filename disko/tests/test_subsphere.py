@@ -5,7 +5,7 @@
 import unittest
 import logging
 import os
-
+import datetime
 import numpy as np
 
 from disko import HealpixSubSphere, HealpixSphere
@@ -23,16 +23,19 @@ class TestSubsphere(unittest.TestCase):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
         self.sphere = HealpixSubSphere(res_arcmin=60.0,
-                                                       theta=np.radians(10.0),
-                                                       phi=0.0, radius_rad=np.radians(1))
+                                        theta=np.radians(10.0),
+                                        phi=0.0, radius_rad=np.radians(1))
+        self.sphere.set_info(timestamp=datetime.datetime.now(),
+                             lon=170.5, lat=-45.5, height=42)
+
     def test_area(self):
         sky = HealpixSphere(nside=128)
         
         self.assertAlmostEqual(sky.get_area(), 4*np.pi)
 
         hemisphere = HealpixSubSphere(res_arcmin=60.0,
-                                                       theta=np.radians(0.0),
-                                                       phi=0.0, radius_rad=np.radians(90))
+                                    theta=np.radians(0.0),
+                                    phi=0.0, radius_rad=np.radians(90))
         self.assertAlmostEqual(hemisphere.get_area(), 2*np.pi, 1)
 
     def test_copy(self):
@@ -100,6 +103,10 @@ class TestSubsphere(unittest.TestCase):
         sph = HealpixSubSphere(res_arcmin=res_deg*60.0,
                                                theta=np.radians(0.0), phi=0.0,
                                                radius_rad=np.radians(45))
+        
+        sph.set_info(timestamp=datetime.datetime.now(),
+                             lon=170.5, lat=-45.5, height=42)
+
         sph.to_hdf('test.h5')
         
         sph2 = fov.from_hdf('test.h5')

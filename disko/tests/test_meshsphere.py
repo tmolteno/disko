@@ -5,6 +5,7 @@
 import unittest
 import logging
 import os
+import datetime
 
 import numpy as np
 
@@ -25,6 +26,10 @@ class TestMeshsphere(unittest.TestCase):
                                          res_max=Resolution.from_arcmin(60),
                                          theta=np.radians(0.0), phi=0.0,
                                          fov=Resolution.from_deg(20))
+        
+        self.sphere.set_info(timestamp=datetime.datetime.now(),
+                             lon=170.5, lat=-45.5, height=42)
+        
     def test_copy(self):
         sph3 = self.sphere.copy()
         sph3.pixels += 1
@@ -96,5 +101,5 @@ class TestMeshsphere(unittest.TestCase):
         self.assertTrue(np.allclose(self.sphere.pixel_areas, sph2.pixel_areas))
         self.assertTrue(np.allclose(self.sphere.l, sph2.l))
         self.assertTrue(np.allclose(self.sphere.m, sph2.m))
-        self.assertTrue(np.allclose(self.sphere.n, sph2.n))
+        self.assertTrue(np.allclose(self.sphere.n_minus_1, sph2.n_minus_1))
 

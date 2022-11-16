@@ -249,10 +249,6 @@ class Sphere(object):
     def rms(self):
         return np.sqrt(np.mean(self.pixels**2))
 
-    def set_info(self, timestamp, loc, center):
-        self.timestamp = timestamp
-        self.geolocation = loc
-        self.center = center
         
     def to_hdf_header(self, h5f):
         dt = h5py.special_dtype(vlen=bytes)

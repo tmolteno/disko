@@ -4,6 +4,7 @@ import h5py
 import numpy as np
 
 from ..healpix_sphere import HealpixSphere, HealpixSubSphere
+from ..sphere_mesh import AdaptiveMeshSphere
 from ..sphere import GeoLocation
 
 def from_hdf(filename):
@@ -21,6 +22,8 @@ def from_hdf(filename):
             ret = HealpixSphere.from_hdf(h5f)
         elif fov_type == 'HealpixSubSphere':
             ret = HealpixSubSphere.from_hdf(h5f)
+        elif fov_type == 'AdaptiveMeshSphere':
+            ret = AdaptiveMeshSphere.from_hdf(h5f)
         else:
             raise RuntimeError(f"Unknown field of view class: {fov_type}.")
         
