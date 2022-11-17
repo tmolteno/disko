@@ -35,14 +35,14 @@ def create_fov(nside, fov, res, theta=0.0, phi=0.0):
         sphere = HealpixSphere(nside)
     elif nside is not None and fov is not None:
         radius_rad = fov.radians() / 2
-        sphere = HealpixSubSphere(nside=nside, 
-                                  theta=theta, phi=phi, 
+        sphere = HealpixSubSphere(nside=nside,
+                                  theta=theta, phi=phi,
                                   radius_rad=radius_rad)
     elif res is not None and fov is not None:
         radius_rad = fov.radians() / 2
         res_arcmin = res.arcmin()
-        sphere = HealpixSubSphere(res_arcmin=res_arcmin, 
-                                  theta=theta, phi=phi, 
+        sphere = HealpixSubSphere(res_arcmin=res_arcmin,
+                                  theta=theta, phi=phi,
                                   radius_rad=radius_rad)
     else:
         raise RuntimeError("Either nside, or res_arcmin must be specified")
@@ -90,7 +90,8 @@ class HealpixSphere(Sphere):
         res = hp.nside2resol(nside, arcmin=True)
         self._min_res = Resolution.from_arcmin(res)
 
-        logger.info(f"New Sphere, nside={nside}. npix={self.npix}, res={self.min_res()}")
+        logger.info(
+            f"New Sphere, nside={nside}. npix={self.npix}, res={self.min_res()}")
 
         self.pixel_indices = np.arange(self.npix)
         theta, phi = hp.pix2ang(nside, self.pixel_indices)
@@ -108,7 +109,7 @@ class HealpixSphere(Sphere):
 
     def __repr__(self):
         return f"HealpixSphere nside={self.nside}"
-    
+
     def min_res(self):
         return self._min_res
 
@@ -131,7 +132,7 @@ class HealpixSphere(Sphere):
         bounds = hp.boundaries(self.nside, pixel, step=1)
         bounds = np.array(bounds).T
         return bounds
-    
+
     def to_hdf(self, filename):
         with h5py.File(filename, "w") as h5f:
             self.to_hdf_header(h5f)
@@ -145,7 +146,7 @@ class HealpixSphere(Sphere):
 
         ret = cls(nside)
         ret.pixels = h5f['pixels'][:]
-        return ret 
+        return ret
 
     def to_svg(
         self,
@@ -158,7 +159,8 @@ class HealpixSphere(Sphere):
     ):
 
         if self.fov is None:
-            raise Exception("Field of view is required for SVG generation. Use PDF instead")
+            raise Exception(
+                "Field of view is required for SVG generation. Use PDF instead")
         h = 4000
         w = 4200
         dwg = svgwrite.Drawing(filename=fname, size=(w, h))
@@ -286,10 +288,12 @@ class HealpixSphere(Sphere):
                         )
                     )
             else:
-                (r, g, b) = cmap((value - stats["min"]) / (1e-14 + stats["max"] - stats["min"]))
+                (r, g, b) = cmap(
+                    (value - stats["min"]) / (1e-14 + stats["max"] - stats["min"]))
                 colour = svgwrite.rgb(r, g, b)
                 if min_lat > 0.07:  # Ignore points on, or below the horizon
-                    svg_pixels.add(dwg.polygon(points=poly, fill=colour, stroke=colour))
+                    svg_pixels.add(dwg.polygon(
+                        points=poly, fill=colour, stroke=colour))
 
         grid_color = "black"
         if not pixels_only:
@@ -303,7 +307,8 @@ class HealpixSphere(Sphere):
             )
             values = np.linspace(stats["min"], stats["max"], N)
 
-            rvals = (values - stats["min"]) / (1e-14 + stats["max"] - stats["min"])
+            rvals = (values - stats["min"]) / \
+                (1e-14 + stats["max"] - stats["min"])
 
             start_y = 0.05 * width
             stop_y = 2.05 * width
@@ -324,7 +329,8 @@ class HealpixSphere(Sphere):
 
                 poly = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
                 colour = svgwrite.rgb(r, g, b)
-                bar_boxes.add(dwg.polygon(points=poly, fill=colour, stroke=colour))
+                bar_boxes.add(dwg.polygon(
+                    points=poly, fill=colour, stroke=colour))
                 # logger.info("box {}".format(poly))
 
                 if (i == np.argmin(np.abs(values))) and (i != 0):
@@ -375,7 +381,8 @@ class HealpixSphere(Sphere):
                 stroke_width="{}".format(line_size / 2),
                 stroke_linejoin="round",
             )
-            box_border.add(dwg.polygon(points=[(x0, y0), (x1, y0), (x1, y1), (x0, y1)]))
+            box_border.add(dwg.polygon(
+                points=[(x0, y0), (x1, y0), (x1, y1), (x0, y1)]))
             dwg.add(box_border)
 
         if show_grid:
@@ -392,7 +399,8 @@ class HealpixSphere(Sphere):
             for rad in np.linspace(0, fov_rad / 2, 4)[1:]:  # three circles
                 radius = pc.from_d(np.sin(rad))
                 grid_lines.add(
-                    dwg.circle(center=(pc.from_x(0.0), pc.from_y(0.0)), r=radius)
+                    dwg.circle(
+                        center=(pc.from_x(0.0), pc.from_y(0.0)), r=radius)
                 )
 
             for angle in range(0, 360, 30):
@@ -475,7 +483,7 @@ class HealpixSubSphere(HealpixSphere):
     """
     A healpix subset of a sphere bounded by a range in theta and phi
     """
-    
+
     def __init__(self, res_arcmin=None, nside=None, theta=0.0, phi=0.0, radius_rad=0.0):
         logger.info(r"HealpixSubSphere:")
         logger.info(f"    res={res_arcmin} arcmin, nside={nside}")
@@ -486,7 +494,8 @@ class HealpixSubSphere(HealpixSphere):
         if nside is None:  # Calculate nside to the appropriate resolution
             nside = 1
             while hp.nside2resol(nside, arcmin=True) > res_arcmin:
-                logger.info(f"nside={nside} res={hp.nside2resol(nside, arcmin=True)}")
+                logger.info(
+                    f"nside={nside} res={hp.nside2resol(nside, arcmin=True)}")
                 nside *= 2
 
         self.nside = nside
@@ -496,7 +505,7 @@ class HealpixSubSphere(HealpixSphere):
         res = hp.nside2resol(nside, arcmin=True)
         self._min_res = Resolution.from_arcmin(res)
         self.radius_rad = radius_rad
-        
+
         # The coordinates of the unit vector defining the center
         x0 = hp.ang2vec(theta, phi)
 
@@ -507,13 +516,14 @@ class HealpixSubSphere(HealpixSphere):
 
         self.npix = self.pixel_indices.shape[0]
 
-        logger.info(f"New SubSphere, nside={self.nside} npix={self.npix}, res={self._min_res}")
+        logger.info(
+            f"New SubSphere, nside={self.nside} npix={self.npix}, res={self._min_res}")
 
         theta, phi = hp.pix2ang(nside, self.pixel_indices)
 
         self.fov = Resolution.from_rad(radius_rad * 2)
         self.pixels = np.zeros(self.npix)  # + hp.UNSEEN
-        
+
         area = 4*np.pi*(self.npix / hp.nside2npix(nside))
         self.pixel_areas = area*np.ones(self.npix)/self.npix
 
@@ -537,10 +547,9 @@ class HealpixSubSphere(HealpixSphere):
             h5f.create_dataset('theta', data=[self.theta])
             h5f.create_dataset('phi', data=[self.phi])
             h5f.create_dataset('radius_rad', data=[self.radius_rad])
-            
+
             h5f.create_dataset('pixels', data=self.pixels)
             h5f.create_dataset('pixel_indices', data=self.pixel_indices)
-            
 
     @classmethod
     def from_hdf(cls, h5f):
@@ -554,10 +563,10 @@ class HealpixSubSphere(HealpixSphere):
         ret = HealpixSubSphere(nside=nside, res_arcmin=res_arcmin,
                                theta=theta, phi=phi,
                                radius_rad=radius_rad)
-        
+
         ret.pixels = h5f['pixels'][:]
         ret.pixel_indices = h5f['pixel_indices'][:]
-        return ret 
+        return ret
 
     def plot(self, plt, src_list):
         """
@@ -581,5 +590,3 @@ class HealpixSubSphere(HealpixSphere):
         if src_list is not None:
             for s in src_list:
                 self.plot_x(plt, s.el_r, s.az_r)
-
-
