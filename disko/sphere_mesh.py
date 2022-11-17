@@ -224,7 +224,7 @@ class AdaptiveMeshSphere(Sphere):
             h5f.create_dataset('theta', data=[self.theta])
             h5f.create_dataset('phi', data=[self.phi])
             h5f.create_dataset('radius_rad', data=[self.radius_rad])
-            
+
             h5f.create_dataset('pixels', data=self.pixels)
             h5f.create_dataset('points', data=self.points)
             h5f.create_dataset('simplices', data=self.simplices)
@@ -244,7 +244,7 @@ class AdaptiveMeshSphere(Sphere):
         phi = h5f['phi'][:][0]
         radius_rad = h5f['radius_rad'][:][0]
 
-        ret = AdaptiveMeshSphere(Resolution.from_rad(res_min), 
+        ret = AdaptiveMeshSphere(Resolution.from_rad(res_min),
                                  Resolution.from_rad(res_max),
                                  Resolution.from_rad(fov),
                                  theta, phi, recompute=False)
@@ -259,7 +259,7 @@ class AdaptiveMeshSphere(Sphere):
         ret.n_minus_1 = h5f['n_minus_1'][:]
         ret.el_r = h5f['el_r'][:]
         ret.az_r = h5f['az_r'][:]
-        return ret 
+        return ret
 
     def fast_mesh(self, pts, simplices):
 
@@ -444,8 +444,8 @@ class AdaptiveMeshSphere(Sphere):
         plt.plot(self.tri.points[:, 0], self.tri.points[:, 1], "o")
         plt.plot(self.points[:, 0], self.points[:, 1], ".")
         plt.triplot(
-            self.tri.points[:, 0], 
-            self.tri.points[:, 1], 
+            self.tri.points[:, 0],
+            self.tri.points[:, 1],
             self.tri.simplices.copy()
         )
 

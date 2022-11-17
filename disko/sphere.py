@@ -12,6 +12,8 @@ import json
 import numpy as np
 import healpy as hp
 
+from tart.util import utc
+
 from astropy.coordinates import EarthLocation
 
 logger = logging.getLogger(__name__)
@@ -28,21 +30,25 @@ class GeoLocation(object):
     '''
         Utility class to serialize astropy EarthLocation
     '''
-    
+
     def __init__(self, lon, lat, height):
-        self.loc = EarthLocation.from_geodetic(lon=lon, lat=lat, height=height)
+        self.loc = EarthLocation.from_geodetic(lon=lon, lat=lat, height=height).to_geodetic()
 
     @classmethod
     def from_json(cls, json_string):
         data = json.loads(json_string)
-        pass
-    
+        logger.info(f"GeoLocation.from_json({data})")
+        return cls(lon=data['lon'],
+                   lat=data['lat'],
+                   height=data['height'])
+
     def to_json(self):
         ret = {'lat': self.loc.lat.value,
                'lon': self.loc.lon.value,
                'height': self.loc.height.value}
         return json.dumps(ret)
-    
+
+
 class LonLat(object):
     def __init__(self, lon, lat):
         self.lon = lon
@@ -210,7 +216,13 @@ def factors(n):
 
 class Sphere(object):
     """
-    A base class for all sphere's including grids.
+    A base class for all sphere's including grids. The sphere must be aware of coordinates.
+    
+    A sphere has a phase-center, and optionally a domain (field-of-view for circular skies)
+    
+    The base coordinates are SkyCoordinates, so the 
+    The two coordinate systems are elevation and azimuth in the geolocated frame (the phase center is
+    straight up)
     """
 
     def __init__(self):
@@ -221,7 +233,10 @@ class Sphere(object):
                       lon=0, lat=0, height=0)
 
     def set_info(self, timestamp, lon, lat, height):
-        self.timestamp = datetime.datetime.utcnow()
+        '''
+            Set the timestamp and geographic information about this sphere
+        '''
+        self.timestamp = utc.to_utc(timestamp)
         self.geolocation = GeoLocation(lon=lon, lat=lat, height=height)
 
     def callback(self, x, i):
@@ -231,10 +246,10 @@ class Sphere(object):
 
     def copy(self):
         return copy.deepcopy(self)
-    
+
     def index_of(self, el, az):
         raise RuntimeError("index_of() not implemented for this sphere")
-    
+
     def min_res(self):
         raise Exception("min_res() not implemented for this sphere")
 
@@ -249,7 +264,6 @@ class Sphere(object):
     def rms(self):
         return np.sqrt(np.mean(self.pixels**2))
 
-        
     def to_hdf_header(self, h5f):
         dt = h5py.special_dtype(vlen=bytes)
 
@@ -264,7 +278,6 @@ class Sphere(object):
 
     def to_hdf(self, filename):
         raise Exception("to_hdf() not implemented for this sphere")
-
 
     def to_svg(
         self,
@@ -315,9 +328,9 @@ class Sphere(object):
         grid = griddata(points, values, (xx, yy), method="cubic")
 
         hdr = fits.Header()
-        hdr["COMMENT"] = "POINTLESS: {}".format(title)
+        hdr["COMMENT"] = "DiSkO: {}".format(title)
 
-        hdr["ORIGIN"] = ("POINTLESS ",)
+        hdr["ORIGIN"] = ("DiSkO ",)
         hdr.comments["ORIGIN"] = "L-2 Regularizing imager written by Tim Molteno"
 
         hdr["CRPIX1"] = width // 2 + 1.0
