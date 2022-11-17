@@ -12,7 +12,7 @@ import numpy as np
 from tart_tools import api_handler
 from tart.imaging import elaz
 
-from disko import fov
+from disko import fov, get_source_list
 
 logger = logging.getLogger()
 
@@ -53,18 +53,29 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
 
     field_of_view = fov.from_hdf(ARGS.filename)
-
+    ts = field_of_view.timestamp
+    geo = field_of_view.geolocation
+    logger.info(f"geo {geo}")
+    
     if ARGS.version:
         version = pkg_resources.require("spotless")[0].version
         print(f"disko_draw: Version {version}")
         print("             (c) 2022 Tim Molteno")
         sys.exit(0)
 
+    src_list = None
     if ARGS.show_sources:
         api = api_handler.APIhandler("")
-        source_json = api.get_url(api.catalog_url(config, datestr=ts.isoformat()))
+        cat_url = api.catalog_url(lon=geo.lon.to_value('deg'),
+                                  lat=geo.lat.to_value('deg'),
+                                  datestr=ts.isoformat())
+        logger.info(f"catalog url: {cat_url}")
+        source_json = api.get_url(cat_url)
         src_list = get_source_list(source_json, el_limit=5, jy_limit=1e4)
-
+        # print("Source list")
+        # for s in src_list:
+        #     print(f"   src: el:{np.degrees(s.el_r) :5.2f}")
+        
     if ARGS.VTK:
         field_of_view.write_mesh(ARGS.VTK)
 
@@ -73,6 +84,7 @@ if __name__ == '__main__':
 
     if ARGS.SVG:
         field_of_view.to_svg(fname=ARGS.SVG, src_list=src_list, show_grid=True, title="")
+        print(f"Writing SVG: {ARGS.SVG}")
 
     if ARGS.PNG:
         fname = path('png', image_title)

@@ -19,24 +19,24 @@ import numpy as np
 from copy import deepcopy
 from tart.operation import settings
 
-from tart_tools import api_imaging, api_handler
+from tart_tools import api_imaging
 from tart.imaging import elaz
 
 from dask.distributed import Client
 
-from disko import DiSkO, get_source_list, AdaptiveMeshSphere, sphere_from_args, sphere_args_parser
+from disko import DiSkO, get_source_list, AdaptiveMeshSphere, Resolution, sphere_from_args, sphere_args_parser
 
+from tart2ms import get_array_location
 
 if __name__ == '__main__':
-    #parser.add_argument('--api', required=False, default='https://tart.elec.ac.nz/signal', help="Telescope API server URL.")
-    #parser.add_argument('--catalog', required=False, default='https://tart.elec.ac.nz/catalog', help="Catalog API URL.")
-
     sphere_parsers = sphere_args_parser()
+        
 
-    parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image.',
+
+    parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image.', 
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      parents=sphere_parsers)
-    
+
 
     data_group = parser.add_mutually_exclusive_group()
     data_group.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
@@ -69,11 +69,9 @@ if __name__ == '__main__':
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image.")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image.")
     parser.add_argument('--SVG', action="store_true", help="Generate a SVG format image.")
+    parser.add_argument('--HDF', required=False, help="Generate a HDF format field of view.")
     parser.add_argument('--VTK', action="store_true", help="Generate a VTK mesh format image.")
     parser.add_argument('--FITS', action="store_true", help="Generate a FITS format image.")
-
-    parser.add_argument('--HDF', required=False, default=None,
-                        help="Generate an HDF format representation of the field of view")
 
     parser.add_argument('--cv', action="store_true", help="Use Cross Validation")
     parser.add_argument('--dask', action="store_true", help="Use dask")
@@ -112,7 +110,6 @@ if __name__ == '__main__':
         print("       (c) 2022 Tim Molteno")
         sys.exit(0)
     
-
     sphere = sphere_from_args(ARGS)
     
     if ARGS.file:
@@ -140,6 +137,12 @@ if __name__ == '__main__':
             cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains, phase_offsets, flag_list)
             src_list = elaz.from_json(source_json, 0.0)
         disko = DiSkO.from_cal_vis(cv)
+        
+        lat = config.get_lat()
+        lon = config.get_lon()
+        height = config.get_alt()
+        
+        
     elif ARGS.ms:
         logger.info(f"Getting Data from MS file: {ARGS.ms} to {sphere}")
 
@@ -151,6 +154,11 @@ if __name__ == '__main__':
         disko = DiSkO.from_ms(ARGS.ms, ARGS.nvis, res=min_res, channel=ARGS.channel, field_id=ARGS.field, ddid=ARGS.ddid)
         # Convert from reduced Julian Date to timestamp.
         timestamp = disko.timestamp
+
+        json_info = get_array_location(ARGS.ms)
+        lat = json_info['lat']
+        lon = json_info['lon']
+        height =json_info['height']
 
     else:
         logger.info("Getting Data from API: {}".format(ARGS.api))
@@ -168,14 +176,22 @@ if __name__ == '__main__':
 
         ts = api_imaging.vis_json_timestamp(vis_json)
         if ARGS.show_sources:
-            source_json = api.get_url(api.catalog_url(config, datestr=ts.isoformat()))
+            cat_url = api.catalog_url(lon=config.get_lon(),
+                                      lat=config.get_lat(),
+                                      datestr=ts.isoformat())
+            source_json = api.get_url(cat_url)
 
         logger.info("Data Download Complete")
 
         cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains['gain'], gains['phase_offset'], flag_list=[])
         disko = DiSkO.from_cal_vis(cv)
 
-    sphere.set_info(timestamp = timestamp)
+        lat = config.get_lat()
+        lon = config.get_lon()
+        height = config.get_alt()
+
+    sphere.set_info(timestamp=timestamp,
+                    lon=lon, lat=lat, height=height)
     
     if not ARGS.show_sources:
         src_list = None
@@ -219,11 +235,11 @@ if __name__ == '__main__':
     else:
         sky = disko.solve_vis(disko.vis_arr, sphere)
 
-    image_title = f"{ARGS.title}_{time_repr}"
-
     if ARGS.HDF:
-        hdf_path = os.path.join(ARGS.dir, ARGS.HDF)
-        sphere.to_hdf(hdf_path)
+        fpath = os.path.join(ARGS.dir, ARGS.HDF)
+        sphere.to_hdf(fpath)
+
+    image_title = f"{ARGS.title}_{time_repr}"
 
     def path(ending, image_title):
         os.makedirs(ARGS.dir, exist_ok=True)
@@ -233,6 +249,7 @@ if __name__ == '__main__':
     if ARGS.mesh:
         # Save as a VTK file
         sphere.write_mesh(path('vtk', image_title))
+
 
     def save_images(image_title, source_list):
         
@@ -269,3 +286,29 @@ if __name__ == '__main__':
 
     if ARGS.FITS or ARGS.SVG or ARGS.PNG or ARGS.PDF:
         save_images('{}_{}'.format(ARGS.title, time_repr), source_list=src_list)
+    
+    #if ARGS.SVG:
+        #fname = '{}.svg'.format(image_title)
+        #fpath = os.path.join(ARGS.dir, fname)
+
+        ##sky = disko.image_lasso(disko.vis_arr, sphere, alpha=0.02, scale=False)
+        #sphere.to_svg(fname=fpath, show_grid=True, src_list=src_list, fov=ARGS.fov, title=image_title)
+        #logger.info("Generating {}".format(fname))
+    #if ARGS.PNG:
+        #sphere.plot(plt, src_list)
+        #plt.title(image_title)
+        #fname = '{}.png'.format(image_title)
+        #fpath = os.path.join(ARGS.dir, fname)
+        #plt.savefig(fpath, dpi=300)
+        #plt.close()
+        #logger.info("Generating {}".format(fname))
+    #if ARGS.PDF:
+        #sphere.plot(plt, src_list)
+        #plt.title(image_title)
+        #fname = '{}.pdf'.format(image_title)
+        #fpath = os.path.join(ARGS.dir, fname)
+        #plt.savefig(fpath, dpi=600)
+        #plt.close()
+        #logger.info("Generating {}".format(fname))
+        
+    #client.close()
