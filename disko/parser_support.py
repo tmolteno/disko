@@ -50,8 +50,9 @@ def sphere_from_args(args):
                                     theta=np.radians(0.0),
                                     phi=0.0, fov=fov)
     if args.healpix:
-        sphere = create_fov(args.nside, fov=fov, res=res, theta=theta, phi=phi)
+        sphere = create_fov(args.nside, fov=fov, res=res, theta=0.0, phi=0.0)
     if sphere is None:
-        raise RuntimeError("Either --mesh or --healpix must be specified (healpix recommended)")
+        raise RuntimeError(
+            "Either --mesh or --healpix must be specified (healpix recommended)")
 
     return sphere
