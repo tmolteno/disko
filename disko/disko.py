@@ -418,7 +418,6 @@ class DiSkO(object):
             assert (harmonic_list[0].shape[0] == in_sphere.npix)
             return harmonic_list
 
-
         harmonic_list = []
         p2j = jomega(self.frequency)
 
@@ -444,7 +443,8 @@ class DiSkO(object):
         """
 
         assert len(vis_arr) == len(self.u_arr)
-        logger.info("Imaging Visabilities resolution={}".format(sphere.min_res()))
+        logger.info(
+            "Imaging Visabilities resolution={}".format(sphere.min_res()))
         t0 = time.time()
 
         pixels = np.zeros(sphere.npix, dtype=COMPLEX_DATATYPE)
@@ -638,7 +638,7 @@ class DiSkO(object):
         # parts, so that the operator matrix can be real-valued
         g_real = np.real(gamma)
         g_imag = np.imag(gamma)
-        ret = np.block([[g_real], 
+        ret = np.block([[g_real],
                         [g_imag]])  # .rechunk('auto')
 
         logger.info("Real Gamma Shape: {}".format(ret.shape))
