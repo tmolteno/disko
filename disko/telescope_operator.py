@@ -212,7 +212,7 @@ class TelescopeOperator:
         self.grid = grid
         self.sphere = sphere
 
-        _gamma = grid.make_gamma(sphere)  #, makecomplex=True)
+        _gamma = grid.make_gamma(sphere)  # , makecomplex=True)
         self.n_v = _gamma.shape[0]
         self.n_s = _gamma.shape[1]
 
@@ -338,6 +338,7 @@ class TelescopeOperator:
     """
         Convert the natural-basis vector x into the sky basis
     """
+
     def natural_to_sky(self, x):
         return self.V @ x
 
@@ -417,9 +418,9 @@ class TelescopeOperator:
         logger.info("vis_arr = {}".format(vis_arr.shape))
         logger.info("A_r = {}".format(self.A_r.shape))
 
-        #x_r = D @ self.U_1.T @ vis_arr 
+        #x_r = D @ self.U_1.T @ vis_arr
         v_n = self.U_1.T @ vis_arr
-        
+
         x_r = np.linalg.solve(self.A_r, v_n)
         # x_n = np.zeros(self.n_n())
         logger.info("x_r = {}".format(x_r.shape))
