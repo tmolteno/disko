@@ -49,7 +49,8 @@ class TestMultivariate(unittest.TestCase):
 
         precision = 1
         self.assertAlmostEqual(np.mean(samples), x.mu[0], precision)
-        self.assertAlmostEqual(np.std(samples)**2, (x.sigma()[0, 0]), precision)
+        self.assertAlmostEqual(
+            np.std(samples)**2, (x.sigma()[0, 0]), precision)
 
     def test_hdf(self):
         D = 100

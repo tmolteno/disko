@@ -196,7 +196,8 @@ class TestTelescopeOperator(unittest.TestCase):
         logger.info(f"pixel_areas = {self.sphere.pixel_areas}")
 
         for v1, v2 in zip(vis, vis3):
-            logger.info(f"a,b = {v1.compute()} {v2.compute()} {(v1*self.sphere.pixel_areas[0]).compute()}")
+            logger.info(
+                f"a,b = {v1.compute()} {v2.compute()} {(v1*self.sphere.pixel_areas[0]).compute()}")
             self.assertAlmostEqual(v1[0].compute(), v2[0].compute())
 
     def test_bayes(self):

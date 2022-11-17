@@ -13,7 +13,8 @@ from disko import AdaptiveMeshSphere, area, HealpixSubSphere, Resolution
 from disko import fov
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.addHandler(logging.NullHandler())  # Add a null handler so logs can go somewhere
+# Add a null handler so logs can go somewhere
+LOGGER.addHandler(logging.NullHandler())
 LOGGER.setLevel(logging.INFO)
 
 
@@ -26,10 +27,10 @@ class TestMeshsphere(unittest.TestCase):
                                          res_max=Resolution.from_arcmin(60),
                                          theta=np.radians(0.0), phi=0.0,
                                          fov=Resolution.from_deg(20))
-        
+
         self.sphere.set_info(timestamp=datetime.datetime.now(),
                              lon=170.5, lat=-45.5, height=42)
-        
+
     def test_copy(self):
         sph3 = self.sphere.copy()
         sph3.pixels += 1
@@ -58,19 +59,26 @@ class TestMeshsphere(unittest.TestCase):
                                      theta=np.radians(0.0),
                                      phi=0.0, radius_rad=np.radians(10))
 
-        self.assertAlmostEqual(self.sphere.fov.degrees(), hp_sphere.fov.degrees())
+        self.assertAlmostEqual(self.sphere.fov.degrees(),
+                               hp_sphere.fov.degrees())
 
-        print(f"   mesh(l,m,n-1): {np.max(self.sphere.l)}, {np.max(self.sphere.m)}, {np.max(self.sphere.n_minus_1)}")
-        print(f"healpix(l,m,n-1): {np.max(hp_sphere.l)}, {np.max(hp_sphere.m)}, {np.max(hp_sphere.n_minus_1)}")
+        print(
+            f"   mesh(l,m,n-1): {np.max(self.sphere.l)}, {np.max(self.sphere.m)}, {np.max(self.sphere.n_minus_1)}")
+        print(
+            f"healpix(l,m,n-1): {np.max(hp_sphere.l)}, {np.max(hp_sphere.m)}, {np.max(hp_sphere.n_minus_1)}")
 
-        print(f"   mesh(el, az): {np.min(self.sphere.el_r)}, {np.min(self.sphere.az_r)} max: {np.max(self.sphere.el_r)}, {np.max(self.sphere.az_r)}")
-        print(f"healpix(el, az): {np.min(hp_sphere.el_r)}, {np.min(hp_sphere.az_r)} max: {np.max(hp_sphere.el_r)}, {np.max(hp_sphere.az_r)}")
+        print(
+            f"   mesh(el, az): {np.min(self.sphere.el_r)}, {np.min(self.sphere.az_r)} max: {np.max(self.sphere.el_r)}, {np.max(self.sphere.az_r)}")
+        print(
+            f"healpix(el, az): {np.min(hp_sphere.el_r)}, {np.min(hp_sphere.az_r)} max: {np.max(hp_sphere.el_r)}, {np.max(hp_sphere.az_r)}")
 
-        self.assertAlmostEqual(np.max(self.sphere.el_r), np.max(hp_sphere.el_r), 1)
+        self.assertAlmostEqual(np.max(self.sphere.el_r),
+                               np.max(hp_sphere.el_r), 1)
 
         self.assertAlmostEqual(np.max(self.sphere.m), np.max(hp_sphere.m), 2)
         self.assertAlmostEqual(np.max(self.sphere.l), np.max(hp_sphere.l), 2)
-        self.assertAlmostEqual(np.min(self.sphere.n_minus_1), np.min(hp_sphere.n_minus_1), 2)
+        self.assertAlmostEqual(np.min(self.sphere.n_minus_1),
+                               np.min(hp_sphere.n_minus_1), 2)
 
     def test_adaptive(self):
         grad, cell_pairs = self.sphere.gradient()
@@ -89,17 +97,15 @@ class TestMeshsphere(unittest.TestCase):
         self.sphere.to_fits(fname=fname)
         self.assertTrue(os.path.isfile(fname))
         os.remove(fname)
-        
-        
+
     def test_load_save(self):
-        
+
         self.sphere.to_hdf('test.h5')
-        
+
         sph2 = fov.from_hdf('test.h5')
-        
+
         self.assertTrue(np.allclose(self.sphere.pixels, sph2.pixels))
         self.assertTrue(np.allclose(self.sphere.pixel_areas, sph2.pixel_areas))
         self.assertTrue(np.allclose(self.sphere.l, sph2.l))
         self.assertTrue(np.allclose(self.sphere.m, sph2.m))
         self.assertTrue(np.allclose(self.sphere.n_minus_1, sph2.n_minus_1))
-

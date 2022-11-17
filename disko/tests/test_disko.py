@@ -18,7 +18,8 @@ from tart_tools import api_imaging
 from tart.util import constants
 
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())  # Add a null handler so logs can go somewhere
+# Add a null handler so logs can go somewhere
+logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
 
 
@@ -43,7 +44,8 @@ def dottest(Op, nr, nc, tol):
         print('Dot test passed, v^T(Opu)={} - u^T(Op^Tv)={}, err={}'.format(yy, xx, err))
         return True
     else:
-        raise ValueError('Dot test failed, v^T(Opu)={} - u^T(Op^Tv)={}, err={}'.format(yy, xx, err))
+        raise ValueError(
+            'Dot test failed, v^T(Opu)={} - u^T(Op^Tv)={}, err={}'.format(yy, xx, err))
 
 
 class TestDiSkO(unittest.TestCase):
@@ -76,12 +78,13 @@ class TestDiSkO(unittest.TestCase):
         cls.sphere = HealpixSphere(cls.nside)
         res = Resolution.from_deg(4.0)
         cls.subsphere = HealpixSubSphere(res_arcmin=res.arcmin(),
-                                                         theta=np.radians(0.0),
-                                                         phi=0.0,
-                                                         radius_rad=np.radians(89))
+                                         theta=np.radians(0.0),
+                                         phi=0.0,
+                                         radius_rad=np.radians(89))
 
         cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_min=res, res_max=res,
-                                                                 theta=np.radians(0.0),
+                                                                 theta=np.radians(
+                                                                     0.0),
                                                                  phi=0.0,
                                                                  fov=Resolution.from_deg(10))
 
@@ -166,8 +169,10 @@ class TestDiSkO(unittest.TestCase):
             self.assertTrue(np.allclose(a, b))
 
     def test_solve_vis(self):
-        sky1 = self.disko.solve_vis(self.disko.vis_arr, self.sphere, scale=True)
-        sky2 = self.disko.solve_vis(self.disko.vis_arr, self.subsphere, scale=True)
+        sky1 = self.disko.solve_vis(
+            self.disko.vis_arr, self.sphere, scale=True)
+        sky2 = self.disko.solve_vis(
+            self.disko.vis_arr, self.subsphere, scale=True)
         self.assertEqual(sky1.shape[0], 3072)
         self.assertEqual(sky2.shape[0], 1504)
 
@@ -176,7 +181,8 @@ class TestDiSkO(unittest.TestCase):
         Generate fake data with a frequency axis and an npol axis.
         '''
         data = self.disko.vis_to_data()
-        sky = self.disko.solve_matrix_free(data, self.subsphere, alpha=0.0, scale=False, fista=False, lsqr=True, lsmr=False)
+        sky = self.disko.solve_matrix_free(
+            data, self.subsphere, alpha=0.0, scale=False, fista=False, lsqr=True, lsmr=False)
         self.assertEqual(sky.shape[0], 1504)
 
         # Check that sky is a solution

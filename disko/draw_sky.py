@@ -2,6 +2,7 @@
 # Copyright Tim Molteno 2017-2022 tim@elec.ac.nz
 #
 
+from argparse import ArgumentParser
 import json
 import logging
 
@@ -31,7 +32,7 @@ def mask_to_sky(mask, nside):
     x0 = width / 2
     y0 = height / 2
 
-    ## Scan through healpix angles (for an nside) and find out the corresponding pixel angle.
+    # Scan through healpix angles (for an nside) and find out the corresponding pixel angle.
     npix = hp.nside2npix(nside)
 
     pixel_indices = range(npix)
@@ -56,17 +57,17 @@ def mask_to_sky(mask, nside):
     return s
 
 
-from argparse import ArgumentParser
-
 if __name__ == "__main__":
     import argparse
-    
+
     parser = ArgumentParser(
         description="Draw something in the Null Space.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--mask", default="batman.jpeg", help="Use the mask file.")
-    parser.add_argument("--nside", default=32, type=int, help="Use the mask file.")
+    parser.add_argument("--mask", default="batman.jpeg",
+                        help="Use the mask file.")
+    parser.add_argument("--nside", default=32, type=int,
+                        help="Use the mask file.")
 
     source_json = None
 

@@ -23,19 +23,19 @@ class TestSubsphere(unittest.TestCase):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
         self.sphere = HealpixSubSphere(res_arcmin=60.0,
-                                        theta=np.radians(10.0),
-                                        phi=0.0, radius_rad=np.radians(1))
+                                       theta=np.radians(10.0),
+                                       phi=0.0, radius_rad=np.radians(1))
         self.sphere.set_info(timestamp=datetime.datetime.now(),
                              lon=170.5, lat=-45.5, height=42)
 
     def test_area(self):
         sky = HealpixSphere(nside=128)
-        
+
         self.assertAlmostEqual(sky.get_area(), 4*np.pi)
 
         hemisphere = HealpixSubSphere(res_arcmin=60.0,
-                                    theta=np.radians(0.0),
-                                    phi=0.0, radius_rad=np.radians(90))
+                                      theta=np.radians(0.0),
+                                      phi=0.0, radius_rad=np.radians(90))
         self.assertAlmostEqual(hemisphere.get_area(), 2*np.pi, 1)
 
     def test_copy(self):
@@ -49,13 +49,13 @@ class TestSubsphere(unittest.TestCase):
         sph3.pixels += 1
         self.assertFalse(np.allclose(self.sphere.pixels, sph3.pixels))
         self.assertTrue(np.allclose(self.sphere.pixel_areas, sph3.pixel_areas))
-        
+
     def test_big_subsphere(self):
         # Check that a full subsphere is the same as the sphere.
         res_deg = 3.0
         big = HealpixSubSphere(res_arcmin=res_deg*60.0,
-                                               theta=np.radians(0.0), phi=0.0,
-                                               radius_rad=np.radians(180))
+                               theta=np.radians(0.0), phi=0.0,
+                               radius_rad=np.radians(180))
         old = HealpixSphere(32)
 
         self.assertEqual(big.nside, 32)
@@ -65,8 +65,8 @@ class TestSubsphere(unittest.TestCase):
         # Check that a full subsphere is the same as the sphere.
         res_deg = 0.5
         tiny = HealpixSubSphere(res_arcmin=res_deg*60.0,
-                                                theta=np.radians(0.0),
-                                                phi=0.0, radius_rad=np.radians(5))
+                                theta=np.radians(0.0),
+                                phi=0.0, radius_rad=np.radians(5))
 
         self.assertEqual(tiny.nside, 128)
         self.assertEqual(tiny.npix, 364)
@@ -79,8 +79,8 @@ class TestSubsphere(unittest.TestCase):
         res_deg = 10
         fname = 'test.svg'
         big = HealpixSubSphere(res_arcmin=res_deg*60.0,
-                                               theta=np.radians(0.0), phi=0.0,
-                                               radius_rad=np.radians(45))
+                               theta=np.radians(0.0), phi=0.0,
+                               radius_rad=np.radians(45))
 
         big.to_svg(fname=fname, pixels_only=True, show_cbar=False)
         self.assertTrue(os.path.isfile(fname))
@@ -90,28 +90,26 @@ class TestSubsphere(unittest.TestCase):
         res_deg = 10
         fname = 'test.fits'
         big = HealpixSubSphere(res_arcmin=res_deg*60.0,
-                                               theta=np.radians(0.0), phi=0.0,
-                                               radius_rad=np.radians(45))
+                               theta=np.radians(0.0), phi=0.0,
+                               radius_rad=np.radians(45))
 
         big.to_fits(fname=fname)
         self.assertTrue(os.path.isfile(fname))
         os.remove(fname)
-        
-        
+
     def test_load_save(self):
         res_deg = 10
         sph = HealpixSubSphere(res_arcmin=res_deg*60.0,
-                                               theta=np.radians(0.0), phi=0.0,
-                                               radius_rad=np.radians(45))
-        
+                               theta=np.radians(0.0), phi=0.0,
+                               radius_rad=np.radians(45))
+
         sph.set_info(timestamp=datetime.datetime.now(),
-                             lon=170.5, lat=-45.5, height=42)
+                     lon=170.5, lat=-45.5, height=42)
 
         sph.to_hdf('test.h5')
-        
+
         sph2 = fov.from_hdf('test.h5')
-        
+
         self.assertTrue(np.allclose(sph.pixels, sph2.pixels))
         self.assertTrue(np.allclose(sph.pixel_areas, sph2.pixel_areas))
         self.assertTrue(np.allclose(sph.pixel_indices, sph2.pixel_indices))
-

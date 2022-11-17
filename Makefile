@@ -10,6 +10,9 @@ develop:
 install:
 	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-dask
 
+draw:
+	disko_draw tart.hdf --show-sources --SVG tart.svg
+
 lint:
 	flake8 disko --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
@@ -59,16 +62,15 @@ dask:
 #        Maximum resident set size (kbytes): 3956904
 #         Maximum resident set size (kbytes): 2903484
 
-TART_ARGS=--fov 155deg --res 1deg --ms test_data/test.ms --field 1
-#TART_ARGS=--fov 155deg --res 1deg --file test_data/test_data.json --show-sources
-
+TART_ARGS=--fov 155deg --res 1deg --ms test_data/test.ms --field 1  --HDF tart.hdf
+TART_ARGS=--fov 155deg --res 1deg --file test_data/test_data.json --show-sources --HDF tart.hdf
 cygnus_lsmr:
 	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
 cygnus_fista:
 	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
 	
 tart:
-	${TIME} disko --healpix ${TART_ARGS} --SVG --alpha=0.025 --tikhonov  --title 'tart' --HDF tart.hdf
+	${TIME} disko --healpix ${TART_ARGS} --SVG --alpha=0.025 --tikhonov  --title 'tart'
 
 tart_mesh:
 	${TIME} disko --mesh ${TART_ARGS} --alpha=0.0025 --tikhonov  --title 'tart_mesh'

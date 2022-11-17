@@ -12,11 +12,13 @@ logger.setLevel(logging.INFO)
 
 def log_array(title, x):
     if isinstance(x, np.ndarray):
-        logger.info("   np: {}:{} {:5.2f} GB".format(title, x.shape, x.nbytes / 1e9))
+        logger.info("   np: {}:{} {:5.2f} GB".format(
+            title, x.shape, x.nbytes / 1e9))
     elif isinstance(x, da.core.Array):
         logger.info("   da: {}:{} chunks={}".format(title, x.shape, x.chunks))
     else:
-        logger.info("   ?: {}:{} {:5.2f} GB".format(title, x.shape, x.nbytes / 1e9))
+        logger.info("   ?: {}:{} {:5.2f} GB".format(
+            title, x.shape, x.nbytes / 1e9))
 
 
 def da_identity(d, chunks="auto"):

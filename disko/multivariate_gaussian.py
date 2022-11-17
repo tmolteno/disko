@@ -81,7 +81,8 @@ class MultivariateGaussian:
 
         if (d[0] != self.D) or (d[1] != self.D):
             raise ValueError(
-                "Covariance {} must be a {}x{} square matrix".format(d, self.D, self.D)
+                "Covariance {} must be a {}x{} square matrix".format(
+                    d, self.D, self.D)
             )
 
         # logger.info("MultivariateGaussian({}, {}): {:.2f} GB".format(mu.shape, d, storage/1e9))
@@ -125,7 +126,8 @@ class MultivariateGaussian:
          p92
         """
         logger.info(
-            "bayes_update({}, {}, {})".format(precision_y.shape, y.shape, A.shape)
+            "bayes_update({}, {}, {})".format(
+                precision_y.shape, y.shape, A.shape)
         )
 
         L = precision_y
@@ -308,7 +310,8 @@ class MultivariateGaussian:
 
     @classmethod
     def from_hdf5(cls, filename):
-        logger.info("Loading MultivariateGaussian from HDF5 {}".format(filename))
+        logger.info(
+            "Loading MultivariateGaussian from HDF5 {}".format(filename))
 
         with h5py.File(filename, "r") as h5f:
 
