@@ -206,7 +206,7 @@ if __name__ == '__main__':
     if ARGS.ms:
         disko.vis_arr = disko.vis_arr.conjugate()
     elif ARGS.file:
-        pass
+        disko.vis_arr = disko.vis_arr.conjugate()
     else:
         pass
 
