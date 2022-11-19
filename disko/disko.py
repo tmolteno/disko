@@ -18,12 +18,13 @@ import scipy.sparse.linalg as spalg
 from sklearn import linear_model
 
 from tart.imaging import elaz
+from tart2ms import read_ms
 
 from astropy import constants as const
 
 from .healpix_sphere import HealpixSphere
-from tart2ms import read_ms
 from .multivariate_gaussian import MultivariateGaussian
+from .resolution import Resolution
 
 logger = logging.getLogger(__name__)
 logger.addHandler(

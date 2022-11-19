@@ -245,7 +245,10 @@ class Sphere(object):
         self.to_hdf(fname)
 
     def copy(self):
-        return copy.deepcopy(self)
+        ret = copy.deepcopy(self)
+        ret.pixels = np.array(self.pixels)
+        ret.pixel_areas = np.array(self.pixel_areas)
+        return ret
 
     def index_of(self, el, az):
         raise RuntimeError("index_of() not implemented for this sphere")
