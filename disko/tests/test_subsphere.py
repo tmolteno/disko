@@ -113,3 +113,14 @@ class TestSubsphere(unittest.TestCase):
         self.assertTrue(np.allclose(sph.pixels, sph2.pixels))
         self.assertTrue(np.allclose(sph.pixel_areas, sph2.pixel_areas))
         self.assertTrue(np.allclose(sph.pixel_indices, sph2.pixel_indices))
+
+    def test_indexing(self):
+        sph = HealpixSubSphere(res_arcmin=60.0,
+                               theta=np.radians(0.0), phi=0.0,
+                               radius_rad=np.radians(90))
+
+        for i in range(500):
+            el = np.random.uniform(np.radians(1), np.radians(90))
+            az = np.random.uniform(np.radians(-180), np.radians(180))
+            ind = sph.index_of(el, az)
+            self.assertTrue(ind < sph.npix)
