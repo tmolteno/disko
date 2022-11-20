@@ -262,7 +262,7 @@ class Sphere(object):
     def get_power(self):
         # Total flux of this image.
         # This is the sum of the pixel intensities
-        return np.sum((self.pixels**2/self.pixel_areas))
+        return np.sum((self.pixels/self.pixel_areas)**2)/self.npix
 
     def rms(self):
         return np.sqrt(np.mean(self.pixels**2))
