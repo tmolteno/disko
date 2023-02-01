@@ -547,11 +547,12 @@ class DiSkO(object):
                 eps = 1.0/alpha
                 if eps > 0.1:
                     eps = 0.01
-                eps = 1e-4
             else:
                 eps = 1e-3
+                
+            eps = 1e-5
             sky, niter, cost_history = pylops.optimization.sparsity.fista(
-                Op=A, y=d, x0=np.abs(Apre @ d),  # SOp=Apre,
+                Op=A, y=d, SOp=Apre, # x0=np.abs(Apre @ d)**2,  # 
                 eps=eps,
                 tol=1e-10, niter=niter, alpha=alpha, show=True,
                 # A, d, niter=niter, alpha=None, show=True, x0=np.abs(Apre @ d),

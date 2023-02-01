@@ -83,10 +83,10 @@ sphere:
 
 tart_fista:
 	rm -f disko.log
-	disko --healpix ${TART_ARGS} --SVG --fista --matrix-free --alpha=200 --niter=30 --title 'tart_fista'
+	disko --healpix ${TART_ARGS} --SVG --fista --matrix-free --niter=300 --title 'tart_fista'
 tart_lsmr:
 	rm -f disko.log
-	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsqr --matrix-free --title 'tart_lsmr'
+	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsmr --matrix-free --title 'tart_lsmr'
 tart_lsqr:
 	rm -f disko.log
 	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsqr --matrix-free --title 'tart_lsqr'
