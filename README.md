@@ -47,6 +47,7 @@ This should generate a suitable measurement set to image.
 
 
 0.9.4b5 Import Resolution in disko to get array beam width.
+        Fix sphere power.
 0.9.4b4 Expose parent parsers.
         Refer to min_res() rather than nside for spheres
         Fix bugs in display of mesh spheres
