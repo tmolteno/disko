@@ -45,7 +45,7 @@ This should generate a suitable measurement set to image.
 
 ## Changelog
 
-
+```
 0.9.4b5 Import Resolution in disko to get array beam width.
         Fix sphere power.
 0.9.4b4 Expose parent parsers.
@@ -110,3 +110,4 @@ This should generate a suitable measurement set to image.
 0.5.0b4 Override plot in HPSubSphere to allow for non-normal pixels.
 0.5.0b3 Added elliptical source circle projections in SVG.
 0.5.0 Getting imaging logic better. Added L2 regularization, and cross-validation
+```
