@@ -4,8 +4,9 @@
 
 Author: Tim Molteno tim@elec.ac.nz
 
-Its so cool its POINTLESS. Image by using the telescope operator keeping track of the telescope null-space and range-space. This software 
-carries out a sparsity reduction by regularization and controls the volume of the sky solution. The result is an imaging algorithm that is sensitive to diffuse broad sources, and does not require restoration like CLEAN. Publications to appear :)
+Its so cool its POINTLESS. Image by using the telescope operator keeping track of the telescope null-space and range-space. DiSkO uses a discrete representation of the field of view (as a healpix grid, or unstructured mesh) in the sky space. This means we can image arbitratily wide fields of view (including the full sphere), as well as arbitrarily shaped fields (circles are preferred).
+
+DiSkO can perform sparsity reduction by regularization and controls the volume of the sky solution. The result is an imaging algorithm that is sensitive to diffuse broad sources, and does not require restoration like CLEAN. Publications to appear :)
 
 ## Howto
 
