@@ -1,11 +1,13 @@
 TIME=/usr/bin/time -v
 
-test:
-	- rm *.npz
-	pytest-3  # python3 setup.py test
-	
-develop:
-	python3 setup.py develop --user
+VENVDIR=~/.tartvenv
+
+develop: venv
+	${VENV}/pip3 install -e .
+
+test: venv
+	${VENV}/python3 -m pytest
+
 
 install:
 	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-dask
@@ -138,3 +140,12 @@ upload:
 	rm -rf disko.egg-info dist
 	python3 setup.py sdist
 	twine upload --repository pypi dist/*
+	
+include Makefile.venv
+
+$(VENV):
+	$(PY) -m venv --system-site-packages $(VENVDIR)
+#       $(PY) -m venv $(VENVDIR)
+	$(VENV)/python3 -m pip install --upgrade pip setuptools wheel
+
+
