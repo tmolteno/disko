@@ -7,6 +7,7 @@ import logging
 import sys
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from tart_tools import api_handler
 from tart.imaging import elaz
