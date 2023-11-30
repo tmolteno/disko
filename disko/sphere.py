@@ -364,7 +364,7 @@ class Sphere(object):
         hdr.comments["ORIGIN"] = "L-2 Regularizing imager written by Tim Molteno"
 
         hdr["CRPIX1"] = width // 2 + 1.0
-        hdr["CDELT1"] = self.fov.degrees() / width
+        hdr["CDELT1"] = -self.fov.degrees() / width # note: RA increases East
         hdr["CRPIX2"] = height // 2 + 1.0
         hdr["CDELT2"] = self.fov.degrees() / height
         for key in info:
