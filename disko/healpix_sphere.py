@@ -85,6 +85,8 @@ class HealpixSphere(Sphere):
 
     def __init__(self, nside):
         super().__init__()
+        if nside is None:
+            return
         self.nside = nside
         self.npix = hp.nside2npix(self.nside)
         res = hp.nside2resol(nside, arcmin=True)
@@ -487,6 +489,7 @@ class HealpixSubSphere(HealpixSphere):
     """
 
     def __init__(self, res_arcmin=None, nside=None, theta=0.0, phi=0.0, radius_rad=0.0):
+        super().__init__(nside=None)
         logger.info(r"HealpixSubSphere:")
         logger.info(f"    res={res_arcmin} arcmin, nside={nside}")
         logger.info(f"    theta={theta}, phi={phi}, radius_rad={radius_rad})")

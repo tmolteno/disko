@@ -5,6 +5,7 @@ import datetime
 import json
 import logging
 import sys
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -109,11 +110,12 @@ if __name__ == '__main__':
         print(f"Writing SVG: {ARGS.SVG}")
 
     if ARGS.PNG:
-        fname = path('png', image_title)
+        fname = ARGS.PNG
+        print(f"Writing PNG: {fname}")
         plt.figure()
         field_of_view.plot(plt, None)
         plt.tight_layout()
-        plt.savefig(ARGS.PNG, dpi=300)
+        plt.savefig(fname, dpi=300)
         plt.close()
 
     if ARGS.PDF:

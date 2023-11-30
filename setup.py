@@ -21,7 +21,7 @@ setup(name='disko',
       license='GPLv3',
       install_requires=['numpy', 'matplotlib', 'healpy', 'astropy', 'tart', 'tart-tools', 'tart2ms', 'h5py',
                         'scipy', 'svgwrite', 'dask', 'scikit-learn', 'dask-ms', 'distributed',
-                        'pylops', 'toolz', 'dmsh', 'optimesh', 'imageio'],
+                        'pylops', 'toolz', 'pygmsh', 'imageio'],
       packages=['disko', 'disko.fov'],
       scripts=['bin/disko', 'bin/disko_svd', 'bin/disko_bayes', 'bin/disko_draw'],
       classifiers=[
