@@ -10,7 +10,6 @@ import pygmsh
 import h5py
 import gmsh
 
-import optimesh
 
 from scipy.spatial import Delaunay
 import meshio
