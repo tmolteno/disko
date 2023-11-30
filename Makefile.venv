@@ -223,15 +223,15 @@ VENVDEPENDS+=$(VENV_LOCAL_PACKAGE)
 endif
 
 $(VENV):
-	$(PY) -m venv $(VENVDIR)
+	$(PY) -m venv --system-site-packages $(VENVDIR)
 	$(VENV)/python -m pip install --upgrade pip setuptools wheel
 
 $(VENV)/$(MARKER): $(VENVDEPENDS) | $(VENV)
 ifneq ($(strip $(REQUIREMENTS_TXT)),)
-	$(VENV)/pip install $(foreach path,$(REQUIREMENTS_TXT),-r $(path))
+	$(VENV)/pip install -U $(foreach path,$(REQUIREMENTS_TXT),-r $(path))
 endif
 ifneq ($(strip $(VENV_LOCAL_PACKAGE)),)
-	$(VENV)/pip install $(foreach path,$(sort $(VENV_LOCAL_PACKAGE)),-e $(dir $(path)))
+	$(VENV)/pip install -U $(foreach path,$(sort $(VENV_LOCAL_PACKAGE)),-e $(dir $(path)))
 endif
 	$(call touch,$(VENV)/$(MARKER))
 
