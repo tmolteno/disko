@@ -1,5 +1,5 @@
 #
-# Copyright Tim Molteno 2019 tim@elec.ac.nz
+# Copyright Tim Molteno 2019-2023 tim@elec.ac.nz
 #
 
 from setuptools import setup
@@ -9,7 +9,7 @@ with open('README.md') as f:
     readme = f.read()
 
 setup(name='disko',
-      version='0.9.4b5',
+      version='0.9.5b1',
       description='Discrete Sky Operator (DiSkO) Aperture Synthesis Radio Imaging',
       long_description=readme,
       long_description_content_type="text/markdown",

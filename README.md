@@ -47,6 +47,7 @@ This should generate a suitable measurement set to image.
 ## Changelog
 
 ```
+0.9.5b1 Add --min and --max to disko_draw so allow manual setting the range of images
 0.9.4b6 Fix bug in drawing PDF.
 0.9.4b5 Import Resolution in disko to get array beam width.
         Fix sphere power.

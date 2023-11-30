@@ -1,5 +1,5 @@
 # Classes to hold pixelated spheres
-# Tim Molteno tim@elec.ac.nz 2019
+# Tim Molteno tim@elec.ac.nz 2019-2023
 #
 
 import logging
@@ -227,6 +227,8 @@ class Sphere(object):
 
     def __init__(self):
         self.pixels = None
+        self.pixmin = None
+        self.pixmax = None
         self.pixel_areas = None
         self.fov = None
         self.set_info(timestamp=datetime.datetime.utcnow(),
@@ -266,6 +268,31 @@ class Sphere(object):
 
     def rms(self):
         return np.sqrt(np.mean(self.pixels**2))
+
+    '''
+        This will become the plot range when the sphere is plotted
+    '''
+    def set_plot_range(self, lower, upper):
+        self.pixmin = lower
+        self.pixmax = upper
+
+    def get_plot_range(self, stats):
+        if self.pixmin is not None:
+            pixmin = self.pixmin
+        else:
+            pixmin = stats["min"]
+
+        if self.pixmax is not None:
+            pixmax = self.pixmax
+        else:
+            pixmax = stats["max"]
+        return pixmin, pixmax
+
+    def normalize_pixel(self, pixel, stats):
+
+        pixmin, pixmax = self.get_plot_range(stats)
+
+        return (pixel - pixmin) / (1e-14 + pixmax - pixmin)
 
     def to_hdf_header(self, h5f):
         dt = h5py.special_dtype(vlen=bytes)

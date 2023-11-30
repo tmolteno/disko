@@ -288,8 +288,8 @@ class HealpixSphere(Sphere):
                         )
                     )
             else:
-                (r, g, b) = cmap(
-                    (value - stats["min"]) / (1e-14 + stats["max"] - stats["min"]))
+                (r, g, b) = cmap(self.normalize_pixel(value, stats))
+                    # (value - stats["min"]) / (1e-14 + stats["max"] - stats["min"]))
                 colour = svgwrite.rgb(r, g, b)
                 if min_lat > 0.07:  # Ignore points on, or below the horizon
                     svg_pixels.add(dwg.polygon(
@@ -305,10 +305,12 @@ class HealpixSphere(Sphere):
             bar_boxes = dwg.g(
                 stroke_width=2, stroke_linejoin="round", stroke_opacity=1.0
             )
-            values = np.linspace(stats["min"], stats["max"], N)
+            pixmin, pixmax = self.get_plot_range(stats)
+            values = np.linspace(pixmin, pixmax, N)
 
-            rvals = (values - stats["min"]) / \
-                (1e-14 + stats["max"] - stats["min"])
+            rvals = self.normalize_pixel(values, stats)
+            # (values - stats["min"]) / \
+            #     (1e-14 + stats["max"] - stats["min"])
 
             start_y = 0.05 * width
             stop_y = 2.05 * width
@@ -354,7 +356,7 @@ class HealpixSphere(Sphere):
                 if i == 0:
                     bar_boxes.add(
                         dwg.text(
-                            "{:5.3f}".format(stats["min"]),
+                            "{:5.3f}".format(pixmin),
                             (x0 - font_size / 2, y1),
                             text_anchor="end",
                             font_size="{}px".format(font_size),
@@ -364,7 +366,7 @@ class HealpixSphere(Sphere):
                 if i == N - 2:
                     bar_boxes.add(
                         dwg.text(
-                            "{:5.3f}".format(stats["max"]),
+                            "{:5.3f}".format(pixmax),
                             (x0 - font_size / 2, y1 + font_size),
                             text_anchor="end",
                             font_size="{}px".format(font_size),

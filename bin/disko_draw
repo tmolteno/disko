@@ -34,6 +34,13 @@ if __name__ == '__main__':
                         type=float, default=20.0,
                         help="Elevation limit for displaying sources (degrees).")
 
+    parser.add_argument('--min',
+                        type=float, default=-1,
+                        help="Lower end of image range (-1 means calculate)")
+    parser.add_argument('--max',
+                        type=float, default=-1,
+                        help="Upper end of image range. (-1 means calculate)")
+
     parser.add_argument('--PNG', default=None,
                         help="Generate a PNG format image.")
     parser.add_argument('--PDF', default=None,
@@ -62,7 +69,7 @@ if __name__ == '__main__':
     if ARGS.version:
         version = version("spotless")
         print(f"disko_draw: Version {version}")
-        print("             (c) 2022 Tim Molteno")
+        print("             (c) 2023 Tim Molteno")
         sys.exit(0)
 
     src_list = None
@@ -77,7 +84,20 @@ if __name__ == '__main__':
         # print("Source list")
         # for s in src_list:
         #     print(f"   src: el:{np.degrees(s.el_r) :5.2f}")
-        
+
+
+    if ARGS.max == -1:
+        max_img = np.max(field_of_view.pixels)
+    else:
+        max_img = ARGS.max
+
+    if ARGS.min == -1:
+        min_img = np.min(field_of_view.pixels)
+    else:
+        min_img = ARGS.min
+
+    field_of_view.set_plot_range(min_img, max_img)
+
     if ARGS.VTK:
         field_of_view.write_mesh(ARGS.VTK)
 
