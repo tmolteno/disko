@@ -47,6 +47,7 @@ This should generate a suitable measurement set to image.
 ## Changelog
 
 ```
+0.9.5b4 Add a timestamp to images (or a title if specified) in SVG mode
 0.9.5b3 Use gmsh rather than optimesh... (WIP)
 0.9.5b2 Fix RA direction in generated FITS files (thanks Ben Hugo)
 0.9.5b1 Add --min and --max to disko_draw so allow manual setting the range of images
