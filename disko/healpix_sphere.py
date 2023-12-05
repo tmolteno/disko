@@ -175,27 +175,30 @@ class HealpixSphere(Sphere):
             rad = self.fov.radians() / 2
             width = np.sin(rad)
             font_size = pc.from_d(0.05 * width)
+            font_str = f"{font_size}px"
 
             x = pc.from_x(-width)
 
-            if title is not None:
-                y = font_size
-                dwg.add(
-                    dwg.text(
-                        title,
-                        (x, y),
-                        text_anchor="start",
-                        font_size="{}px".format(font_size),
-                    )
+            if title is None:
+                title = self.timestamp.isoformat()
+                
+            y = font_size
+            dwg.add(
+                dwg.text(
+                    title,
+                    (x, y),
+                    text_anchor="start",
+                    font_size=font_str,
                 )
-
+            )
+                
             y = font_size * 2
             dwg.add(
                 dwg.text(
                     f"Res: {self.min_res()}",
                     (x, y),
                     text_anchor="start",
-                    font_size="{}px".format(font_size),
+                    font_size=font_str,
                 )
             )
 
@@ -205,17 +208,17 @@ class HealpixSphere(Sphere):
                     f"FOV: {self.fov}",
                     (x, y),
                     text_anchor="start",
-                    font_size="{}px".format(font_size),
+                    font_size=font_str,
                 )
             )
 
             y = font_size * 4
             dwg.add(
                 dwg.text(
-                    "N_s: {}".format(self.pixels.shape[0]),
+                    f"N_s: {self.pixels.shape[0]}",
                     (x, y),
                     text_anchor="start",
-                    font_size="{}px".format(font_size),
+                    font_size=font_str,
                 )
             )
 
@@ -286,7 +289,7 @@ class HealpixSphere(Sphere):
                             "{}".format(i),
                             (x, y),
                             text_anchor="middle",
-                            font_size="{}px".format(font_size),
+                            font_size = f"{font_size}px",
                         )
                     )
             else:
@@ -343,7 +346,7 @@ class HealpixSphere(Sphere):
                             "0",
                             (x0 - font_size / 2, y1 + font_size / 2),
                             text_anchor="end",
-                            font_size="{}px".format(font_size),
+                            font_size = f"{font_size}px",
                         )
                     )
                     bar_boxes.add(
@@ -361,7 +364,7 @@ class HealpixSphere(Sphere):
                             "{:5.3f}".format(pixmin),
                             (x0 - font_size / 2, y1),
                             text_anchor="end",
-                            font_size="{}px".format(font_size),
+                            font_size = f"{font_size}px",
                         )
                     )
 
@@ -371,7 +374,7 @@ class HealpixSphere(Sphere):
                             "{:5.3f}".format(pixmax),
                             (x0 - font_size / 2, y1 + font_size),
                             text_anchor="end",
-                            font_size="{}px".format(font_size),
+                            font_size = f"{font_size}px",
                         )
                     )
 
