@@ -1,19 +1,18 @@
 TIME=/usr/bin/time -v
 
-VENVDIR=~/.tartvenv
 
-develop: venv
-	${VENV}/pip3 install -e .
+develop: 
+	pip3 install -e .
 
 test: venv
-	${VENV}/python3 -m pytest
+	python3 -m pytest
 
 
 install:
 	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-dask
 
 draw:
-	${VENV}/disko_draw tart.hdf --show-sources \
+	disko_draw tart.hdf --show-sources \
 		--SVG draw_tart.svg \
 		--PNG draw_tart.png \
 		--FITS draw_tart.fits
@@ -24,31 +23,31 @@ lint:
 test2:
 	#python3 -m unittest  disko.tests.test_gridless.TestGridless.test_from_pos
 	#	python3 -m unittest  disko.tests.test_subsphere
-	${VENV}/python3 -m pytest -k test_disko
+	python3 -m pytest -k test_disko
 
 svd:
 	rm -f *.npz
-	${VENV}/disko_svd  --file test_data/test_data.json  --nside 16
+	disko_svd  --file test_data/test_data.json  --nside 16
 
 bayes:
 	#rm -f *.npz
-	${VENV}/disko_bayes --fov 155 --ms test_data/test.ms  --mu --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15
+	disko_bayes --fov 155 --ms test_data/test.ms  --mu --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15
 #	${TIME} disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
 
 ngc1194:
-	${VENV}/disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
+	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
 
 adaptive:
 	rm -f round*.vtk
-	${VENV}/disko --mesh --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --res 10arcsec --res-min=430mas --adaptive 2 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus'
+	disko --mesh --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --res 10arcsec --res-min=430mas --adaptive 2 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus'
 	
 
 # Requires memory_profiler pip3 install memory_profiler
 cygnus:
-	${VENV}/disko_bayes --healpix --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --mu --res 1arcsec --nvis 1500 --title 'cygnus'
+	disko_bayes --healpix --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --mu --res 1arcsec --nvis 1500 --title 'cygnus'
 	
 dask:
-	${VENV}/disko --healpix --fov 0.5deg --res 0.25arcmin \
+	disko --healpix --fov 0.5deg --res 0.25arcmin \
 		--ms /home/tim/astro/cyg2052.ms --SVG  --tikhonov --nvis 2000 --dask
 
 # Mem 2520  (0.1 arcmin)   1726672
@@ -76,30 +75,30 @@ cygnus_fista:
 	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
 	
 tart:
-	${VENV}/disko --healpix ${TART_ARGS} --SVG --alpha=0.025 --tikhonov  --title 'tart'
+	disko --healpix ${TART_ARGS} --SVG --alpha=0.025 --tikhonov  --title 'tart'
 
 tart_mesh:
-	${TIME} ${VENV}/disko --mesh ${TART_ARGS} --alpha=0.0025 --tikhonov  --title 'tart_mesh'
+	${TIME} disko --mesh ${TART_ARGS} --alpha=0.0025 --tikhonov  --title 'tart_mesh'
 
 tart_mesh_fista:
-	${VENV}/disko --mesh ${TART_ARGS}  --fista --niter 1000  --matrix-free  --title 'tarta_mesh_fista'
+	disko --mesh ${TART_ARGS}  --fista --niter 1000  --matrix-free  --title 'tarta_mesh_fista'
 
 sphere:
-	${VENV}/disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
+	disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
 
 tart_fista:
 	rm -f disko.log
-	${VENV}/disko --healpix ${TART_ARGS} --SVG --fista --alpha=100 --matrix-free --niter=300 --title 'tart_fista'
+	disko --healpix ${TART_ARGS} --SVG --fista --alpha=100 --matrix-free --niter=300 --title 'tart_fista'
 tart_lsmr:
 	rm -f disko.log
-	${VENV}/disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsmr --matrix-free --title 'tart_lsmr'
+	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsmr --matrix-free --title 'tart_lsmr'
 tart_lsqr:
 	rm -f disko.log
 	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsqr --matrix-free --title 'tart_lsqr'
 
 tart_lasso:
 	rm -f disko.log
-	${VENV}/disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lasso --title 'tart_lasso'
+	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lasso --title 'tart_lasso'
 
 ## 1000 0.1074
 ## 2000 0.0696
@@ -110,10 +109,10 @@ NV_CYG=5000
 #	1281930
 mf_cyg:
 	rm -f disko.log
-	${VENV}/disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --fista --matrix-free --alpha 100 --title 'mf_cyg' --niter 1000
+	disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --fista --matrix-free --alpha 100 --title 'mf_cyg' --niter 1000
 cygnus_lasso:
 	rm -f disko.log
-	${VENV}/disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --lasso --l1-ratio=0.02 --matrix-free --alpha 0.01 --title 'cygnus_lasso'
+	disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --lasso --l1-ratio=0.02 --matrix-free --alpha 0.01 --title 'cygnus_lasso'
 
 mf_preview:
 	paraview --data=callback_..vtk
@@ -145,4 +144,3 @@ upload:
 	python3 setup.py sdist
 	twine upload --repository pypi dist/*
 	
-include Makefile.venv
