@@ -362,19 +362,19 @@ class DiSkO(object):
         ret.indices = indices
 
         logger.info(f"Visibilities: {ret.vis_arr.shape}")
-        logger.info(f"u,v,w: {ret.u_arr.shape}")
+        logger.debug(f"u,v,w: {ret.u_arr.shape}")
         return ret
 
     def vis_stats(self):
         vabs = np.abs(self.vis_arr)
 
         p05, p50, p95, p100 = np.percentile(vabs, [5, 50, 95, 100])
-        logger.info(
+        logger.debug(
             "Vis Range: [{:5.4g} {:5.4g} {:5.4g} {:5.4g}]".format(
                 p05, p50, p95, p100)
         )
 
-        logger.info("Vis Energy: {:5.4g}".format(np.sum(vabs)))
+        logger.debug("Vis Energy: {:5.4g}".format(np.sum(vabs)))
 
         return p05, p50, p95, p100
 
@@ -629,7 +629,7 @@ class DiSkO(object):
         gamma = np.asarray(harmonic_list)  # , dtype=COMPLEX_DATATYPE)
         logger.info("Gamma Shape: {}".format(gamma.shape))
         gamma = gamma.reshape((n_v, n_s))
-        logger.info("Complex Gamma Shape: {}".format(gamma.shape))
+        logger.debug("Complex Gamma Shape: {}".format(gamma.shape))
         # gamma = gamma.conj()  # .rechunk('auto')
 
         if makecomplex:
@@ -642,7 +642,7 @@ class DiSkO(object):
         ret = np.block([[g_real],
                         [g_imag]])  # .rechunk('auto')
 
-        logger.info("Real Gamma Shape: {}".format(ret.shape))
+        logger.debug("Real Gamma Shape: {}".format(ret.shape))
 
         return ret
 
