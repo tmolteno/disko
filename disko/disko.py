@@ -18,7 +18,7 @@ import scipy.sparse.linalg as spalg
 from sklearn import linear_model
 
 from tart.imaging import elaz
-from tart2ms import read_ms
+from tart2ms import casa_read_ms as read_ms
 
 from astropy import constants as const
 
@@ -27,9 +27,9 @@ from .multivariate_gaussian import MultivariateGaussian
 from .resolution import Resolution
 
 logger = logging.getLogger(__name__)
-logger.addHandler(
-    logging.NullHandler()
-)  # Add other handlers if you're using this as a library
+if not logger.handlers:
+    logger.addHandler(logging.NullHandler())
+    # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
 
@@ -339,11 +339,10 @@ class DiSkO(object):
         return ret
 
     @classmethod
-    def from_ms(cls, ms, num_vis, res, chunks=50000, channel=0, field_id=0, ddid=0):
+    def from_ms(cls, ms, num_vis, res, channel=0, field_id=0, ddid=0):
         u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices = read_ms(
-            ms, num_vis, angular_resolution=res.degrees(),
-            chunks=chunks, channel=channel,
-            field_id=field_id, ddid=ddid
+            ms, num_vis, angular_resolution=res.degrees(), channel=channel,
+            field_id=field_id, ddid=ddid, pol=0
         )
 
         # Measurement sets do not return the conjugate pairs of visibilities

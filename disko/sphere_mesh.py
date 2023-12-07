@@ -20,9 +20,9 @@ from .resolution import Resolution
 import numpy as np
 
 logger = logging.getLogger(__name__)
-logger.addHandler(
-    logging.NullHandler()
-)  # Add other handlers if you're using this as a library
+if not logger.handlers:
+    logger.addHandler(logging.NullHandler())
+    # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
 

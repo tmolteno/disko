@@ -4,9 +4,9 @@ import numpy as np
 import dask.array as da
 
 logger = logging.getLogger(__name__)
-logger.addHandler(
-    logging.NullHandler()
-)  # Add other handlers if you're using this as a library
+if not logger.handlers:
+    logger.addHandler(logging.NullHandler())
+    # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
 
 

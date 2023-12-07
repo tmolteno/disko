@@ -85,24 +85,24 @@ if __name__ == '__main__':
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    fh = logging.FileHandler('disko.log')
-    fh.setLevel(logging.INFO)
-    
-    # create console handler and set level to debug
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    if not logger.handlers:
+        fh = logging.FileHandler('disko.log')
+        fh.setLevel(logging.INFO)
 
-    # create formatter
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        # create console handler and set level to debug
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
 
-    # add formatter to ch
-    ch.setFormatter(formatter)
-    fh.setFormatter(formatter)
+        # create formatter
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    # add ch to logger
-    #logger.addHandler(ch)
-    logger.addHandler(fh)
-    
+        # add formatter to ch
+        ch.setFormatter(formatter)
+        fh.setFormatter(formatter)
+
+        # add ch to logger
+        logger.addHandler(ch)
+
     if ARGS.version:
         version = version("disko")
         print(f"DiSkO: Version {version}")

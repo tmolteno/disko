@@ -18,11 +18,10 @@ from .sphere import hp2elaz, elaz2lmn, PlotCoords, HpAngle, elaz2hp, ElAz
 from .resolution import Resolution
 
 logger = logging.getLogger(__name__)
-logger.addHandler(
-    logging.NullHandler()
-)  # Add other handlers if you're using this as a library
+if not logger.handlers:
+    logger.addHandler(logging.NullHandler())
+    # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
-
 
 def create_fov(nside, fov, res, theta=0.0, phi=0.0):
     """
