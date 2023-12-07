@@ -47,6 +47,7 @@ This should generate a suitable measurement set to image.
 ## Changelog
 
 ```
+0.9.5b4 Add a timestamp to images (or a title if specified) in SVG mode
 0.9.5b3 Use gmsh rather than optimesh... (WIP)
         Use much faster measurement set reading via casa_read_ms() about 200x faster!
         disko_draw timestamps the image

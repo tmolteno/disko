@@ -68,7 +68,7 @@ if __name__ == '__main__':
     logger.info(f"geo {geo}")
     
     if ARGS.version:
-        version = version("spotless")
+        version = version("disko")
         print(f"disko_draw: Version {version}")
         print("             (c) 2023 Tim Molteno")
         sys.exit(0)
