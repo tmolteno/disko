@@ -106,7 +106,7 @@ if __name__ == '__main__':
         field_of_view.to_fits(fname=ARGS.FITS, info={'creator': 'disko_draw'})
 
     if ARGS.SVG:
-        field_of_view.to_svg(fname=ARGS.SVG, src_list=src_list, show_grid=True, title="")
+        field_of_view.to_svg(fname=ARGS.SVG, src_list=src_list, show_grid=True, title=None)
         print(f"Writing SVG: {ARGS.SVG}")
 
     if ARGS.PNG:
