@@ -17,10 +17,7 @@ from tart.util import utc
 from astropy.coordinates import EarthLocation
 
 logger = logging.getLogger(__name__)
-if not logger.handlers:
-    logger.addHandler(logging.NullHandler())
-    # Add other handlers if you're using this as a library
-logger.setLevel(logging.INFO)
+# logger.setLevel(logging.INFO)
 
 
 PI_OVER_2 = np.pi / 2

@@ -1,5 +1,5 @@
 #
-# Copyright Tim Molteno 2019 tim@elec.ac.nz
+# Copyright Tim Molteno 2019-2023 tim@elec.ac.nz
 #
 # Init for the DiSkO imaging algorithm
 from .disko import (
@@ -25,3 +25,6 @@ from .projection_lsqr import plsqr
 from .multivariate_gaussian import MultivariateGaussian
 from .resolution import Resolution
 from .parser_support import sphere_from_args, sphere_args_parser
+
+import logging
+logging.getLogger(__name__).addHandler(logging.NullHandler())

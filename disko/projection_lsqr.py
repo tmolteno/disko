@@ -7,10 +7,6 @@ from sklearn import linear_model
 
 
 logger = logging.getLogger(__name__)
-logger.addHandler(
-    logging.NullHandler()
-)  # Add other handlers if you're using this as a library
-logger.setLevel(logging.INFO)
 
 
 def plsqr(A, v, alpha, eps=1e-4):

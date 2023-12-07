@@ -8,10 +8,7 @@ import dask.array as da
 from .util import log_array
 
 logger = logging.getLogger(__name__)
-logger.addHandler(
-    logging.NullHandler()
-)  # Add other handlers if you're using this as a library
-logger.setLevel(logging.INFO)
+# logger.setLevel(logging.INFO)
 
 
 def factors(n):

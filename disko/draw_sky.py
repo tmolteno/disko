@@ -17,10 +17,7 @@ from .disko import DiSkO
 from .telescope_operator import TelescopeOperator
 
 logger = logging.getLogger(__name__)
-if not logger.handlers:
-    logger.addHandler(logging.NullHandler())
-    # Add other handlers if you're using this as a library
-logger.setLevel(logging.INFO)
+# logger.setLevel(logging.INFO)
 
 def mask_to_sky(mask, nside):
     height, width, col = mask.shape

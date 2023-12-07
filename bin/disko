@@ -75,23 +75,29 @@ if __name__ == '__main__':
     parser.add_argument('--cv', action="store_true", help="Use Cross Validation")
     parser.add_argument('--dask', action="store_true", help="Use dask")
     
+    parser.add_argument('--debug', action="store_true", help="Display debugging information")
     parser.add_argument('--version', action="store_true", help="Display the current version")
 
 
     source_json = None
 
     ARGS = parser.parse_args()
-        
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
 
-    if not logger.handlers:
+    if ARGS.debug:
+        level = logging.DEBUG
+    else:
+        level = logging.ERROR
+
+    logger = logging.getLogger('disko')
+    logger.setLevel(level)
+
+    if not logger.handlers and ARGS.debug:
         fh = logging.FileHandler('disko.log')
-        fh.setLevel(logging.INFO)
+        fh.setLevel(logging.DEBUG)
 
         # create console handler and set level to debug
         ch = logging.StreamHandler()
-        ch.setLevel(logging.INFO)
+        ch.setLevel(logging.DEBUG)
 
         # create formatter
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

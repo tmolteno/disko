@@ -12,11 +12,6 @@ from ..sphere_mesh import AdaptiveMeshSphere
 from ..sphere import GeoLocation
 
 logger = logging.getLogger(__name__)
-logger.addHandler(
-    logging.NullHandler()
-)  # Add other handlers if you're using this as a library
-logger.setLevel(logging.INFO)
-
 
 def from_hdf(filename):
     ret = None

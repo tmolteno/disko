@@ -27,10 +27,6 @@ from .multivariate_gaussian import MultivariateGaussian
 from .resolution import Resolution
 
 logger = logging.getLogger(__name__)
-if not logger.handlers:
-    logger.addHandler(logging.NullHandler())
-    # Add other handlers if you're using this as a library
-logger.setLevel(logging.INFO)
 
 
 def get_all_uvw(ant_pos):

@@ -4,11 +4,7 @@ import numpy as np
 import dask.array as da
 
 logger = logging.getLogger(__name__)
-if not logger.handlers:
-    logger.addHandler(logging.NullHandler())
-    # Add other handlers if you're using this as a library
-logger.setLevel(logging.INFO)
-
+# logger.setLevel(logging.INFO)
 
 def log_array(title, x):
     if isinstance(x, np.ndarray):

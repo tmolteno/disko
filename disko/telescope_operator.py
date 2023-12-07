@@ -24,10 +24,7 @@ from .disko import vis_to_real
 from .multivariate_gaussian import MultivariateGaussian
 
 logger = logging.getLogger(__name__)
-logger.addHandler(
-    logging.NullHandler()
-)  # Add other handlers if you're using this as a library
-logger.setLevel(logging.INFO)
+# logger.setLevel(logging.INFO)
 
 SVD_TOL = 1e-3
 USE_DASK = True

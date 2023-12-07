@@ -20,10 +20,7 @@ from .resolution import Resolution
 import numpy as np
 
 logger = logging.getLogger(__name__)
-if not logger.handlers:
-    logger.addHandler(logging.NullHandler())
-    # Add other handlers if you're using this as a library
-logger.setLevel(logging.INFO)
+# logger.setLevel(logging.INFO)
 
 
 def centroid(cell, points):
@@ -498,28 +495,28 @@ class AdaptiveMeshSphere(Sphere):
 
 if __name__ == "__main__":
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-
-    fh = logging.FileHandler("disko.log")
-    fh.setLevel(logging.INFO)
-
-    # create console handler and set level to debug
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-
-    # create formatter
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-
-    # add formatter to ch
-    ch.setFormatter(formatter)
-    fh.setFormatter(formatter)
-
-    # add ch to logger
-    logger.addHandler(ch)
-    logger.addHandler(fh)
+    # logger = logging.getLogger()
+    # logger.setLevel(logging.DEBUG)
+    #
+    # fh = logging.FileHandler("disko.log")
+    # fh.setLevel(logging.INFO)
+    #
+    # # create console handler and set level to debug
+    # ch = logging.StreamHandler()
+    # ch.setLevel(logging.INFO)
+    #
+    # # create formatter
+    # formatter = logging.Formatter(
+    #     "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    # )
+    #
+    # # add formatter to ch
+    # ch.setFormatter(formatter)
+    # fh.setFormatter(formatter)
+    #
+    # # add ch to logger
+    # logger.addHandler(ch)
+    # logger.addHandler(fh)
 
     sph = AdaptiveMeshSphere.from_resolution(
         res_arcmin=10,
