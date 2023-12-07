@@ -46,7 +46,7 @@ def create_fov(nside, fov, res, theta=0.0, phi=0.0):
     else:
         raise RuntimeError("Either nside, or res_arcmin must be specified")
 
-    logger.info(f"create_fov -> {sphere}")
+    logger.debug(f"create_fov -> {sphere}")
     return sphere
 
 
@@ -92,7 +92,7 @@ class HealpixSphere(Sphere):
         self._min_res = Resolution.from_arcmin(res)
 
         logger.info(
-            f"New Sphere, nside={nside}. npix={self.npix}, res={self.min_res()}")
+            f"New HeadpixSphere, nside={nside}. npix={self.npix}, res={self.min_res()}")
 
         self.pixel_indices = np.arange(self.npix)
         theta, phi = hp.pix2ang(nside, self.pixel_indices)
@@ -454,7 +454,7 @@ class HealpixSphere(Sphere):
 
     def plot(self, plt, src_list):
         rot = (0, 90, 0)
-        logger.info("self.pixels: {}".format(self.pixels.shape))
+        logger.debug("self.pixels: {}".format(self.pixels.shape))
         if True:
             hp.orthview(
                 self.pixels, rot=rot, xsize=1000, cbar=True, half_sky=False, hold=False
@@ -501,7 +501,7 @@ class HealpixSubSphere(HealpixSphere):
         if nside is None:  # Calculate nside to the appropriate resolution
             nside = 1
             while hp.nside2resol(nside, arcmin=True) > res_arcmin:
-                logger.info(
+                logger.debug(
                     f"nside={nside} res={hp.nside2resol(nside, arcmin=True)}")
                 nside *= 2
 
@@ -584,7 +584,7 @@ class HealpixSubSphere(HealpixSphere):
         all_pixels[self.pixel_indices] = self.pixels
 
         rot = (0, 90, 0)
-        logger.info("self.pixels: {}".format(self.pixels.shape))
+        logger.debug("self.pixels: {}".format(self.pixels.shape))
         if True:
             hp.orthview(
                 all_pixels, rot=rot, xsize=1000, cbar=True, half_sky=True, hold=False
