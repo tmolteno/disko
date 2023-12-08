@@ -532,6 +532,8 @@ class HealpixSubSphere(HealpixSphere):
         self.pixel_areas = area*np.ones(self.npix)/self.npix
 
         el_r, az_r = hp2elaz(theta, phi)
+        
+        self.el_min_r = np.min(el_r)
 
         self.el_r = el_r
         self.az_r = az_r

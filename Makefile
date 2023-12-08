@@ -4,7 +4,7 @@ TIME=/usr/bin/time -v
 develop: 
 	pip3 install -e .
 
-test: venv
+test:
 	python3 -m pytest
 
 

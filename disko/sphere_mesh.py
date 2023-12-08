@@ -196,6 +196,8 @@ class AdaptiveMeshSphere(Sphere):
             self.m = m
             self.n_minus_1 = n - 1
 
+            self.el_min_r = np.min(el_r)
+
             self.el_r = el_r
             self.az_r = az_r
 

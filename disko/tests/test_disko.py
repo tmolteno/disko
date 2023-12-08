@@ -83,8 +83,7 @@ class TestDiSkO(unittest.TestCase):
                                          radius_rad=np.radians(89))
 
         cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_min=res, res_max=res,
-                                                                 theta=np.radians(
-                                                                     0.0),
+                                                                 theta=np.radians(0.0),
                                                                  phi=0.0,
                                                                  fov=Resolution.from_deg(10))
 
