@@ -456,10 +456,10 @@ class HealpixSphere(Sphere):
             hp.orthview(
                 self.pixels, rot=rot, xsize=1000, cbar=True, half_sky=False, hold=False
             )
-            hp.graticule(verbose=False)
+            hp.graticule()
         else:
             hp.mollview(self.pixels, rot=rot, xsize=1000, cbar=True)
-            hp.graticule(verbose=True)
+            hp.graticule()
 
         if src_list is not None:
             for s in src_list:
@@ -586,10 +586,10 @@ class HealpixSubSphere(HealpixSphere):
             hp.orthview(
                 all_pixels, rot=rot, xsize=1000, cbar=True, half_sky=True, hold=False
             )
-            hp.graticule(verbose=False)
+            hp.graticule()
         else:
             hp.mollview(all_pixels, rot=rot, xsize=1000, cbar=True)
-            hp.graticule(verbose=True)
+            hp.graticule()
 
         if src_list is not None:
             for s in src_list:

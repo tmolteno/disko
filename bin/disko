@@ -91,13 +91,13 @@ if __name__ == '__main__':
     logger = logging.getLogger('disko')
     logger.setLevel(level)
 
-    if not logger.handlers and ARGS.debug:
+    if ARGS.debug:
         fh = logging.FileHandler('disko.log')
-        fh.setLevel(logging.DEBUG)
+        fh.setLevel(level)
 
         # create console handler and set level to debug
         ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
+        ch.setLevel(level)
 
         # create formatter
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -111,8 +111,8 @@ if __name__ == '__main__':
 
     if ARGS.version:
         version = version("disko")
-        print(f"DiSkO: Version {version}")
-        print("       (c) 2022 Tim Molteno")
+        print(f"disko: Version {version}")
+        print("       (c) 2022-2023 Tim Molteno")
         sys.exit(0)
     
     sphere = sphere_from_args(ARGS)
