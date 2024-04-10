@@ -48,6 +48,7 @@ This should generate a suitable measurement set to image.
 
 ```
 0.9.6b1 Add a minimum elevation to the sphere.el_min_r. This is for setting bounds in imagers.
+        Explicitly manage the tart2ms logging
 0.9.5b4 Add a timestamp to images (or a title if specified) in SVG mode
         clean up logging so that only happens when --debug is present.
 0.9.5b3 Use gmsh rather than optimesh... (WIP)
