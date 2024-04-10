@@ -9,6 +9,8 @@ import time
 import pylops
 import scipy
 
+import tart2ms
+
 import numpy as np
 import healpy as hp
 import dask.array as da
@@ -18,7 +20,7 @@ import scipy.sparse.linalg as spalg
 from sklearn import linear_model
 
 from tart.imaging import elaz
-from tart2ms import casa_read_ms as read_ms
+# from tart2ms import casa_read_ms as read_ms
 
 from astropy import constants as const
 
@@ -336,10 +338,12 @@ class DiSkO(object):
 
     @classmethod
     def from_ms(cls, ms, num_vis, res, channel=0, field_id=0, ddid=0):
-        u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices = read_ms(
-            ms, num_vis, angular_resolution=res.degrees(), channel=channel,
-            field_id=field_id, ddid=ddid, pol=0
-        )
+        u_arr, v_arr, w_arr, frequency, cv_vis, \
+            hdr, tstamp, rms, indices = tart2ms.casa_read_ms(
+                ms, num_vis, angular_resolution=res.degrees(), 
+                channel=channel,
+                field_id=field_id, ddid=ddid, pol=0
+            )
 
         # Measurement sets do not return the conjugate pairs of visibilities
 
@@ -743,7 +747,7 @@ class DiSkO(object):
         n_s = sphere.pixels.shape[0]
         n_v = self.u_arr.shape[0]
 
-        print(
+        logger.info(
             f"image_tikhonov({vis_arr.shape}, {sphere}, {alpha}, scale={scale}, usedask={usedask})"
         )
 
