@@ -25,6 +25,7 @@ from dask.distributed import Client
 
 from disko import DiSkO, get_source_list, AdaptiveMeshSphere, Resolution, sphere_from_args, sphere_args_parser
 
+import tart2ms
 from tart2ms import get_array_location
 
 if __name__ == '__main__':
@@ -88,8 +89,11 @@ if __name__ == '__main__':
     else:
         level = logging.ERROR
 
+    logging.basicConfig()
     logger = logging.getLogger('disko')
     logger.setLevel(level)
+    tart2ms_log = logging.getLogger("tart2ms")
+    tart2ms_log.setLevel(level)
 
     if ARGS.debug:
         fh = logging.FileHandler('disko.log')
