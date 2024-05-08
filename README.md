@@ -47,6 +47,7 @@ This should generate a suitable measurement set to image.
 ## Changelog
 
 ```
+0.9.6b2 Fix the --elevation limit to actually implement this for disko draw
 0.9.6b1 Add a minimum elevation to the sphere.el_min_r. This is for setting bounds in imagers.
         Explicitly manage the tart2ms logging
 0.9.5b4 Add a timestamp to images (or a title if specified) in SVG mode

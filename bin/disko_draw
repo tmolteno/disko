@@ -113,7 +113,7 @@ if __name__ == '__main__':
                                   datestr=ts.isoformat())
         logger.info(f"catalog url: {cat_url}")
         source_json = api.get_url(cat_url)
-        src_list = get_source_list(source_json, el_limit=5, jy_limit=1e4)
+        src_list = get_source_list(source_json, el_limit=ARGS.elevation, jy_limit=1e4)
         # print("Source list")
         # for s in src_list:
         #     print(f"   src: el:{np.degrees(s.el_r) :5.2f}")
