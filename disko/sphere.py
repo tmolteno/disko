@@ -228,7 +228,7 @@ class Sphere(object):
         self.pixmax = None
         self.pixel_areas = None
         self.fov = None
-        self.set_info(timestamp=datetime.datetime.utcnow(),
+        self.set_info(timestamp=datetime.datetime.now(datetime.UTC),
                       lon=0, lat=0, height=0)
 
     def set_info(self, timestamp, lon, lat, height):
