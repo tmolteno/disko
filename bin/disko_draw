@@ -53,6 +53,8 @@ if __name__ == '__main__':
     parser.add_argument('--FITS', default=None,
                         help="Generate a FITS format image.")
 
+    parser.add_argument('--sqrt', action="store_true",
+                        help="Scale pixels to the square root")
     parser.add_argument('--display', action="store_true",
                         help="Display the field of view")
     parser.add_argument('--version', action="store_true",
@@ -98,7 +100,11 @@ if __name__ == '__main__':
     ts = field_of_view.timestamp
     geo = field_of_view.geolocation
     logger.info(f"geo {geo}")
-    
+   
+    if ARGS.sqrt:
+        new_pixels = np.sqrt(field_of_view.pixels)
+        field_of_view.set_visible_pixels(new_pixels)
+ 
     if ARGS.version:
         version = version("disko")
         print(f"disko_draw: Version {version}")
