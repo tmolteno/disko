@@ -47,6 +47,7 @@ This should generate a suitable measurement set to image.
 ## Changelog
 
 ```
+1.0.0b2 Make tart  dependencies optional so allow direct imaging code.
 1.0.0b1 Change Sphere to Fov. I.e. HealpixFoV (Field of View). Doing this because we will use
         square images 
         Add new SquareFoV class for square images (work in progress)

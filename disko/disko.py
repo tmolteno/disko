@@ -19,7 +19,6 @@ import scipy.sparse.linalg as spalg
 
 from sklearn import linear_model
 
-from tart.imaging import elaz
 # from tart2ms import casa_read_ms as read_ms
 
 from astropy import constants as const
@@ -65,12 +64,6 @@ def vis_to_real(vis_arr):
     return np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
 
 
-def get_source_list(source_json, el_limit, jy_limit):
-    src_list = []
-    if source_json is not None:
-        src_list = elaz.from_json(
-            source_json, el_limit=el_limit, jy_limit=jy_limit)
-    return src_list
 
 
 REAL_DATATYPE = np.float64
@@ -334,35 +327,6 @@ class DiSkO(object):
         baselines, u_arr, v_arr, w_arr = get_all_uvw(ant_pos)
         ret = cls(u_arr, v_arr, w_arr, frequency)
         ret.info = {}
-        return ret
-
-    @classmethod
-    def from_ms(cls, ms, num_vis, res, channel=0, field_id=0, ddid=0):
-        u_arr, v_arr, w_arr, frequency, cv_vis, \
-            hdr, tstamp, rms, indices = tart2ms.casa_read_ms(
-                ms, num_vis, angular_resolution=res.degrees(), 
-                channel=channel,
-                field_id=field_id, ddid=ddid, pol=0
-            )
-
-        # Measurement sets do not return the conjugate pairs of visibilities
-
-        full_u_arr = np.concatenate((u_arr, -u_arr), 0)
-        full_v_arr = np.concatenate((v_arr, -v_arr), 0)
-        full_w_arr = np.concatenate((w_arr, -w_arr), 0)
-        full_rms = np.concatenate((rms, rms), 0)
-        full_cv_vis = np.concatenate((cv_vis, np.conjugate(cv_vis)), 0)
-
-        ret = cls(full_u_arr, full_v_arr, full_w_arr, frequency)
-        # Natural weighting  # np.array(cv_vis, dtype=COMPLEX_DATATYPE)
-        ret.vis_arr = full_cv_vis / full_rms
-        ret.timestamp = tstamp
-        ret.rms = full_rms
-        ret.info = hdr
-        ret.indices = indices
-
-        logger.info(f"Visibilities: {ret.vis_arr.shape}")
-        logger.debug(f"u,v,w: {ret.u_arr.shape}")
         return ret
 
     def vis_stats(self):

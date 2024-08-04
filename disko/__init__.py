@@ -4,7 +4,6 @@
 # Init for the DiSkO imaging algorithm
 from .disko import (
     DiSkO,
-    get_source_list,
     DiSkOOperator,
     DirectImagingOperator,
     vis_to_real,
