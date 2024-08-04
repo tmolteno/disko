@@ -23,7 +23,7 @@ lint:
 test2:
 	#python3 -m unittest  disko.tests.test_gridless.TestGridless.test_from_pos
 	#	python3 -m unittest  disko.tests.test_subsphere
-	python3 -m pytest -k test_disko
+	python3 -m pytest -k TestSquareFoV
 
 svd:
 	rm -f *.npz

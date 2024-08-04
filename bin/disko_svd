@@ -20,7 +20,7 @@ from tart_tools import api_handler
 from tart_tools import api_imaging
 from tart.imaging import elaz
 
-from disko import DiSkO, get_source_list, TelescopeOperator, HealpixSphere, mask_to_sky, vis_to_real
+from disko import DiSkO, get_source_list, TelescopeOperator, HealpixFoV, mask_to_sky, vis_to_real
 
 logger = logging.getLogger()
 
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     grid = DiSkO.from_cal_vis(cv)
     nside = ARGS.nside
 
-    sphere = HealpixSphere(nside)
+    sphere = HealpixFoV(nside)
     # Now create the SVD of a telescope. First form the gamma matrix.
     to = TelescopeOperator(grid, sphere)
     

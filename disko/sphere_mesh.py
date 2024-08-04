@@ -14,7 +14,7 @@ import gmsh
 from scipy.spatial import Delaunay
 import meshio
 
-from .sphere import Sphere, hp2elaz, elaz2lmn
+from .sphere import FoV, hp2elaz, elaz2lmn
 from .resolution import Resolution
 
 import numpy as np
@@ -38,7 +38,7 @@ def area(cell, points):
 # def logistic(x, L, k, x0):
 # return L / (1.0 + np.exp(-k*(x - x0)))
 
-# class Sphere:
+# class FoV:
 # def f(self, x):
 # return 1.0 - (x[0] ** 2 + x[1] ** 2 + x[2] ** 2)
 
@@ -47,7 +47,7 @@ def area(cell, points):
 
 # import pygmsh
 
-# class AdaptiveMeshSphereNew(Sphere):
+# class AdaptiveMeshFoVNew(FoV):
 
     # def __init__(self, res_min, res_max, radius_rad):
     # self.radius_rad = radius_rad
@@ -85,7 +85,7 @@ def area(cell, points):
     # res_max = np.radians(res_arcmax / 60)
     # res_min = np.radians(res_arcmin / 60)
     # ret = cls(res_min, res_max, radius_rad)
-    # logger.info("AdaptiveMeshSphere from_res, npix={}".format(ret.npix))
+    # logger.info("AdaptiveMeshFoV from_res, npix={}".format(ret.npix))
 
     # return ret
 
@@ -171,14 +171,14 @@ def get_lmn(radius_rad, edge_size):
     return centroids, cells, pixel_areas, el_r, az_r, l, m, n
 
 
-class AdaptiveMeshSphere(Sphere):
+class AdaptiveMeshFoV(FoV):
     """
     An adaptive mesh sphere.
     """
 
     def __init__(self, res_min, res_max, fov, theta, phi, recompute=True):
         logger.info(
-            f"New AdaptiveMeshSphere(fov={fov}) res_min={res_min}, res_max={res_max})")
+            f"New AdaptiveMeshFoV(fov={fov}) res_min={res_min}, res_max={res_max})")
         self.radius_rad = fov.radians() / 2
         self.fov = fov
         self.res_arcmin = res_max.arcmin()
@@ -216,7 +216,7 @@ class AdaptiveMeshSphere(Sphere):
         return self.res_min
 
     def __repr__(self):
-        return f"AdaptiveMeshSphere fov={self.fov}, res_min={self.res_min}, N={self.npix}"
+        return f"AdaptiveMeshFoV fov={self.fov}, res_min={self.res_min}, N={self.npix}"
 
     def to_hdf(self, filename):
         with h5py.File(filename, "w") as h5f:
@@ -249,7 +249,7 @@ class AdaptiveMeshSphere(Sphere):
         phi = h5f['phi'][:][0]
         radius_rad = h5f['radius_rad'][:][0]
 
-        ret = AdaptiveMeshSphere(Resolution.from_rad(res_min),
+        ret = AdaptiveMeshFoV(Resolution.from_rad(res_min),
                                  Resolution.from_rad(res_max),
                                  Resolution.from_rad(fov),
                                  theta, phi, recompute=False)
@@ -520,7 +520,7 @@ if __name__ == "__main__":
     # logger.addHandler(ch)
     # logger.addHandler(fh)
 
-    sph = AdaptiveMeshSphere.from_resolution(
+    sph = AdaptiveMeshFoV.from_resolution(
         res_arcmin=10,
         res_arcmax=180,
         theta=np.radians(0.0),

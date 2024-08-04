@@ -9,7 +9,7 @@ import datetime
 
 import numpy as np
 
-from disko import AdaptiveMeshSphere, area, HealpixSubSphere, Resolution
+from disko import AdaptiveMeshFoV, area, HealpixSubFoV, Resolution
 from disko import fov
 
 LOGGER = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ class TestMeshsphere(unittest.TestCase):
     def setUp(self):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
-        self.sphere = AdaptiveMeshSphere(res_min=Resolution.from_arcmin(60),
+        self.sphere = AdaptiveMeshFoV(res_min=Resolution.from_arcmin(60),
                                          res_max=Resolution.from_arcmin(60),
                                          theta=np.radians(0.0), phi=0.0,
                                          fov=Resolution.from_deg(20))
@@ -55,7 +55,7 @@ class TestMeshsphere(unittest.TestCase):
             self.assertTrue(a > 0.0)
 
     def test_lmn(self):
-        hp_sphere = HealpixSubSphere(res_arcmin=60.0,
+        hp_sphere = HealpixSubFoV(res_arcmin=60.0,
                                      theta=np.radians(0.0),
                                      phi=0.0, radius_rad=np.radians(10))
 

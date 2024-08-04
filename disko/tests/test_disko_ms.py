@@ -8,7 +8,7 @@ import logging
 import numpy as np
 
 from disko import DiSkO
-from disko import HealpixSphere, HealpixSubSphere, Resolution
+from disko import HealpixFoV, HealpixSubFoV, Resolution
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -26,9 +26,9 @@ class TestDiSkOMS(unittest.TestCase):
         res = Resolution.from_deg(3)
         cls.disko = DiSkO.from_ms(fname, res=res, num_vis=500)
         cls.nside = 16
-        cls.sphere = HealpixSphere(cls.nside)
+        cls.sphere = HealpixFoV(cls.nside)
         res_deg = 4.0
-        cls.subsphere = HealpixSubSphere(res_arcmin=res_deg*60.0,
+        cls.subsphere = HealpixSubFoV(res_arcmin=res_deg*60.0,
                                          theta=np.radians(0.0), phi=0.0,
                                          radius_rad=np.radians(89))
 

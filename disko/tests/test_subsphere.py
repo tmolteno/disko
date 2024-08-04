@@ -8,7 +8,7 @@ import os
 import datetime
 import numpy as np
 
-from disko import HealpixSubSphere, HealpixSphere
+from disko import HealpixSubFoV, HealpixFoV
 from disko import fov
 
 LOGGER = logging.getLogger(__name__)
@@ -22,24 +22,24 @@ class TestSubsphere(unittest.TestCase):
     def setUp(self):
         # Theta is co-latitude measured southward from the north pole
         # Phi is [0..2pi]
-        self.sphere = HealpixSubSphere(res_arcmin=60.0,
+        self.sphere = HealpixSubFoV(res_arcmin=60.0,
                                        theta=np.radians(10.0),
                                        phi=0.0, radius_rad=np.radians(1))
         self.sphere.set_info(timestamp=datetime.datetime.now(),
                              lon=170.5, lat=-45.5, height=42)
 
     def test_area(self):
-        sky = HealpixSphere(nside=128)
+        sky = HealpixFoV(nside=128)
 
         self.assertAlmostEqual(sky.get_area(), 4*np.pi)
 
-        hemisphere = HealpixSubSphere(res_arcmin=60.0,
+        hemisphere = HealpixSubFoV(res_arcmin=60.0,
                                       theta=np.radians(0.0),
                                       phi=0.0, radius_rad=np.radians(90))
         self.assertAlmostEqual(hemisphere.get_area(), 2*np.pi, 1)
 
     def test_copy(self):
-        sky = HealpixSphere(nside=128)
+        sky = HealpixFoV(nside=128)
         sky2 = sky.copy()
         sky.pixels += 1
         self.assertFalse(np.allclose(sky.pixels, sky2.pixels))
@@ -53,10 +53,10 @@ class TestSubsphere(unittest.TestCase):
     def test_big_subsphere(self):
         # Check that a full subsphere is the same as the sphere.
         res_deg = 3.0
-        big = HealpixSubSphere(res_arcmin=res_deg*60.0,
+        big = HealpixSubFoV(res_arcmin=res_deg*60.0,
                                theta=np.radians(0.0), phi=0.0,
                                radius_rad=np.radians(180))
-        old = HealpixSphere(32)
+        old = HealpixFoV(32)
 
         self.assertEqual(big.nside, 32)
         self.assertEqual(big.npix, old.npix)
@@ -64,7 +64,7 @@ class TestSubsphere(unittest.TestCase):
     def test_tiny_subsphere(self):
         # Check that a full subsphere is the same as the sphere.
         res_deg = 0.5
-        tiny = HealpixSubSphere(res_arcmin=res_deg*60.0,
+        tiny = HealpixSubFoV(res_arcmin=res_deg*60.0,
                                 theta=np.radians(0.0),
                                 phi=0.0, radius_rad=np.radians(5))
 
@@ -78,7 +78,7 @@ class TestSubsphere(unittest.TestCase):
     def test_svg(self):
         res_deg = 10
         fname = 'test.svg'
-        big = HealpixSubSphere(res_arcmin=res_deg*60.0,
+        big = HealpixSubFoV(res_arcmin=res_deg*60.0,
                                theta=np.radians(0.0), phi=0.0,
                                radius_rad=np.radians(45))
 
@@ -89,7 +89,7 @@ class TestSubsphere(unittest.TestCase):
     def test_fits(self):
         res_deg = 10
         fname = 'test.fits'
-        big = HealpixSubSphere(res_arcmin=res_deg*60.0,
+        big = HealpixSubFoV(res_arcmin=res_deg*60.0,
                                theta=np.radians(0.0), phi=0.0,
                                radius_rad=np.radians(45))
 
@@ -99,7 +99,7 @@ class TestSubsphere(unittest.TestCase):
 
     def test_load_save(self):
         res_deg = 10
-        sph = HealpixSubSphere(res_arcmin=res_deg*60.0,
+        sph = HealpixSubFoV(res_arcmin=res_deg*60.0,
                                theta=np.radians(0.0), phi=0.0,
                                radius_rad=np.radians(45))
 
@@ -115,7 +115,7 @@ class TestSubsphere(unittest.TestCase):
         self.assertTrue(np.allclose(sph.pixel_indices, sph2.pixel_indices))
 
     def test_indexing(self):
-        sph = HealpixSubSphere(res_arcmin=60.0,
+        sph = HealpixSubFoV(res_arcmin=60.0,
                                theta=np.radians(0.0), phi=0.0,
                                radius_rad=np.radians(90))
 

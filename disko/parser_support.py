@@ -7,7 +7,7 @@ import numpy as np
 
 from .resolution import Resolution
 from .healpix_sphere import create_fov
-from .sphere_mesh import AdaptiveMeshSphere
+from .sphere_mesh import AdaptiveMeshFoV
 
 
 def sphere_args_parser():
@@ -45,7 +45,7 @@ def sphere_from_args(args):
         else:
             res_min = Resolution.from_string(args.res_min)
 
-        sphere = AdaptiveMeshSphere(res_min=res_min,
+        sphere = AdaptiveMeshFoV(res_min=res_min,
                                     res_max=res,
                                     theta=np.radians(0.0),
                                     phi=0.0, fov=fov)

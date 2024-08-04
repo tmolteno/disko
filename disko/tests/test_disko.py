@@ -11,7 +11,7 @@ import numpy as np
 import pylops
 
 import disko
-from disko import DiSkO, HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere, Resolution
+from disko import DiSkO, HealpixFoV, HealpixSubFoV, AdaptiveMeshFoV, Resolution
 
 from tart.operation import settings
 from tart_tools import api_imaging
@@ -75,14 +75,14 @@ class TestDiSkO(unittest.TestCase):
 
         cls.disko = DiSkO.from_cal_vis(cv)
         cls.nside = 16
-        cls.sphere = HealpixSphere(cls.nside)
+        cls.sphere = HealpixFoV(cls.nside)
         res = Resolution.from_deg(4.0)
-        cls.subsphere = HealpixSubSphere(res_arcmin=res.arcmin(),
+        cls.subsphere = HealpixSubFoV(res_arcmin=res.arcmin(),
                                          theta=np.radians(0.0),
                                          phi=0.0,
                                          radius_rad=np.radians(89))
 
-        cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_min=res, res_max=res,
+        cls.adaptive_sphere = AdaptiveMeshFoV.from_resolution(res_min=res, res_max=res,
                                                                  theta=np.radians(0.0),
                                                                  phi=0.0,
                                                                  fov=Resolution.from_deg(10))
@@ -266,7 +266,7 @@ class TestDiSkO(unittest.TestCase):
             Test such a small gamma that we can inspect every element and
             check that the matrix is what we expect it to be.
         '''
-        tiny_subsphere = HealpixSubSphere(res_arcmin=3600,
+        tiny_subsphere = HealpixSubFoV(res_arcmin=3600,
                                           theta=np.radians(0.0),
                                           phi=0.0,
                                           radius_rad=np.radians(80))

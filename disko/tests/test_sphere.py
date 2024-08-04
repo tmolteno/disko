@@ -6,7 +6,7 @@ import unittest
 
 import numpy as np
 
-from disko import sphere, HealpixSphere
+from disko import sphere, HealpixFoV
 from disko import fov
 
 
@@ -48,7 +48,7 @@ class TestUtil(unittest.TestCase):
 
     def test_load_save(self):
 
-        sph = HealpixSphere(nside=64)
+        sph = HealpixFoV(nside=64)
         sph.to_hdf('test.h5')
 
         sph2 = fov.from_hdf('test.h5')

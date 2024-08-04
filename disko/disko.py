@@ -24,7 +24,7 @@ from tart.imaging import elaz
 
 from astropy import constants as const
 
-from .healpix_sphere import HealpixSphere
+from .healpix_sphere import HealpixFoV
 from .multivariate_gaussian import MultivariateGaussian
 from .resolution import Resolution
 
@@ -439,7 +439,7 @@ class DiSkO(object):
         Args:
 
             vis_arr (np.array): An array of complex visibilities
-            sphere (Sphere):    a sphere to place
+            sphere (FoV):    a sphere to place
         """
 
         assert len(vis_arr) == len(self.u_arr)
@@ -935,11 +935,11 @@ class DiSkO(object):
                 sphere.plot_x(s.el_r, s.az_r)
 
     def display(self, plt, src_list, nside):
-        sphere = HealpixSphere(nside)
+        sphere = HealpixFoV(nside)
         sky = self.solve_vis(self.vis_arr, sphere)
         sphere.plot(plt, src_list)
 
     def beam(self, plt, nside):
-        sphere = HealpixSphere(nside)
+        sphere = HealpixFoV(nside)
         sky = self.solve_vis(np.ones_like(self.vis_arr), nside)
         sphere.plot(plt, src_list=None)

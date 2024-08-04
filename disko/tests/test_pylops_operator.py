@@ -12,7 +12,7 @@ import pylops
 
 from disko import DiSkO
 import disko
-from disko import HealpixSphere, HealpixSubSphere, AdaptiveMeshSphere, Resolution
+from disko import HealpixFoV, HealpixSubFoV, AdaptiveMeshFoV, Resolution
 import astropy.constants as const
 
 from tart.operation import settings
@@ -81,14 +81,14 @@ class TestPylopsOperator(unittest.TestCase):
 
         cls.disko = DiSkO.from_cal_vis(cv)
         cls.nside = 16
-        cls.sphere = HealpixSphere(cls.nside)
+        cls.sphere = HealpixFoV(cls.nside)
         res_deg = 4.0
-        cls.subsphere = HealpixSubSphere.from_resolution(res_arcmin=res_deg*60.0,
+        cls.subsphere = HealpixSubFoV.from_resolution(res_arcmin=res_deg*60.0,
                                                          theta=np.radians(0.0),
                                                          phi=0.0,
                                                          radius_rad=np.radians(89))
 
-        cls.adaptive_sphere = AdaptiveMeshSphere.from_resolution(res_min=Resolution.from_arcmin(20),
+        cls.adaptive_sphere = AdaptiveMeshFoV.from_resolution(res_min=Resolution.from_arcmin(20),
                                                                  res_max=Resolution.from_deg(
                                                                      res_deg),
                                                                  theta=np.radians(0.0), phi=0.0,
@@ -136,7 +136,7 @@ class TestPylopsOperator(unittest.TestCase):
             Test such a small gamma that we can inspect every element and
             check that the matrix is what we expect it to be.
         '''
-        tiny_subsphere = HealpixSubSphere.from_resolution(res_arcmin=3600,
+        tiny_subsphere = HealpixSubFoV.from_resolution(res_arcmin=3600,
                                                           theta=np.radians(
                                                               0.0),
                                                           phi=0.0,

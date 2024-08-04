@@ -7,8 +7,8 @@ import numpy as np
 from tart.util import utc
 
 
-from ..healpix_sphere import HealpixSphere, HealpixSubSphere
-from ..sphere_mesh import AdaptiveMeshSphere
+from ..healpix_sphere import HealpixFoV, HealpixSubFoV
+from ..sphere_mesh import AdaptiveMeshFoV
 from ..sphere import GeoLocation
 
 logger = logging.getLogger(__name__)
@@ -24,15 +24,15 @@ def from_hdf(filename):
         geolocation = GeoLocation.from_json(info_json['geolocation']).loc
         centre = info_json['center']
 
-        logger.info(f"Sphere timestamp: {timestamp.isoformat()}")
-        logger.info(f"Sphere location: {info_json['geolocation']}")
+        logger.info(f"FoV timestamp: {timestamp.isoformat()}")
+        logger.info(f"FoV location: {info_json['geolocation']}")
 
-        if fov_type == 'HealpixSphere':
-            ret = HealpixSphere.from_hdf(h5f)
-        elif fov_type == 'HealpixSubSphere':
-            ret = HealpixSubSphere.from_hdf(h5f)
-        elif fov_type == 'AdaptiveMeshSphere':
-            ret = AdaptiveMeshSphere.from_hdf(h5f)
+        if fov_type == 'HealpixFoV':
+            ret = HealpixFoV.from_hdf(h5f)
+        elif fov_type == 'HealpixSubFoV':
+            ret = HealpixSubFoV.from_hdf(h5f)
+        elif fov_type == 'AdaptiveMeshFoV':
+            ret = AdaptiveMeshFoV.from_hdf(h5f)
         else:
             raise RuntimeError(f"Unknown field of view class: {fov_type}.")
         

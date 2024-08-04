@@ -10,7 +10,7 @@ import h5py
 import healpy as hp
 import numpy as np
 
-from .sphere import Sphere
+from .sphere import FoV
 from .sphere import image_stats
 
 from .sphere import hp2elaz, elaz2lmn, PlotCoords, HpAngle, elaz2hp, ElAz
@@ -22,22 +22,22 @@ logger = logging.getLogger(__name__)
 
 def create_fov(nside, fov, res, theta=0.0, phi=0.0):
     """
-    Create an appropriate Sphere object based on:
+    Create an appropriate FoV object based on:
 
     - fov : The field of view as a Resolution object
     """
 
     if nside is not None and fov is None:
-        sphere = HealpixSphere(nside)
+        sphere = HealpixFoV(nside)
     elif nside is not None and fov is not None:
         radius_rad = fov.radians() / 2
-        sphere = HealpixSubSphere(nside=nside,
+        sphere = HealpixSubFoV(nside=nside,
                                   theta=theta, phi=phi,
                                   radius_rad=radius_rad)
     elif res is not None and fov is not None:
         radius_rad = fov.radians() / 2
         res_arcmin = res.arcmin()
-        sphere = HealpixSubSphere(res_arcmin=res_arcmin,
+        sphere = HealpixSubFoV(res_arcmin=res_arcmin,
                                   theta=theta, phi=phi,
                                   radius_rad=radius_rad)
     else:
@@ -74,9 +74,9 @@ def cmap(fract):
     return (red * 255.0, grn * 255.0, blu * 255.0)
 
 
-class HealpixSphere(Sphere):
+class HealpixFoV(FoV):
     """
-    A healpix Sphere
+    A healpix FoV
     """
 
     def __init__(self, nside):
@@ -89,7 +89,7 @@ class HealpixSphere(Sphere):
         self._min_res = Resolution.from_arcmin(res)
 
         logger.info(
-            f"New HeadpixSphere, nside={nside}. npix={self.npix}, res={self.min_res()}")
+            f"New HeadpixFoV, nside={nside}. npix={self.npix}, res={self.min_res()}")
 
         self.pixel_indices = np.arange(self.npix)
         theta, phi = hp.pix2ang(nside, self.pixel_indices)
@@ -106,7 +106,7 @@ class HealpixSphere(Sphere):
         self.n_minus_1 = self.n - 1
 
     def __repr__(self):
-        return f"HealpixSphere nside={self.nside}"
+        return f"HealpixFoV nside={self.nside}"
 
     def min_res(self):
         return self._min_res
@@ -482,14 +482,14 @@ def my_query_disk(nside, x0, radius):
     return np.array(ret)
 
 
-class HealpixSubSphere(HealpixSphere):
+class HealpixSubFoV(HealpixFoV):
     """
     A healpix subset of a sphere bounded by a range in theta and phi
     """
 
     def __init__(self, res_arcmin=None, nside=None, theta=0.0, phi=0.0, radius_rad=0.0):
         super().__init__(nside=None)
-        logger.info(r"HealpixSubSphere:")
+        logger.info(r"HealpixSubFoV:")
         logger.info(f"    res={res_arcmin} arcmin, nside={nside}")
         logger.info(f"    theta={theta}, phi={phi}, radius_rad={radius_rad})")
         # Theta is co-latitude measured southward from the north pole
@@ -521,7 +521,7 @@ class HealpixSubSphere(HealpixSphere):
         self.npix = self.pixel_indices.shape[0]
 
         logger.info(
-            f"New SubSphere, nside={self.nside} npix={self.npix}, res={self._min_res}")
+            f"New SubFoV, nside={self.nside} npix={self.npix}, res={self._min_res}")
 
         theta, phi = hp.pix2ang(nside, self.pixel_indices)
 
@@ -542,7 +542,7 @@ class HealpixSubSphere(HealpixSphere):
         self.n_minus_1 = self.n - 1
 
     def __repr__(self):
-        return f"HealpixSubSphere fov={self.fov}, nside={self.nside}"
+        return f"HealpixSubFoV fov={self.fov}, nside={self.nside}"
 
     def to_hdf(self, filename):
         with h5py.File(filename, "w") as h5f:
@@ -566,7 +566,7 @@ class HealpixSubSphere(HealpixSphere):
         phi = h5f['phi'][:][0]
         radius_rad = h5f['radius_rad'][:][0]
 
-        ret = HealpixSubSphere(nside=nside, res_arcmin=res_arcmin,
+        ret = HealpixSubFoV(nside=nside, res_arcmin=res_arcmin,
                                theta=theta, phi=phi,
                                radius_rad=radius_rad)
 

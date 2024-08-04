@@ -23,7 +23,7 @@ from tart.imaging import elaz
 
 from dask.distributed import Client
 
-from disko import DiSkO, get_source_list, AdaptiveMeshSphere, Resolution, sphere_from_args, sphere_args_parser
+from disko import DiSkO, get_source_list, AdaptiveMeshFoV, Resolution, sphere_from_args, sphere_args_parser
 
 import tart2ms
 from tart2ms import get_array_location

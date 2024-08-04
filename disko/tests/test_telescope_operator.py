@@ -8,7 +8,7 @@ import json
 
 import numpy as np
 
-from disko import TelescopeOperator, HealpixSphere, DiSkO
+from disko import TelescopeOperator, HealpixFoV, DiSkO
 
 from tart.operation import settings
 from tart_tools import api_imaging
@@ -50,7 +50,7 @@ class TestTelescopeOperator(unittest.TestCase):
 
         cls.disko = DiSkO.from_cal_vis(cv)
         cls.nside = 16
-        cls.sphere = HealpixSphere(cls.nside)
+        cls.sphere = HealpixFoV(cls.nside)
         cls.to = TelescopeOperator(cls.disko, cls.sphere)
 
     def get_point_sky(self):

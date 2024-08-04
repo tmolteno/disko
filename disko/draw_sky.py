@@ -12,7 +12,7 @@ import numpy as np
 
 from scipy import misc
 
-from .healpix_sphere import HealpixSphere
+from .healpix_sphere import HealpixFoV
 from .disko import DiSkO
 from .telescope_operator import TelescopeOperator
 
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     mask = misc.imread(ARGS.mask)
     s = mask_to_sky(mask, ARGS.nside)
 
-    sphere = HealpixSphere(ARGS.nside)
+    sphere = HealpixFoV(ARGS.nside)
     sphere.set_visible_pixels(s, scale=False)
 
     rot = (0, 90, 0)

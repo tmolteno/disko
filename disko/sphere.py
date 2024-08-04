@@ -19,6 +19,8 @@ from astropy.coordinates import EarthLocation
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
 
+from .resolution import Resolution
+
 
 PI_OVER_2 = np.pi / 2
 
@@ -211,7 +213,7 @@ def factors(n):
     return ret[len(ret) // 2]
 
 
-class Sphere(object):
+class FoV(object):
     """
     A base class for all sphere's including grids. The sphere must be aware of coordinates.
     
@@ -373,6 +375,86 @@ class Sphere(object):
         hdu.writeto(fname, overwrite=True)
 
 
+class SquareFoV(FoV):
+
+    def __init__(self, res_arcmin=None, theta=0.0, phi=0.0, width_rad=0.0):
+        super().__init__()
+        logger.info(r"SquareFoV:")
+        logger.info(f"    res={res_arcmin} arcmin,")
+        logger.info(f"    theta={theta}, phi={phi}, width={width_rad} rad)")
+        # Theta is co-latitude measured southward from the north pole
+        # Phi is [0..2pi]
+
+        self.width_rad = width_rad
+
+        self.theta = theta
+        self.phi = phi
+        
+        # Actual width and resolution
+        self.width_pix = 2*int(np.ceil(np.degrees(width_rad)*60 / res_arcmin))
+        self.res_arcmin = np.degrees(width_rad)*60 / self.width_pix
+        
+        self.npix = self.width_pix*self.width_pix
+
+        logger.info(
+            f"New SubFoV, width_pix={self.width_pix} npix={self.npix}, res={self.res_arcmin} arcmin")
+
+        self.fov = Resolution.from_rad(width_rad)
+        self.pixels = np.zeros(self.npix)
+
+        self.pixel_areas = np.ones(self.npix)/self.npix
+
+        # Assume flat sky
+        # Create the direction cosines
+        el_r = []
+        az_r = []
+        center = self.width_pix // 2
+       
+
+        arcmin2rad = np.radians(1.0/60)
+        def pixels_to_rad(pix):
+           return (pix*self.res_arcmin*arcmin2rad) / 2  # Nyquist
+       
+        # TODO add self.el_r and self.az_r
+        for i in range(self.width_pix):
+            dx = (i - center)
+            for j in range(self.width_pix):
+                dy = j - center
+                
+                dr = np.sqrt(dx*dx + dy*dy)
+                el = np.pi/2 - pixels_to_rad(dr)
+                
+                az = np.arctan2(dy,dx)
+
+                el_r.append(el)
+                az_r.append(az)
+        
+        self.el_r = np.array(el_r)
+        self.az_r = np.array(az_r)
+        
+        self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
+        self.n_minus_1 = self.n - 1
+
+
+    def __repr__(self):
+        return f"SquareFoV fov={self.fov}, width={self.width_pix}, res={self.res_arcmin}"
+
+    def to_hdf(self, filename):
+        with h5py.File(filename, "w") as h5f:
+            self.to_hdf_header(h5f)
+
+            h5f.create_dataset('res_arcmin', data=[self.res_arcmin])
+            h5f.create_dataset('theta', data=[self.theta])
+            h5f.create_dataset('phi', data=[self.phi])
+            h5f.create_dataset('width_rad', data=[self.width_rad])
+
+            h5f.create_dataset('pixels', data=self.pixels)
+            h5f.create_dataset('pixel_indices', data=self.pixel_indices)
+
+    def get_image(self):
+        return self.pixels.reshape(self.width_pix, self.width_pix)
+
+
 '''
 class HexagonGenerator(object):
     """
@@ -402,7 +484,7 @@ class HexagonGenerator(object):
         yield y
 
 
-class HexagonSubSphere(Sphere):
+class HexagonSubFoV(FoV):
     def __init__(self):
         image = Image.new("RGB", (250, 250), "white")
         draw = Draw(image)
