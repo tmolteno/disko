@@ -230,7 +230,7 @@ class FoV(object):
         self.pixmax = None
         self.pixel_areas = None
         self.fov = None
-        self.set_info(timestamp=datetime.datetime.now(datetime.UTC),
+        self.set_info(timestamp=datetime.datetime.now(datetime.timezone.utc),
                       lon=0, lat=0, height=0)
 
     def set_info(self, timestamp, lon, lat, height):

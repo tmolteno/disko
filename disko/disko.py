@@ -9,7 +9,6 @@ import time
 import pylops
 import scipy
 
-import tart2ms
 
 import numpy as np
 import healpy as hp
@@ -18,8 +17,6 @@ import scipy.sparse.linalg as spalg
 
 
 from sklearn import linear_model
-
-# from tart2ms import casa_read_ms as read_ms
 
 from astropy import constants as const
 
