@@ -82,10 +82,10 @@ class TestDiSkO(unittest.TestCase):
                                          phi=0.0,
                                          radius_rad=np.radians(89))
 
-        cls.adaptive_sphere = AdaptiveMeshFoV.from_resolution(res_min=res, res_max=res,
-                                                                 theta=np.radians(0.0),
-                                                                 phi=0.0,
-                                                                 fov=Resolution.from_deg(10))
+        cls.adaptive_sphere = AdaptiveMeshFoV(res_min = res, res_max = res,
+                                              theta = np.radians(0.0),
+                                              phi = 0.0,
+                                              fov = Resolution.from_deg(10))
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
         cls.subgamma = cls.disko.make_gamma(cls.subsphere)

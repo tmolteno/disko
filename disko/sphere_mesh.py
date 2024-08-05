@@ -520,9 +520,9 @@ if __name__ == "__main__":
     # logger.addHandler(ch)
     # logger.addHandler(fh)
 
-    sph = AdaptiveMeshFoV.from_resolution(
-        res_arcmin=10,
-        res_arcmax=180,
+    sph = AdaptiveMeshFoV(
+        res_min=10,
+        res_max=180,
         theta=np.radians(0.0),
         phi=0.0,
         radius=np.radians(20),
