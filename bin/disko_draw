@@ -15,9 +15,18 @@ from tart.imaging import elaz
 
 from importlib.metadata import version
 
-from disko import fov, get_source_list
+from disko import fov
 
 logger = logging.getLogger()
+
+
+def get_source_list(source_json, el_limit, jy_limit):
+    src_list = []
+    if source_json is not None:
+        src_list = elaz.from_json(
+            source_json, el_limit=el_limit, jy_limit=jy_limit)
+    return src_list
+
 
 if __name__ == '__main__':
 

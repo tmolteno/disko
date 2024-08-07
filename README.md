@@ -47,6 +47,7 @@ This should generate a suitable measurement set to image.
 ## Changelog
 
 ```
+1.0.0b5 Fix up the inclusion of non tart stuff.
 1.0.0b4 Remove tart2ms include.
 1.0.0b3 Remove dask-ms dependency.
 1.0.0b2 Make tart  dependencies optional so allow direct imaging code.
