@@ -11,16 +11,18 @@ import logging
 from copy import deepcopy
 
 import numpy as np
-import scipy
 import imageio
 
 from tart.operation import settings
 
-from tart_tools import api_handler
 from tart_tools import api_imaging
 from tart.imaging import elaz
 
-from disko import DiSkO, get_source_list, TelescopeOperator, HealpixFoV, mask_to_sky, vis_to_real
+from .disko import DiSkO, vis_to_real
+from .telescope_operator import TelescopeOperator
+from .cli import get_source_list
+from .healpix_sphere import HealpixFoV
+from .draw_sky import mask_to_sky
 
 logger = logging.getLogger()
 
@@ -54,6 +56,7 @@ def fun_plot(to, data, title):
 
     to.sphere.plot(plt, src_list=None)
     handle_image(ARGS, title + ARGS.title, None, src_list=None)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Generate an DiSkO Image using the web api of a TART radio telescope.',

@@ -17,28 +17,29 @@ import scipy.special
 
 from tart.operation import settings
 
-from tart_tools import api_handler
 from tart_tools import api_imaging
 from tart.imaging import elaz
 from tart.imaging import visibility
 from tart.imaging import calibration
 
-import dask.array as da
-from dask.distributed import Client, progress
+from .disko import DiSkO
+from .disko import TelescopeOperator
 
-from disko import DiSkO, get_source_list, TelescopeOperator, vis_to_real, MultivariateGaussian, create_fov
+from .multivariate_gaussian import MultivariateGaussian
 
+from .parser_support import sphere_from_args, sphere_args_parser
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler()) # Add other handlers if you're using this as a library
 logger.setLevel(logging.INFO)
+
 
 def create_prior(vis_arr, sphere, hdf_prior):
     ''' Based on the size of the visibilities, try and calculate
         what range the image should have.
     '''
     if hdf_prior is not None:
-         return MultivariateGaussian.from_hdf5(hdf_prior)
+        return MultivariateGaussian.from_hdf5(hdf_prior)
 
     vabs = np.abs(vis_arr)
 
@@ -50,40 +51,41 @@ def create_prior(vis_arr, sphere, hdf_prior):
 
     return prior
 
+
 def do_inference(disko, sphere, prior, sigma_v=None):
     real_vis = vis_to_real(disko.vis_arr)
-    
+
     to = TelescopeOperator(disko, sphere)
-        
+
     # Transform to the natural basis.
     n_prior =  prior.linear_transform(to.Vh)
     n_v = real_vis.shape[0]
-    
+
     # TODO create a proper covariance that ensures the real and imaginary components are linked.
     if sigma_v is None:
         diag = np.diag(disko.rms**2)
     else:
         diag = np.diag(np.ones(n_v // 2)*(sigma_v)**2)
-    
+
     logger.info(f"do_inference(sigma_v={diag[0,0]})")
-    
+
     sigma_vis = np.block([[diag, 0.5*diag],[0.5*diag, diag]]) # .rechunk('auto')
 
     # now invert sigma_vis
     sigma_precision = MultivariateGaussian.sp_inv(sigma_vis)
     del sigma_vis
-    
+
     if True:
         prior_r = n_prior.block(0,to.rank)
         prior_n = n_prior.block(to.rank,to.n_s)
 
         A_r = to.A_r
         V = to.V
-        
+
         del to
         posterior_r = prior_r.bayes_update(sigma_precision, real_vis, A_r)
         posterior_n = prior_n
-        
+
         del A_r
         del sigma_precision
         del prior_r
@@ -91,12 +93,12 @@ def do_inference(disko, sphere, prior, sigma_v=None):
         del n_prior
 
         posterior = MultivariateGaussian.outer(posterior_r, posterior_n)
-        
+
         del posterior_r
         del posterior_n
-        
+
         logger.info("Transforming posterior")
-        
+
         posterior = posterior.linear_transform(V)
                 
         del V
@@ -109,13 +111,11 @@ def do_inference(disko, sphere, prior, sigma_v=None):
     return posterior
 
 
-
-    
 def handle_bayes(ARGS):
-    sphere = create_fov(ARGS.nside, ARGS.fov, ARGS.arcmin)
+
+    sphere = sphere_from_args(ARGS)
 
     # Create a prior.
-    
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
         # Load data from a JSON file
@@ -134,7 +134,7 @@ def handle_bayes(ARGS):
         gains = np.asarray(gains_json['gain'])
         phase_offsets = np.asarray(gains_json['phase_offset'])
         config = settings.from_api_json(info['info'], ant_pos)
-    
+
         measurements = []
         for d in calib_info['data']:
             vis_json, source_json = d
@@ -143,7 +143,7 @@ def handle_bayes(ARGS):
 
         if ARGS.sigma_v is None:
             raise RuntimeError("The --sigma-v option must be supplied when --file JSON input is used")
-            
+
         prior = create_prior(cv.v, sphere, ARGS.prior)
         timestamp = cv.get_timestamp()
         disko = DiSkO.from_cal_vis(cv)
@@ -270,9 +270,13 @@ def handle_output(ARGS, timestamp, posterior, sphere):
 
 def main():
     np.random.seed(42)
+    sphere_parsers = sphere_args_parser()
 
-    parser = argparse.ArgumentParser(description='DiSkO: Bayesian inference of a posterior sky', 
-                                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description='DiSkO: Bayesian inference of a posterior sky',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=sphere_parsers)
+
 
     parser.add_argument('--hdf', required=False, default=None, help="Exported Multi-visibility file")
     parser.add_argument('--ms', required=False, default=None, help="visibility file")
@@ -285,9 +289,6 @@ def main():
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
     parser.add_argument('--nvis', type=int, default=1000, help="Number of visibilities to use.")
     parser.add_argument('--arcmin', type=float, default=None, help="Highest allowed res of the sky in arc minutes.")
-
-    parser.add_argument('--fov', type=float, default=180.0, help="Field of view in degrees")
-    parser.add_argument('--nside', type=int, default=None, help="Healpix nside parameter for display purposes only.")
 
     parser.add_argument('--sigma-v', type=float, default=None, help="Diagonal components of the visibility covariance. If not supplied use measurement set values")
 

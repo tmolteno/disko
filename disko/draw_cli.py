@@ -17,7 +17,7 @@ from importlib.metadata import version
 
 from disko import fov
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 def get_source_list(source_json, el_limit, jy_limit):
