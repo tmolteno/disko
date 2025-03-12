@@ -1,6 +1,5 @@
 *.vtk
 *.png
-*lock
 *.prof
 *.fits
 *.svg
