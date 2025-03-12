@@ -1,5 +1,36 @@
+[project]
+name = "disko"
+version = "1.0.1"
+description = "Discrete Sky Operator (DiSkO) Aperture Synthesis Radio Imaging"
+authors = [
+    {name = "Tim Molteno",email = "tim@elec.ac.nz"}
+]
+license = {text = "GPLv3"}
+readme = "README.md"
+requires-python = ">=3.9,<3.14"
+dependencies = [
+    "numpy (>=1.2.1,<3.0.0)",
+    "matplotlib (>=3.1.0,<4.0.0)",
+    "healpy (>=1.15.0,<2.0.0)",
+    "astropy (>=4.3)",
+    "tart (>=1.1.2b3)",
+    "tart-tools (>=1.1.2b3)",
+    "h5py (>=3.7)",
+    "scipy (>=1.7.3)",
+    "svgwrite (>=1.4.3)",
+    "tart2ms (>=0.6.0b4,<0.7.0)",
+    "scikit-learn (>=1.0.1)",
+    "pylops (>=2.0)",
+    "toolz (>=0.11.2)",
+    "dmsh (>=0.2.19)",
+    "imageio (>=0.6.0b1)"
+]
+
+[tool.poetry]
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^7.1.2"
+
 [build-system]
-# These are the assumed default build requirements from pip:
-# https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
-requires = ["setuptools>=43.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
