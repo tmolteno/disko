@@ -1,6 +1,6 @@
 [project]
 name = "disko"
-version = "1.0.2"
+version = "1.0.3"
 description = "Discrete Sky Operator (DiSkO) Aperture Synthesis Radio Imaging"
 authors = [
     {name = "Tim Molteno",email = "tim@elec.ac.nz"}
