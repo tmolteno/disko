@@ -23,7 +23,7 @@ from tart.imaging import visibility
 from tart.imaging import calibration
 
 from .disko import DiSkO
-from .disko import TelescopeOperator
+from .telescope_operator import TelescopeOperator
 
 from .multivariate_gaussian import MultivariateGaussian
 
