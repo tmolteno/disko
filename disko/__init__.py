@@ -10,6 +10,9 @@ from .disko import (
     get_all_uvw,
     jomega,
 )
+
+from .cli import disko_from_ms
+
 from .healpix_sphere import HealpixFoV, HealpixSubFoV
 from .sphere import SquareFoV
 # from .sphere_mesh import AdaptiveMeshFoV, area

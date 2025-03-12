@@ -902,3 +902,4 @@ class DiSkO(object):
         sphere = HealpixFoV(nside)
         sky = self.solve_vis(np.ones_like(self.vis_arr), nside)
         sphere.plot(plt, src_list=None)
+

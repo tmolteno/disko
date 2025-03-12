@@ -39,7 +39,7 @@ def get_source_list(source_json, el_limit, jy_limit):
 def disko_from_ms(ms, num_vis, res, channel=0, field_id=0, ddid=0):
     u_arr, v_arr, w_arr, frequency, cv_vis, \
         hdr, tstamp, rms, indices = tart2ms.casa_read_ms(
-            ms, num_vis, angular_resolution=res.degrees(), 
+            ms, num_vis, angular_resolution=res.degrees(),
             channel=channel,
             field_id=field_id, ddid=ddid, pol=0
         )
@@ -180,12 +180,11 @@ def main():
             cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains, phase_offsets, flag_list)
             src_list = elaz.from_json(source_json, 0.0)
         disko = DiSkO.from_cal_vis(cv)
-        
+
         lat = config.get_lat()
         lon = config.get_lon()
         height = config.get_alt()
-        
-        
+
     elif ARGS.ms:
         logger.info(f"Getting Data from MS file: {ARGS.ms} to {sphere}")
 
