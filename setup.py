@@ -22,8 +22,8 @@ setup(name='disko',
       install_requires=['numpy', 'matplotlib', 'healpy', 'astropy', 'h5py',
                         'scipy', 'svgwrite', 'dask', 'scikit-learn', 'distributed',
                         'pylops', 'toolz', 'pygmsh', 'imageio'],
-      extras_require = {
-        'tart':  ['tart', 'tart_tools', 'tart2ms' ]
+      extras_require={
+        'tart':  ['tart', 'tart_tools', 'tart2ms']
       },
       packages=['disko', 'disko.fov'],
       scripts=['bin/disko', 'bin/disko_svd', 'bin/disko_bayes', 'bin/disko_draw'],

@@ -67,20 +67,18 @@ def disko_from_ms(ms, num_vis, res, channel=0, field_id=0, ddid=0):
     logger.debug(f"u,v,w: {ret.u_arr.shape}")
     return ret
 
-if __name__ == '__main__':
-    sphere_parsers = sphere_args_parser()
-        
 
+def main():
+    sphere_parsers = sphere_args_parser()
 
     parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image.', 
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      parents=sphere_parsers)
 
-
     data_group = parser.add_mutually_exclusive_group()
     data_group.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
     data_group.add_argument('--ms', required=False, default=None, help="visibility file")
-    
+
     parser.add_argument('--nvis', type=int, default=1000, help="Number of visibilities to use.")
     parser.add_argument('--vis', required=False, default=None, help="Use a local JSON file containing the visibilities to create the image.")
     parser.add_argument('--channel', type=int, default=0, help="Use this frequency channel.")
@@ -93,10 +91,10 @@ if __name__ == '__main__':
     algo_group.add_argument('--fista', action="store_true", help="Use FISTA in matrix-free")
     algo_group.add_argument('--lasso', action="store_true", help="Use L1 regularization.")
     algo_group.add_argument('--tikhonov', action="store_true", help="Use L2 regularization.")
-    
+
     parser.add_argument('--matrix-free', action="store_true", help="Use matrix-free regularization.")
     parser.add_argument('--niter', type=int, default=100, help="Number of iterations for iterative solutions.")
-    
+
     parser.add_argument('--dir', required=False, default='.', help="Output directory.")
     parser.add_argument('--alpha', type=float, default=None, help="Regularization parameter.")
     parser.add_argument('--l1-ratio', type=float, default=0.02, help="Regularization parameter, ratio of l1 to l2 (1.0 means l1 only).")
@@ -114,7 +112,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--cv', action="store_true", help="Use Cross Validation")
     parser.add_argument('--dask', action="store_true", help="Use dask")
-    
+
     parser.add_argument('--debug', action="store_true", help="Display debugging information")
     parser.add_argument('--version', action="store_true", help="Display the current version")
 
