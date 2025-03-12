@@ -12,7 +12,7 @@ from .disko import (
 )
 from .healpix_sphere import HealpixFoV, HealpixSubFoV
 from .sphere import SquareFoV
-from .sphere_mesh import AdaptiveMeshFoV, area
+# from .sphere_mesh import AdaptiveMeshFoV, area
 from .telescope_operator import (
     TelescopeOperator,
     normal_svd,

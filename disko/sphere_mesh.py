@@ -8,7 +8,7 @@
 import logging
 import pygmsh
 import h5py
-import gmsh
+# import gmsh
 
 
 from scipy.spatial import Delaunay
@@ -100,16 +100,16 @@ def get_mesh(radius_rad, edge_size):
             1.0,
             mesh_size=edge_size/radius_rad
         )
-        gmsh.option.setNumber('Mesh.MeshSizeFactor', 1)
-        gmsh.option.setNumber('Mesh.MeshSizeMax', edge_size/radius_rad)
+        # gmsh.option.setNumber('Mesh.MeshSizeFactor', 1)
+        # gmsh.option.setNumber('Mesh.MeshSizeMax', edge_size/radius_rad)
 
         # gmsh.option.setNumber('Mesh.OptimizeThreshold', 0.5)
 
         mesh = geom.generate_mesh()
-        # optimized_mesh = pygmsh.optimize(mesh, method="")
+        optimized_mesh = pygmsh.optimize(mesh, method="")
 
-    X = mesh.points
-    cells = np.array(mesh.get_cells_type("triangle"), dtype=np.int64)
+    X = optimized_mesh.points
+    cells = np.array(optimized_mesh.get_cells_type("triangle"), dtype=np.int64)
 
     # logger.info("Optimizing Mesh")
     # X, cells = optimesh.optimize_points_cells(X, cells,  "CVT (block-diagonal)", 1e-5, 10, verbose=False)
