@@ -3064,14 +3064,14 @@ tqdm = "*"
 
 [[package]]
 name = "tart2ms"
-version = "0.6.0b6"
+version = "0.6.0b7"
 description = "Convert TART observation data to Measurement Sets"
 optional = false
 python-versions = "<3.14,>=3.8"
 groups = ["main"]
 files = [
-    {file = "tart2ms-0.6.0b6-py3-none-any.whl", hash = "sha256:58ad447f230a0f0bdf6310d831ef3e8b8fd06ad1950a433faed1e656d13af996"},
-    {file = "tart2ms-0.6.0b6.tar.gz", hash = "sha256:5eb1f63a61b21f8219e0ff7b820b9ff4a8641fce26b1ebb90ab164ac56cc8814"},
+    {file = "tart2ms-0.6.0b7-py3-none-any.whl", hash = "sha256:707aef01c307adc5b570a4ff8b8bd67bb0a0bf288e339bbe4ac76459207ff1b8"},
+    {file = "tart2ms-0.6.0b7.tar.gz", hash = "sha256:14a5d684d091c5c21a46e894956eb9379fcf049de287dea44fc2442370e67da8"},
 ]
 
 [package.dependencies]
@@ -3510,4 +3510,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.14"
-content-hash = "ece6ff5e08b4af281fbed3b482d38d503d983af7eba61303af73444041f6801b"
+content-hash = "4f125e76514f93e68d9ca42b74a4b20f49b3a25805abe794334b828baaa872ff"
