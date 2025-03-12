@@ -6,11 +6,9 @@ if os.name == 'posix' and "DISPLAY" not in os.environ:
 import matplotlib.pyplot as plt
 
 import argparse
-import datetime
 import json
 import logging
 import sys
-
 
 import numpy as np
 
@@ -27,7 +25,7 @@ from .parser_support import sphere_from_args, sphere_args_parser
 import tart2ms
 from tart2ms import get_array_location
 
-from tart.imaging import elaz
+logger = logging.getLogger(__name__)
 
 
 def get_source_list(source_json, el_limit, jy_limit):
@@ -70,9 +68,10 @@ def disko_from_ms(ms, num_vis, res, channel=0, field_id=0, ddid=0):
 def main():
     sphere_parsers = sphere_args_parser()
 
-    parser = argparse.ArgumentParser(description='DiSkO: Generate an Discrete Sky Operator Image.', 
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                     parents=sphere_parsers)
+    parser = argparse.ArgumentParser(
+        description='DiSkO: Generate an Discrete Sky Operator Image.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=sphere_parsers)
 
     data_group = parser.add_mutually_exclusive_group()
     data_group.add_argument('--file', required=False, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
@@ -115,7 +114,6 @@ def main():
     parser.add_argument('--debug', action="store_true", help="Display debugging information")
     parser.add_argument('--version', action="store_true", help="Display the current version")
 
-
     source_json = None
 
     ARGS = parser.parse_args()
@@ -154,9 +152,9 @@ def main():
         print(f"disko: Version {version}")
         print("       (c) 2022-2023 Tim Molteno")
         sys.exit(0)
-    
+
     sphere = sphere_from_args(ARGS)
-    
+
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
         # Load data from a JSON file
