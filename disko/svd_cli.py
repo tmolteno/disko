@@ -49,6 +49,7 @@ def handle_image(args, title, time_repr, src_list=None):
 
 
 def fun_plot(to, data, title):
+    global ARGS
     pixels = np.zeros_like(to.sphere.pixels)
 
     pixels = data.reshape((len(pixels),))
@@ -58,7 +59,11 @@ def fun_plot(to, data, title):
     handle_image(ARGS, title + ARGS.title, None, src_list=None)
 
 
+ARGS=None
+
+
 def main():
+    global ARGS
     parser = argparse.ArgumentParser(description='Generate an DiSkO Image using the web api of a TART radio telescope.',
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--file', required=True, default=None, help="Snapshot observation saved JSON file (visiblities, positions and more).")
@@ -99,7 +104,7 @@ def main():
 
     # add ch to logger
     logger.addHandler(ch)
-    
+
     if ARGS.file:
         logger.info("Getting Data from file: {}".format(ARGS.file))
         # Load data from a JSON file
@@ -118,7 +123,7 @@ def main():
         gains = np.asarray(gains_json['gain'])
         phase_offsets = np.asarray(gains_json['phase_offset'])
         config = settings.from_api_json(info['info'], ant_pos)
-    
+
         measurements = []
         for d in calib_info['data']:
             vis_json, source_json = d
@@ -131,16 +136,16 @@ def main():
 
     # Processing
     should_make_images = ARGS.display or ARGS.PNG or ARGS.PDF
-    
+
     grid = DiSkO.from_cal_vis(cv)
     nside = ARGS.nside
 
     sphere = HealpixFoV(nside)
     # Now create the SVD of a telescope. First form the gamma matrix.
     to = TelescopeOperator(grid, sphere)
-    
+
     # Have a look at some harmonics
-    
+
     if ARGS.harmonics:
         mask = imageio.imread(ARGS.mask)
         s = mask_to_sky(mask, ARGS.nside)
@@ -152,9 +157,9 @@ def main():
         fun_plot(to, null_batman, "null_space_batman")
         dut = to.gamma @ null_batman
         print("Null Batman Vis = {}".format(dut))
-        
-        for h in range(0,4):
-            harmonic = to.harmonic(h) #
+
+        for h in range(0, 4):
+            harmonic = to.harmonic(h)  #
             fun_plot(to, harmonic, "fringe_{:04d}".format(h))
 
             har = to.range_harmonic(h)
@@ -168,7 +173,7 @@ def main():
 
             null_harmonic = to.null_harmonic(h)
             fun_plot(to, (null_harmonic), "natural_null_fringe_{:05d}".format(h))
-            
+
             h2 = to.n_n() - h - 1
             null_harmonic = to.null_harmonic(h2)
             fun_plot(to, (null_harmonic), "natural_null_fringe_{:05d}".format(h2))
@@ -181,9 +186,9 @@ def main():
         sky = np.zeros((to.n_s, 1))
         sky[to.n_s-100] = 1.0
         sky = sky.reshape([-1,1])
-        
+
         vis = to.gamma @ sky 
-        
+
         sky = to.image_visibilities(vis, sphere)
         sphere.plot(plt, src_list)
         handle_image(ARGS, "psf_natural" + ARGS.title, time_repr, src_list)
@@ -202,7 +207,7 @@ def main():
             src_list = get_source_list(source_json, el_limit=ARGS.elevation, jy_limit=1e4)
 
         real_vis = vis_to_real(grid.vis_arr)
-        
+
         sky = to.image_visibilities(real_vis, sphere)
         sphere.plot(plt, src_list)
         handle_image(ARGS, "natural" + ARGS.title, time_repr, src_list)
