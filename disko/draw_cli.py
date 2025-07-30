@@ -24,7 +24,7 @@ def get_source_list(source_json, el_limit, jy_limit):
     src_list = []
     if source_json is not None:
         src_list = elaz.from_json(
-            source_json, el_limit=el_limit, jy_limit=jy_limit)
+            source_json, el_limit_deg=el_limit, jy_limit=jy_limit)
     return src_list
 
 
@@ -132,7 +132,6 @@ def main():
         # for s in src_list:
         #     print(f"   src: el:{np.degrees(s.el_r) :5.2f}")
 
-
     if ARGS.max == -1:
         max_img = np.max(field_of_view.pixels)
     else:
@@ -160,7 +159,7 @@ def main():
         print(f"Writing PNG: {fname}")
         plt.figure()
         field_of_view.plot(plt, None)
-        plt.tight_layout()
+        # plt.tight_layout()
         plt.savefig(fname, dpi=300)
         plt.close()
 
