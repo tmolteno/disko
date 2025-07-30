@@ -26,6 +26,7 @@ from .draw_sky import mask_to_sky
 
 logger = logging.getLogger()
 
+
 def handle_image(args, title, time_repr, src_list=None):
     """ This function manages the output of an image, drawing sources e.t.c."""
     if time_repr is None:
@@ -59,7 +60,7 @@ def fun_plot(to, data, title):
     handle_image(ARGS, title + ARGS.title, None, src_list=None)
 
 
-ARGS=None
+ARGS = None
 
 
 def main():
@@ -140,6 +141,10 @@ def main():
     grid = DiSkO.from_cal_vis(cv)
     nside = ARGS.nside
 
+    # fov = Resolution.from_string('180deg')
+    # res = Resolution.from_string('1deg')
+    #
+    # sphere = create_fov(nside=nside, fov=fov, res=res)
     sphere = HealpixFoV(nside)
     # Now create the SVD of a telescope. First form the gamma matrix.
     to = TelescopeOperator(grid, sphere)

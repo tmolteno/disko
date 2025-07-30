@@ -20,6 +20,7 @@ from .resolution import Resolution
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
 
+
 def create_fov(nside, fov, res, theta=0.0, phi=0.0):
     """
     Create an appropriate FoV object based on:
@@ -32,14 +33,14 @@ def create_fov(nside, fov, res, theta=0.0, phi=0.0):
     elif nside is not None and fov is not None:
         radius_rad = fov.radians() / 2
         sphere = HealpixSubFoV(nside=nside,
-                                  theta=theta, phi=phi,
-                                  radius_rad=radius_rad)
+                               theta=theta, phi=phi,
+                               radius_rad=radius_rad)
     elif res is not None and fov is not None:
         radius_rad = fov.radians() / 2
         res_arcmin = res.arcmin()
         sphere = HealpixSubFoV(res_arcmin=res_arcmin,
-                                  theta=theta, phi=phi,
-                                  radius_rad=radius_rad)
+                               theta=theta, phi=phi,
+                               radius_rad=radius_rad)
     else:
         raise RuntimeError("Either nside, or res_arcmin must be specified")
 

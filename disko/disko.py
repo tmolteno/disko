@@ -59,8 +59,6 @@ def vis_to_real(vis_arr):
     return np.concatenate((np.real(vis_arr), np.imag(vis_arr)))
 
 
-
-
 REAL_DATATYPE = np.float64
 COMPLEX_DATATYPE = np.complex128
 

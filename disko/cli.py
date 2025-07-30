@@ -234,11 +234,11 @@ def main():
 
     sphere.set_info(timestamp=timestamp,
                     lon=lon, lat=lat, height=height)
-    
+
     if not ARGS.show_sources:
         src_list = None
     # api_imaging.rotate_vis(ARGS.rotation, cv, reference_positions = deepcopy(config.get_antenna_positions()))
-    
+
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
 
     # Processing
@@ -265,7 +265,7 @@ def main():
     elif ARGS.tikhonov:
         logger.info("L2 regularization alpha={}".format(ARGS.alpha))
         sky = disko.image_tikhonov(disko.vis_arr, sphere, alpha=ARGS.alpha, scale=False, usedask=ARGS.dask)
-       
+
         if ARGS.mesh:
             for i in range(ARGS.adaptive):
                 sphere.write_mesh(f"{ARGS.title}_round_{i}.vtk")
@@ -294,7 +294,7 @@ def main():
 
 
     def save_images(image_title, source_list):
-        
+
         if ARGS.VTK:
             sphere.write_mesh(path('vtk', image_title))
 

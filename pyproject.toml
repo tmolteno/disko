@@ -1,30 +1,28 @@
 [project]
 name = "disko"
-version = "1.0.3"
+version = "1.0.4"
 description = "Discrete Sky Operator (DiSkO) Aperture Synthesis Radio Imaging"
 authors = [
     {name = "Tim Molteno",email = "tim@elec.ac.nz"}
 ]
 license = {text = "GPLv3"}
 readme = "README.md"
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "numpy (>=1.2.1,<3.0.0)",
     "matplotlib (>=3.1.0,<4.0.0)",
     "healpy (>=1.15.0,<2.0.0)",
     "astropy (>=4.3)",
-    "tart (>=1.1.2b3)",
-    "tart-tools (>=1.1.2b3)",
+    "tart (>=1.4.0)",
+    "tart-tools (>=1.4.0)",
     "h5py (>=3.7)",
     "scipy (>=1.7.3)",
     "svgwrite (>=1.4.3)",
-    "tart2ms (>=0.6.0b7)",
+    "tart2ms (>=0.7.1)",
     "scikit-learn (>=1.0.1)",
     "pylops (>=2.0)",
     "toolz (>=0.11.2)",
-    "dmsh (>=0.2.19)",
     "imageio (>=0.6.0b1)",
-    "donfig (>=0.8.1.post1,<0.9.0)",
     "pygmsh (>=7.1.17,<8.0.0)"
 ]
 
