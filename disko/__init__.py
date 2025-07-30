@@ -14,6 +14,7 @@ from .disko import (
 from .cli import disko_from_ms
 
 from .healpix_sphere import HealpixFoV, HealpixSubFoV
+from .sphere_mesh import AdaptiveMeshFoV, area
 from .sphere import SquareFoV
 # from .sphere_mesh import AdaptiveMeshFoV, area
 from .telescope_operator import (

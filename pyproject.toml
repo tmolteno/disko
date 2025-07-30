@@ -26,13 +26,14 @@ dependencies = [
     "pygmsh (>=7.1.17,<8.0.0)"
 ]
 
-[tool.poetry]
 
-[tool.poetry.scripts]
+[project.scripts]
 disko = "disko.cli:main"
 disko_draw = "disko.draw_cli:main"
 disko_svd = "disko.svd_cli:main"
 disko_bayes = "disko.bayes_cli:main"
+
+[tool.poetry]
 
 [tool.poetry.group.dev.dependencies]
 flake8 = "^7.1.2"
