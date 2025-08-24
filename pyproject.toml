@@ -12,13 +12,11 @@ dependencies = [
     "numpy (>=1.2.1,<3.0.0)",
     "matplotlib (>=3.1.0,<4.0.0)",
     "healpy (>=1.15.0,<2.0.0)",
-    "astropy (>=4.3)",
     "tart (>=1.4.0)",
     "tart-tools (>=1.4.0)",
     "h5py (>=3.7)",
     "scipy (>=1.7.3)",
     "svgwrite (>=1.4.3)",
-    "tart2ms (>=0.7.1)",
     "scikit-learn (>=1.0.1)",
     "pylops (>=2.0)",
     "toolz (>=0.11.2)",
@@ -26,6 +24,10 @@ dependencies = [
     "pygmsh (>=7.1.17,<8.0.0)"
 ]
 
+[project.optional-dependencies]
+  ms = [
+      "tart2ms (>=0.7.1)"
+  ]
 
 [project.scripts]
 disko = "disko.cli:main"
