@@ -63,6 +63,8 @@ def main():
 
     parser.add_argument('--sqrt', action="store_true",
                         help="Scale pixels to the square root")
+    parser.add_argument('--scale-mad', action="store_true",
+                        help="Scale pixels to the median absolute deviation")
     parser.add_argument('--display', action="store_true",
                         help="Display the field of view")
     parser.add_argument('--version', action="store_true",
@@ -132,6 +134,10 @@ def main():
         # for s in src_list:
         #     print(f"   src: el:{np.degrees(s.el_r) :5.2f}")
 
+    if ARGS.scale_mad:
+        # Scale the pixels to the median absolute deviation
+        stats = image_stats(field_of_view.pixels)
+        field_of_view.pixels = field_of_view.pixels / stats["mad"]
     if ARGS.max == -1:
         max_img = np.max(field_of_view.pixels)
     else:
