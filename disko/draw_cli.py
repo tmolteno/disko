@@ -16,6 +16,7 @@ from tart.imaging import elaz
 from importlib.metadata import version
 
 from disko import fov
+from disko.sphere import image_stats
 
 logger = logging.getLogger(__name__)
 
