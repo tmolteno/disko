@@ -47,6 +47,7 @@ This should generate a suitable measurement set to image.
 ## Changelog
 
 ```
+1.0.8   Fix bug in --scale-mad to handle cases when mad == 0
 1.0.7   Introduce --scale-mad to disko-draw to scale pixels to median absolute deviation
 1.0.1   Move to poetry. Update for numpy > 2.0.
 1.0.0b5 Fix up the inclusion of non tart stuff.

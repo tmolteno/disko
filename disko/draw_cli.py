@@ -138,7 +138,11 @@ def main():
     if ARGS.scale_mad:
         # Scale the pixels to the median absolute deviation
         stats = image_stats(field_of_view.pixels)
-        field_of_view.pixels = field_of_view.pixels / stats["mad"]
+        print(f"Image stats {stats}")
+        scale = stats["mad"]
+        if scale == 0.0:
+            scale = stats["sdev"]
+        field_of_view.pixels = field_of_view.pixels / scale
     if ARGS.max == -1:
         max_img = np.max(field_of_view.pixels)
     else:
