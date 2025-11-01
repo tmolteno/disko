@@ -23,8 +23,7 @@ from tart.imaging import elaz
 from .disko import DiSkO
 from .parser_support import sphere_from_args, sphere_args_parser
 
-import tart2ms
-from tart2ms import get_array_location
+from .ms_helper import casa_read_ms, get_array_location
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +36,15 @@ def get_source_list(source_json, el_limit, jy_limit):
 
 
 def disko_from_ms(ms, column, num_vis, res, channel=0, field_id=0, ddid=0):
-    u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices = (
-        tart2ms.casa_read_ms(
-            ms,
-            num_vis,
-            ms_column=column,
-            angular_resolution=res.degrees(),
-            channel=channel,
-            field_id=field_id,
-            ddid=ddid,
-            pol=0,
-        )
+    u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices = casa_read_ms(
+        ms_file=ms,
+        num_vis=num_vis,
+        ms_column=column,
+        angular_resolution=res.degrees(),
+        channel=channel,
+        field_id=field_id,
+        ddid=ddid,
+        pol=0,
     )
 
     # Measurement sets do not return the conjugate pairs of visibilities
@@ -212,8 +209,6 @@ def main():
     logging.basicConfig()
     logger = logging.getLogger("disko")
     logger.setLevel(level)
-    tart2ms_log = logging.getLogger("tart2ms")
-    tart2ms_log.setLevel(level)
 
     if ARGS.debug:
         fh = logging.FileHandler("disko.log")

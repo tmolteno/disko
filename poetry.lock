@@ -372,9 +372,10 @@ files = [
 name = "codex-africanus"
 version = "0.4.3"
 description = "Radio Astronomy Building Blocks"
-optional = false
+optional = true
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
+markers = "extra == \"ms\""
 files = [
     {file = "codex_africanus-0.4.3-py3-none-any.whl", hash = "sha256:97e9e60553b5cd9c7ec7faa85f18d87231191b99b861c77eb5dfedbbc7beefbf"},
     {file = "codex_africanus-0.4.3.tar.gz", hash = "sha256:5b05e5df7f66c3af78828d0c871481b113b957f7656c7bb2308e0164f9e146c8"},
@@ -586,9 +587,10 @@ zarr = ["zarr (>=2.12.0,<3.0.0)"]
 name = "decorator"
 version = "5.2.1"
 description = "Decorators for Humans"
-optional = false
+optional = true
 python-versions = ">=3.8"
 groups = ["main"]
+markers = "extra == \"ms\""
 files = [
     {file = "decorator-5.2.1-py3-none-any.whl", hash = "sha256:d316bb415a2d9e2d2b3abcc4084c6502fc09240e292cd76a76afc106a1c8e04a"},
     {file = "decorator-5.2.1.tar.gz", hash = "sha256:65f266143752f734b0a7cc83c46f4618af75b8c5911b00ccb61d0ac9b6da0360"},
@@ -1004,9 +1006,10 @@ files = [
 name = "llvmlite"
 version = "0.45.1"
 description = "lightweight wrapper around basic LLVM functionality"
-optional = false
+optional = true
 python-versions = ">=3.10"
 groups = ["main"]
+markers = "extra == \"ms\""
 files = [
     {file = "llvmlite-0.45.1-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:1b1af0c910af0978aa55fa4f60bbb3e9f39b41e97c2a6d94d199897be62ba07a"},
     {file = "llvmlite-0.45.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:02a164db2d79088bbd6e0d9633b4fe4021d6379d7e4ac7cc85ed5f44b06a30c5"},
@@ -1192,9 +1195,10 @@ urllib3 = "*"
 name = "numba"
 version = "0.62.1"
 description = "compiling Python code using LLVM"
-optional = false
+optional = true
 python-versions = ">=3.10"
 groups = ["main"]
+markers = "extra == \"ms\""
 files = [
     {file = "numba-0.62.1-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:a323df9d36a0da1ca9c592a6baaddd0176d9f417ef49a65bb81951dce69d941a"},
     {file = "numba-0.62.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:e1e1f4781d3f9f7c23f16eb04e76ca10b5a3516e959634bd226fc48d5d8e7a0a"},
@@ -1323,9 +1327,10 @@ files = [
 name = "pandas"
 version = "2.3.1"
 description = "Powerful data structures for data analysis, time series, and statistics"
-optional = false
+optional = true
 python-versions = ">=3.9"
 groups = ["main"]
+markers = "extra == \"ms\""
 files = [
     {file = "pandas-2.3.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:22c2e866f7209ebc3a8f08d75766566aae02bcc91d196935a1d9e59c7b990ac9"},
     {file = "pandas-2.3.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:3583d348546201aff730c8c47e49bc159833f971c2899d6097bce68b9112a4f1"},
@@ -1553,9 +1558,10 @@ xmp = ["defusedxml"]
 name = "progress"
 version = "1.6.1"
 description = "Easy to use progress bars"
-optional = false
+optional = true
 python-versions = ">=3.6"
 groups = ["main"]
+markers = "extra == \"ms\""
 files = [
     {file = "progress-1.6.1-py3-none-any.whl", hash = "sha256:5239f22f305c12fdc8ce6e0e47f70f21622a935e16eafc4535617112e7c7ea0b"},
     {file = "progress-1.6.1.tar.gz", hash = "sha256:c1ba719f862ce885232a759eab47971fe74dfc7bb76ab8a51ef5940bad35086c"},
@@ -1781,9 +1787,10 @@ six = ">=1.5"
 name = "pytz"
 version = "2025.2"
 description = "World timezone definitions, modern and historical"
-optional = false
+optional = true
 python-versions = "*"
 groups = ["main"]
+markers = "extra == \"ms\""
 files = [
     {file = "pytz-2025.2-py2.py3-none-any.whl", hash = "sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00"},
     {file = "pytz-2025.2.tar.gz", hash = "sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3"},
@@ -2085,9 +2092,10 @@ tqdm = "*"
 name = "tart2ms"
 version = "0.8.0"
 description = "Convert TART observation data to Measurement Sets"
-optional = false
+optional = true
 python-versions = "<3.14,>=3.11"
 groups = ["main"]
+markers = "extra == \"ms\""
 files = [
     {file = "tart2ms-0.8.0-py3-none-any.whl", hash = "sha256:b29ce9e244cfa3360e4db5db0befa9c1bc214a1695bc5678baa77ca6cd5323a9"},
     {file = "tart2ms-0.8.0.tar.gz", hash = "sha256:7d2af6e586b35a6ae6a7b4383f66d62744af8d739cbed500d29b86f0094caa70"},
@@ -2169,9 +2177,10 @@ files = [
 name = "tzdata"
 version = "2025.2"
 description = "Provider of IANA time zone data"
-optional = false
+optional = true
 python-versions = ">=2"
 groups = ["main"]
+markers = "extra == \"ms\""
 files = [
     {file = "tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8"},
     {file = "tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9"},
@@ -2222,4 +2231,4 @@ ms = ["tart2ms"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "079a9f68a9dc52feeac60c8c8fa4d3df8a7805d78c257eb604769f2865a6210c"
+content-hash = "52fcd4bd0dce0dfd684d8ebe8f898e638ce0011e2d650c03007e9f854fe10430"

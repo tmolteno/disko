@@ -1,7 +1,7 @@
 TIME=/usr/bin/time -v
 
 
-develop: 
+develop:
 	pip3 install -e .
 
 test:
@@ -40,12 +40,12 @@ ngc1194:
 adaptive:
 	rm -f round*.vtk
 	disko --mesh --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --res 10arcsec --res-min=430mas --adaptive 2 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus'
-	
+
 
 # Requires memory_profiler pip3 install memory_profiler
 cygnus:
 	disko_bayes --healpix --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --mu --res 1arcsec --nvis 1500 --title 'cygnus'
-	
+
 dask:
 	disko --healpix --fov 0.5deg --res 0.25arcmin \
 		--ms /home/tim/astro/cyg2052.ms --SVG  --tikhonov --nvis 2000 --dask
@@ -67,13 +67,13 @@ dask:
 #        Maximum resident set size (kbytes): 3956904
 #         Maximum resident set size (kbytes): 2903484
 
-TART_ARGS=--fov 155deg --res 1deg --ms test_data/test.ms --field 1  --HDF tart.hdf
-TART_ARGS=--fov 155deg --res 1deg --file test_data/test_data.json --show-sources --HDF tart.hdf
+TART_ARGS=--fov 155deg --res 1deg --ms test_data/test.ms --debug --field 1  --HDF tart.hdf
+#TART_ARGS=--fov 155deg --res 1deg --file test_data/test_data.json --show-sources --HDF tart.hdf
 cygnus_lsmr:
 	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
 cygnus_fista:
 	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
-	
+
 tart:
 	disko --healpix ${TART_ARGS} --SVG --alpha=0.025 --tikhonov  --title 'tart'
 
@@ -105,7 +105,7 @@ tart_lasso:
 ## 4000 0.0281
 ## 4000 0.035 # 3.546681e-02
 ## 16000 8.996716e-03
-NV_CYG=5000 
+NV_CYG=5000
 #	1281930
 mf_cyg:
 	rm -f disko.log
@@ -131,9 +131,9 @@ step2:
 
 h5:
 	disko_bayes --hdf test_data/vis_2021-03-25_20_50_23.568474.hdf --nside 20 --sigma-v=0.15 --mu --pcf --var --PNG --title 'sequential' --dir=seq_out
-	
-# Memory 4800x276 456212 
-#	 19328x276 640932 ->  458364 for 
+
+# Memory 4800x276 456212
+#	 19328x276 640932 ->  458364 for
 test_upload:
 	rm -rf disko.egg-info dist
 	python3 setup.py sdist
@@ -143,4 +143,3 @@ upload:
 	rm -rf disko.egg-info dist
 	python3 setup.py sdist
 	twine upload --repository pypi dist/*
-	
