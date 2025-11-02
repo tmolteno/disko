@@ -87,8 +87,9 @@ def main():
     data_group.add_argument(
         "--ms", required=False, default=None, help="Measurement Set"
     )
-    data_group.add_argument(
-        "--data-column", required=False, default="DATA", help="The data column to image"
+
+    parser.add_argument(
+        "--column", required=False, default="DATA", help="The data column to image"
     )
 
     parser.add_argument(
@@ -280,7 +281,7 @@ def main():
         logger.info(f"Min Res {min_res}")
         disko = disko_from_ms(
             ARGS.ms,
-            ARGS.data_column,
+            ARGS.column,
             ARGS.nvis,
             res=min_res,
             channel=ARGS.channel,
