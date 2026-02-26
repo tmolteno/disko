@@ -116,12 +116,6 @@ def main():
         new_pixels = np.sqrt(field_of_view.pixels)
         field_of_view.set_visible_pixels(new_pixels)
  
-    if ARGS.version:
-        version = version("disko")
-        print(f"disko_draw: Version {version}")
-        print("             (c) 2023 Tim Molteno")
-        sys.exit(0)
-
     src_list = None
     if ARGS.show_sources:
         api = api_handler.APIhandler("")
