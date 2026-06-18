@@ -2,10 +2,10 @@ TIME=/usr/bin/time -v
 
 
 develop:
-	pip3 install -e .
+	uv sync --dev
 
 test:
-	python3 -m pytest
+	uv run pytest
 
 
 install:
@@ -18,12 +18,12 @@ draw:
 		--FITS draw_tart.fits
 
 lint:
-	flake8 disko --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+	uv run flake8 disko --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
 test2:
-	#python3 -m unittest  disko.tests.test_gridless.TestGridless.test_from_pos
-	#	python3 -m unittest  disko.tests.test_subsphere
-	python3 -m pytest -k TestSquareFoV
+	#uv run python -m unittest  disko.tests.test_gridless.TestGridless.test_from_pos
+	#	uv run python -m unittest  disko.tests.test_subsphere
+	uv run pytest -k TestSquareFoV
 
 svd:
 	rm -f *.npz
@@ -136,10 +136,10 @@ h5:
 #	 19328x276 640932 ->  458364 for
 test_upload:
 	rm -rf disko.egg-info dist
-	python3 setup.py sdist
+	uv build
 	twine upload --repository testpypi dist/*
 
 upload:
 	rm -rf disko.egg-info dist
-	python3 setup.py sdist
+	uv build
 	twine upload --repository pypi dist/*

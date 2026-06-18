@@ -7,17 +7,12 @@ if os.name == "posix" and "DISPLAY" not in os.environ:
 import matplotlib.pyplot as plt
 
 import argparse
-import json
 import logging
 import sys
 
 import numpy as np
 
 from importlib.metadata import version
-from copy import deepcopy
-from tart.operation import settings
-
-from tart_tools import api_imaging
 from tart.imaging import elaz
 
 from .disko import DiSkO
@@ -82,7 +77,7 @@ def main():
         "--file",
         required=False,
         default=None,
-        help="Snapshot observation saved JSON file (visiblities, positions and more).",
+        help="TART .h5 visibility file.",
     )
     data_group.add_argument(
         "--ms", required=False, default=None, help="Measurement Set"
@@ -240,36 +235,57 @@ def main():
     sphere = sphere_from_args(ARGS)
 
     if ARGS.file:
-        logger.info("Getting Data from file: {}".format(ARGS.file))
-        # Load data from a JSON file
-        with open(ARGS.file, "r") as json_file:
-            calib_info = json.load(json_file)
+        logger.info("Getting Data from HDF5 file: {}".format(ARGS.file))
 
-        info = calib_info["info"]
-        ant_pos = calib_info["ant_pos"]
-        config = settings.from_api_json(info["info"], ant_pos)
+        import h5py
+        from datetime import datetime, timezone
+        from tart.imaging import calibration
+        from tart.imaging.visibility import Visibility
+        from tart.operation import settings as tart_settings
 
-        flag_list = []  # [4, 5, 14, 22]
+        if not os.path.exists(ARGS.file):
+            raise RuntimeError(f"Visibility file {ARGS.file} not found")
 
-        original_positions = deepcopy(config.get_antenna_positions())
+        with h5py.File(ARGS.file, "r") as h5f:
+            config_json = bytes(h5f["config"][0])
+            config = tart_settings.from_json(config_json)
+            hdf_baselines = h5f["baselines"][:].tolist()
+            ant_pos = h5f["antenna_positions"][:]
+            hdf_phase_elaz = h5f["phase_elaz"][:]
+            gain = h5f["gains"][:]
+            phase_offset = h5f["phases"][:]
+            hdf_vis = h5f["vis"][:]
 
-        gains_json = calib_info["gains"]
-        gains = np.asarray(gains_json["gain"])
-        phase_offsets = np.asarray(gains_json["phase_offset"])
-        config = settings.from_api_json(info["info"], ant_pos)
+            hdf_timestamps = h5f["timestamp"]
+            timestamps = []
+            for ts_bytes in hdf_timestamps:
+                ts_str = ts_bytes.decode() if isinstance(ts_bytes, bytes) else str(ts_bytes)
+                dt = datetime.fromisoformat(ts_str)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                timestamps.append(dt)
 
-        measurements = []
-        for d in calib_info["data"]:
-            vis_json, source_json = d
-            cv, timestamp = api_imaging.vis_calibrated(
-                vis_json, config, gains, phase_offsets, flag_list
-            )
-            src_list = elaz.from_json(source_json, 0.0)
+            config.set_antenna_positions(ant_pos)
+
+        vis = Visibility.from_config(config=config, timestamp=timestamps[0])
+        vis.set_visibilities(v=hdf_vis[0], b=hdf_baselines)
+        vis.phase_el = hdf_phase_elaz[0]
+        vis.phase_az = hdf_phase_elaz[1]
+
+        timestamp = timestamps[0]
+
+        cv = calibration.CalibratedVisibility(vis)
+        cv.gain = gain
+        cv.phase_offset = phase_offset
+        cv.set_config(config)
+
         disko = DiSkO.from_cal_vis(cv)
 
         lat = config.get_lat()
         lon = config.get_lon()
         height = config.get_alt()
+
+        source_json = None
 
     elif ARGS.ms:
         logger.info(f"Getting Data from MS file: {ARGS.ms} to {sphere}")
@@ -297,42 +313,12 @@ def main():
         height = json_info["height"]
 
     else:
-        logger.info("Getting Data from API: {}".format(ARGS.api))
-
-        api = api_handler.APIhandler(ARGS.api)
-        config = api_handler.get_config(api)
-
-        gains = api.get("calibration/gain")
-
-        if ARGS.vis is None:
-            vis_json = api.get("imaging/vis")
-        else:
-            with open(ARGS.vis, "r") as json_file:
-                vis_json = json.load(json_file)
-
-        ts = api_imaging.vis_json_timestamp(vis_json)
-        if ARGS.show_sources:
-            cat_url = api.catalog_url(
-                lon=config.get_lon(), lat=config.get_lat(), datestr=ts.isoformat()
-            )
-            source_json = api.get_url(cat_url)
-
-        logger.info("Data Download Complete")
-
-        cv, timestamp = api_imaging.vis_calibrated(
-            vis_json, config, gains["gain"], gains["phase_offset"], flag_list=[]
-        )
-        disko = DiSkO.from_cal_vis(cv)
-
-        lat = config.get_lat()
-        lon = config.get_lon()
-        height = config.get_alt()
+        parser.error("Either --file or --ms must be specified.")
 
     sphere.set_info(timestamp=timestamp, lon=lon, lat=lat, height=height)
 
     if not ARGS.show_sources:
         src_list = None
-    # api_imaging.rotate_vis(ARGS.rotation, cv, reference_positions = deepcopy(config.get_antenna_positions()))
 
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
 
