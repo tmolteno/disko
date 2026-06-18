@@ -22,7 +22,7 @@ from tart.imaging import elaz
 from tart.imaging import visibility
 from tart.imaging import calibration
 
-from .disko import DiSkO
+from .disko import DiSkO, vis_to_real
 from .telescope_operator import TelescopeOperator
 
 from .multivariate_gaussian import MultivariateGaussian
@@ -149,7 +149,7 @@ def handle_bayes(ARGS):
         disko = DiSkO.from_cal_vis(cv)
 
         posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
-        handle_output(ARGS, timestamp, posterior, sphere)
+        handle_output(ARGS, timestamp, posterior, sphere, disko)
 
     elif ARGS.hdf:
         logger.info(f"Getting data from file {ARGS.hdf}")
@@ -173,7 +173,7 @@ def handle_bayes(ARGS):
 
             # TODO Calibrate the vis with gains and phases?
             posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
-            handle_output(ARGS, timestamp, posterior, sphere)
+            handle_output(ARGS, timestamp, posterior, sphere, disko)
     else:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
 
@@ -185,10 +185,10 @@ def handle_bayes(ARGS):
         prior = create_prior(disko.vis_arr, sphere, ARGS.prior)
             
         posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
-        handle_output(ARGS, timestamp, posterior, sphere)
+        handle_output(ARGS, timestamp, posterior, sphere, disko)
         
 
-def handle_output(ARGS, timestamp, posterior, sphere):
+def handle_output(ARGS, timestamp, posterior, sphere, disko=None):
 
     if not ARGS.show_sources:
         src_list = None
@@ -206,8 +206,7 @@ def handle_output(ARGS, timestamp, posterior, sphere):
 
     def save_images(image_title, source_list):
         # Save as a FITS file
-        global disko
-        
+
         if ARGS.FITS:
             sphere.to_fits(fname=path('fits', image_title), fov=ARGS.fov, info=disko.info)
         

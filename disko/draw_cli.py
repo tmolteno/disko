@@ -102,8 +102,8 @@ def main():
         logger.addHandler(ch)
 
     if ARGS.version:
-        version = version("disko")
-        print(f"disko_draw: Version {version}")
+        vers = version("disko")
+        print(f"disko_draw: Version {vers}")
         print("       (c) 2022-2023 Tim Molteno")
         sys.exit(0)
 

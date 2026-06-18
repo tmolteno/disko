@@ -12,7 +12,7 @@ install:
 	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-dask
 
 draw:
-	disko_draw tart.hdf --show-sources \
+	uv run disko_draw tart.hdf --show-sources \
 		--SVG draw_tart.svg \
 		--PNG draw_tart.png \
 		--FITS draw_tart.fits
@@ -27,27 +27,27 @@ test2:
 
 svd:
 	rm -f *.npz
-	disko_svd  --file test_data/test_data.json  --nside 16
+	uv run disko_svd  --file test_data/test_data.json  --nside 16
 
 bayes:
 	#rm -f *.npz
-	disko_bayes --fov 155 --ms test_data/test.ms  --mu --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15
-#	${TIME} disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
+	uv run disko_bayes --fov 155 --ms test_data/test.ms  --mu --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15
+#	${TIME} uv run disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
 
 ngc1194:
-	disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
+	uv run disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
 
 adaptive:
 	rm -f round*.vtk
-	disko --mesh --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --res 10arcsec --res-min=430mas --adaptive 2 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus'
+	uv run disko --mesh --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --res 10arcsec --res-min=430mas --adaptive 2 --tikhonov --nvis 2000 --alpha 0.015 --title 'acygnus'
 
 
 # Requires memory_profiler pip3 install memory_profiler
 cygnus:
-	disko_bayes --healpix --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --mu --res 1arcsec --nvis 1500 --title 'cygnus'
+	uv run disko_bayes --healpix --fov 3arcmin --ms /home/tim/astro/cyg2052.ms --SVG --mu --res 1arcsec --nvis 1500 --title 'cygnus'
 
 dask:
-	disko --healpix --fov 0.5deg --res 0.25arcmin \
+	uv run disko --healpix --fov 0.5deg --res 0.25arcmin \
 		--ms /home/tim/astro/cyg2052.ms --SVG  --tikhonov --nvis 2000 --dask
 
 # Mem 2520  (0.1 arcmin)   1726672
@@ -70,35 +70,35 @@ dask:
 TART_ARGS=--fov 155deg --res 1deg --ms test_data/test.ms --debug --field 1  --HDF tart.hdf
 #TART_ARGS=--fov 155deg --res 1deg --file test_data/test_data.json --show-sources --HDF tart.hdf
 cygnus_lsmr:
-	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
+	${TIME} uv run disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
 cygnus_fista:
-	${TIME} disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
+	${TIME} uv run disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
 
 tart:
-	disko --healpix ${TART_ARGS} --SVG --alpha=0.025 --tikhonov  --title 'tart'
+	uv run disko --healpix ${TART_ARGS} --SVG --alpha=0.025 --tikhonov  --title 'tart'
 
 tart_mesh:
-	${TIME} disko --mesh ${TART_ARGS} --alpha=0.0025 --tikhonov  --title 'tart_mesh'
+	${TIME} uv run disko --mesh ${TART_ARGS} --alpha=0.0025 --tikhonov  --title 'tart_mesh'
 
 tart_mesh_fista:
-	disko --mesh ${TART_ARGS}  --fista --niter 1000  --matrix-free  --title 'tarta_mesh_fista'
+	uv run disko --mesh ${TART_ARGS}  --fista --niter 1000  --matrix-free  --title 'tarta_mesh_fista'
 
 sphere:
-	disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
+	uv run disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
 
 tart_fista:
 	rm -f disko.log
-	disko --healpix ${TART_ARGS} --SVG --fista --alpha=0.01 --matrix-free --niter=300 --title 'tart_fista'
+	uv run disko --healpix ${TART_ARGS} --SVG --fista --alpha=0.01 --matrix-free --niter=300 --title 'tart_fista'
 tart_lsmr:
 	rm -f disko.log
-	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsmr --matrix-free --title 'tart_lsmr'
+	uv run disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsmr --matrix-free --title 'tart_lsmr'
 tart_lsqr:
 	rm -f disko.log
-	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsqr --matrix-free --title 'tart_lsqr'
+	uv run disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lsqr --matrix-free --title 'tart_lsqr'
 
 tart_lasso:
 	rm -f disko.log
-	disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lasso --title 'tart_lasso'
+	uv run disko --healpix ${TART_ARGS} --SVG --alpha=0.01 --lasso --title 'tart_lasso'
 
 ## 1000 0.1074
 ## 2000 0.0696
@@ -109,28 +109,28 @@ NV_CYG=5000
 #	1281930
 mf_cyg:
 	rm -f disko.log
-	disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --fista --matrix-free --alpha 100 --title 'mf_cyg' --niter 1000
+	uv run disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --fista --matrix-free --alpha 100 --title 'mf_cyg' --niter 1000
 cygnus_lasso:
 	rm -f disko.log
-	disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --lasso --l1-ratio=0.02 --matrix-free --alpha 0.01 --title 'cygnus_lasso'
+	uv run disko --mesh --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res=2arcsec --nvis ${NV_CYG} --lasso --l1-ratio=0.02 --matrix-free --alpha 0.01 --title 'cygnus_lasso'
 
 mf_preview:
 	paraview --data=callback_..vtk
 
 profile:
-	python3 -m cProfile -o disko.prof ./bin/disko --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --SVG --arcmin=0.02 --alpha=-0.0695 --nvis 1000 --fista --matrix-free --title 'mf_cyg' --niter 10
-	python3 prof.py
+	uv run python -m cProfile -o disko.prof ./bin/disko --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --SVG --arcmin=0.02 --alpha=-0.0695 --nvis 1000 --fista --matrix-free --title 'mf_cyg' --niter 10
+	uv run python prof.py
 
 sequential: step1 step2
 
 step1:
-	disko_bayes --nside 24 --ms test_data/test.ms  --dir test_out --title 'bayes_tart' --sigma-v=0.15 --posterior post.h5
+	uv run disko_bayes --nside 24 --ms test_data/test.ms  --dir test_out --title 'bayes_tart' --sigma-v=0.15 --posterior post.h5
 
 step2:
-	disko_bayes --nside 24 --ms test_data/test.ms  --mu --pcf --var --PNG  --dir test_out --title 'bayes_tart_2' --sigma-v=0.15 --prior post.h5
+	uv run disko_bayes --nside 24 --ms test_data/test.ms  --mu --pcf --var --PNG  --dir test_out --title 'bayes_tart_2' --sigma-v=0.15 --prior post.h5
 
 h5:
-	disko_bayes --hdf test_data/vis_2021-03-25_20_50_23.568474.hdf --nside 20 --sigma-v=0.15 --mu --pcf --var --PNG --title 'sequential' --dir=seq_out
+	uv run disko_bayes --hdf test_data/vis_2021-03-25_20_50_23.568474.hdf --nside 20 --sigma-v=0.15 --mu --pcf --var --PNG --title 'sequential' --dir=seq_out
 
 # Memory 4800x276 456212
 #	 19328x276 640932 ->  458364 for

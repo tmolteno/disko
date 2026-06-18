@@ -50,7 +50,6 @@ def handle_image(args, title, time_repr, src_list=None):
 
 
 def fun_plot(to, data, title):
-    global ARGS
     pixels = np.zeros_like(to.sphere.pixels)
 
     pixels = data.reshape((len(pixels),))
