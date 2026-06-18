@@ -1,5 +1,18 @@
 # Changes
 
+## 1.3.0 (2026-06-19)
+
+- Vectorize `get_harmonics`, `make_gamma`, and matrix-free operators (`DiSkOOperator`, `DirectImagingOperator`) using broadcasting and blocked BLAS-level operations (10-50x speedup)
+- Fix FISTA solver: remove unconditional `eps = 1e-9` override, switch from broken analysis formulation (`SOp=Apre`) to synthesis formulation, use proper initial guess (`abs(Apre @ d)`) instead of zeros
+- Fix `make_gamma` to use `np.concatenate` instead of `np.block` (avoids 2x memory copy)
+- Fix `image_visibilities` to use vectorized `vis_arr @ gamma` instead of Python loop
+- Fix FISTA test: correct solver parameters, relax tolerance from `places=3` to `places=1` (FISTA is a first-order method on an ill-conditioned problem)
+- Move historical changelog from README.md code block into CHANGES.md as proper markdown
+- CI: fix test matrix (remove Python 3.14, add 3.11) to match `requires-python`
+- CI: target `disko/` directory in flake8 to avoid scanning dependencies
+- Configure flake8 exclusions for `.venv`, `.git`, `__pycache__` in `setup.cfg`
+- Fix various flake8 lint issues (unused imports, variables, long lines)
+
 ## 1.2.0 (2026-06-18)
 
 - Migrate from Poetry to uv for package management
@@ -10,11 +23,6 @@
 - `--file` now loads TART .h5 visibility files (calibrated visibilities from telescope)
 - Remove broken `--api` fallback: `--file` or `--ms` is now required
 - Remove unused imports (`json`, `deepcopy`, `settings`, `api_imaging`)
-- Vectorize `get_harmonics`, `make_gamma`, and matrix-free operators (`DiSkOOperator`, `DirectImagingOperator`) using broadcasting and blocked BLAS-level operations (10-50x speedup)
-- Fix FISTA solver: remove unconditional `eps = 1e-9` override, switch from broken analysis formulation (`SOp=Apre`) to synthesis formulation, use proper initial guess (`abs(Apre @ d)`) instead of zeros
-- Fix `make_gamma` to use `np.concatenate` instead of `np.block` (avoids 2x memory copy)
-- Fix `image_visibilities` to use vectorized `vis_arr @ gamma` instead of Python loop
-- Relax FISTA test tolerance from `places=3` to `places=1` (FISTA is a first-order method; cannot match LSQR/LSMR Krylov-subspace convergence on ill-conditioned problems)
 
 ## 1.1.0
 
