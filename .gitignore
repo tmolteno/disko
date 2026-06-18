@@ -1,5 +1,7 @@
 .venv
 test_data
+*.hdf
+*.h5
 *.vtk
 *.png
 *.prof
