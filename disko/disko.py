@@ -75,7 +75,7 @@ def jomega(freq):
     return 1.0j * omega(freq)
 
 
-def get_harmonic(p2j, l, m, n_minus_1, u, v, w, pixel_areas):
+def get_harmonic(p2j, l, m, n_minus_1, u, v, w, pixel_areas):  # noqa: E741 (l is a direction cosine)
     harmonic = np.exp(p2j * (u * l + v * m + w * n_minus_1)) * pixel_areas
     return harmonic
 
@@ -525,8 +525,10 @@ class DiSkO(object):
             )
             for b, i in zip(bigguns.tolist(), self.indices[bigguns]):
                 logger.info(
-                    f"    {i:8d}, {b:8d}, {np.abs(c_res[b]):5.2f},   {self.u_arr[b]:8.2f}, {self.v_arr[b]:8.2f}, {self.w_arr[b]:8.2f}, {c_data[b]:4.2f}"
-                )  # noflake8
+                    f"    {i:8d}, {b:8d}, {np.abs(c_res[b]):5.2f},"
+                    f"   {self.u_arr[b]:8.2f}, {self.v_arr[b]:8.2f},"
+                    f" {self.w_arr[b]:8.2f}, {c_data[b]:4.2f}"
+                )
 
     def solve_matrix_free(
         self,
@@ -757,7 +759,6 @@ class DiSkO(object):
 
     def image_tikhonov(self, vis_arr, sphere, alpha, scale=True, usedask=False):
         n_s = sphere.pixels.shape[0]
-        n_v = self.u_arr.shape[0]
 
         logger.info(
             f"image_tikhonov({vis_arr.shape}, {sphere}, {alpha}, scale={scale}, usedask={usedask})"
@@ -832,7 +833,6 @@ class DiSkO(object):
         else:
             import dask
             import dask_glm
-            from dask.diagnostics import ProgressBar
             from dask.distributed import Client, LocalCluster
             from dask_ml.linear_model import LinearRegression
 
@@ -947,10 +947,10 @@ class DiSkO(object):
 
     def display(self, plt, src_list, nside):
         sphere = HealpixFoV(nside)
-        sky = self.solve_vis(self.vis_arr, sphere)
+        self.solve_vis(self.vis_arr, sphere)
         sphere.plot(plt, src_list)
 
     def beam(self, plt, nside):
         sphere = HealpixFoV(nside)
-        sky = self.solve_vis(np.ones_like(self.vis_arr), nside)
+        self.solve_vis(np.ones_like(self.vis_arr), nside)
         sphere.plot(plt, src_list=None)

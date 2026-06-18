@@ -13,7 +13,7 @@ from tart.util import constants
 from tart_tools import api_imaging
 
 import disko
-from disko import AdaptiveMeshFoV, DiSkO, HealpixFoV, HealpixSubFoV, Resolution
+from disko import DiSkO, HealpixFoV, HealpixSubFoV, Resolution
 
 logger = logging.getLogger(__name__)
 # Add a null handler so logs can go somewhere
