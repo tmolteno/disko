@@ -1,6 +1,6 @@
 # Changes
 
-## 1.3.0 (2026-06-19)
+## 1.3.3 (2026-06-19)
 
 - Vectorize `get_harmonics`, `make_gamma`, and matrix-free operators (`DiSkOOperator`, `DirectImagingOperator`) using broadcasting and blocked BLAS-level operations (10-50x speedup)
 - Fix FISTA solver: remove unconditional `eps = 1e-9` override, switch from broken analysis formulation (`SOp=Apre`) to synthesis formulation, use proper initial guess (`abs(Apre @ d)`) instead of zeros
