@@ -31,7 +31,7 @@ svd:
 
 bayes:
 	#rm -f *.npz
-	uv run disko_bayes --fov 155 --ms test_data/test.ms  --mu --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15
+	uv run disko_bayes --healpix --fov 155 --res 30arcmin --ms test_data/test.ms  --mu --var --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15
 #	${TIME} uv run disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
 
 ngc1194:

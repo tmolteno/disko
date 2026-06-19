@@ -12,6 +12,9 @@
 - CI: target `disko/` directory in flake8 to avoid scanning dependencies
 - Configure flake8 exclusions for `.venv`, `.git`, `__pycache__` in `setup.cfg`
 - Fix various flake8 lint issues (unused imports, variables, long lines)
+- Fix `disko_bayes` MS reading: replace broken `DiSkO.from_ms()` with `disko_from_ms()`, add visibility conjugation, geo-location, and file-exists check
+- Fix `disko_bayes` output: remove invalid `fov` argument from `to_fits()` and `to_svg()` calls
+- Fix publish workflow: use concrete Python version (`3.12` instead of `3.x`), pin `actions/checkout@v4`, fix `--outdir` → `--out-dir`
 
 ## 1.2.0 (2026-06-18)
 
