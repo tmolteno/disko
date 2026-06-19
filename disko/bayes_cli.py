@@ -238,9 +238,7 @@ def handle_output(ARGS, timestamp, posterior, sphere, disko=None):
         # Save as a FITS file
 
         if ARGS.FITS:
-            sphere.to_fits(
-                fname=path("fits", image_title), fov=ARGS.fov, info=disko.info
-            )
+            sphere.to_fits(fname=path("fits", image_title), info=disko.info)
 
         if ARGS.SVG:
             fname = path("svg", image_title)
@@ -248,7 +246,6 @@ def handle_output(ARGS, timestamp, posterior, sphere, disko=None):
                 fname=fname,
                 show_grid=True,
                 src_list=source_list,
-                fov=ARGS.fov,
                 title=image_title,
                 show_cbar=True,
             )
