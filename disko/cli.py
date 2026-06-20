@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+# Copyright Tim Molteno 2022-2026 tim@elec.ac.nz
+# License: GPLv3
 import matplotlib
 import os
 
@@ -229,7 +232,7 @@ def main():
     if ARGS.version:
         vers = version("disko")
         print(f"disko: Version {vers}")
-        print("       (c) 2022-2023 Tim Molteno")
+        print("       (c) 2022-2026 Tim Molteno")
         sys.exit(0)
 
     sphere = sphere_from_args(ARGS)

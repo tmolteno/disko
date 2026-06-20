@@ -1,5 +1,5 @@
 #
-# Copyright Tim Molteno 2022 tim@elec.ac.nz
+# Copyright Tim Molteno 2022-2026 tim@elec.ac.nz
 #
 
 import argparse

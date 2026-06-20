@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+
+# Copyright Tim Molteno 2022-2026 tim@elec.ac.nz
+# License: GPLv3
 import matplotlib
 import os
 if os.name == 'posix' and "DISPLAY" not in os.environ:

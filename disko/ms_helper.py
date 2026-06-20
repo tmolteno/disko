@@ -1,7 +1,7 @@
 """
 Read data from a measurement set.
 Author: Tim Molteno, tim@elec.ac.nz
-Copyright (c) 2019-2025.
+Copyright (c) 2022-2026.
 
 License. GPLv3.
 """

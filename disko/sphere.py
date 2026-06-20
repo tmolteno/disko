@@ -1,3 +1,6 @@
+# Copyright Tim Molteno 2022-2026 tim@elec.ac.nz
+# License: GPLv3
+
 # Classes to hold pixelated spheres
 # Tim Molteno tim@elec.ac.nz 2019-2023
 #

@@ -1,7 +1,7 @@
 """
 Utility functions for tart2ms
 Author: Tim Molteno, tim@elec.ac.nz
-Copyright (c) 2019-2025.
+Copyright (c) 2022-2026.
 
 License. GPLv3.
 """
