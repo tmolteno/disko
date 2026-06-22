@@ -417,8 +417,10 @@ class TelescopeOperator:
 
         # A_r = U_1 @ sigma_1 with U_1^T @ U_1 = I, so:
         #   A_r @ x_r = v_n  =>  sigma_1 @ x_r = v_n  =>  x_r = sigma_1^{-1} @ v_n
-        # sigma_1 is diagonal, use direct division
-        x_r = v_n / np.diag(self.sigma_1)
+        # sigma_1 is diagonal; np.diag extracts the 1D diagonal.
+        # Ravel to 1D for element-wise division, then reshape back.
+        x_r = v_n.ravel() / np.diag(self.sigma_1)
+        x_r = x_r.reshape(-1, 1)
         # x_n = np.zeros(self.n_n())
         logger.info("x_r = {}".format(x_r.shape))
 
