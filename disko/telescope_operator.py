@@ -239,8 +239,8 @@ class TelescopeOperator:
             self.sigma = npzfile["sigma"]
             self.rank = npzfile["rank"]
             self.V = self.Vh.conj().T
-            self.V_1 = self.V[:, 0:self.rank]
-            self.V_2 = self.V[:, self.rank:]
+            self.V_1 = self.V[:, 0 : self.rank]
+            self.V_2 = self.V[:, self.rank :]
 
         else:
             logger.info("Performing SVD.")
@@ -254,8 +254,8 @@ class TelescopeOperator:
                 )
 
             self.V = self.Vh.T
-            self.V_1 = self.V[:, 0:self.rank]
-            self.V_2 = self.V[:, self.rank:]
+            self.V_1 = self.V[:, 0 : self.rank]
+            self.V_2 = self.V[:, self.rank :]
             # logger.info("Calculating orthogonal projections")
 
             # self._P_r = self.V_1 @ self.V_1h # Projection onto the range space of A
@@ -278,10 +278,10 @@ class TelescopeOperator:
 
         logger.info("rank = {}".format(self.rank))
 
-        self.U_1 = self.U[:, 0:self.rank]
+        self.U_1 = self.U[:, 0 : self.rank]
         self.U_2 = self.U[:, self.rank :]
 
-        self.sigma_1 = self.sigma[0:self.rank, 0:self.rank]
+        self.sigma_1 = self.sigma[0 : self.rank, 0 : self.rank]
 
         self.A_r = self.U_1 @ self.sigma_1  #
 
@@ -356,7 +356,7 @@ class TelescopeOperator:
 
     def null_to_sky(self, x_n):
         x = np.zeros(self.n_s)
-        x[self.rank:-1] = x_n
+        x[self.rank : -1] = x_n
         return self.natural_to_sky(x)
 
     def image_visibilities(self, vis_arr, sphere, scale=True):
@@ -406,7 +406,7 @@ class TelescopeOperator:
         logger.info("Imaging Natural nside={}".format(sphere.nside))
         t0 = time.time()
 
-        s = self.s[0:self.rank]
+        s = self.s[0 : self.rank]
         D = np.diag(s)  # noqa: F841
 
         logger.info("vis_arr = {}".format(vis_arr.shape))
@@ -415,7 +415,10 @@ class TelescopeOperator:
         # x_r = D @ self.U_1.T @ vis_arr
         v_n = self.U_1.T @ vis_arr
 
-        x_r = np.linalg.solve(self.A_r, v_n)
+        # A_r = U_1 @ sigma_1 with U_1^T @ U_1 = I, so:
+        #   A_r @ x_r = v_n  =>  sigma_1 @ x_r = v_n  =>  x_r = sigma_1^{-1} @ v_n
+        # sigma_1 is diagonal, use direct division
+        x_r = v_n / np.diag(self.sigma_1)
         # x_n = np.zeros(self.n_n())
         logger.info("x_r = {}".format(x_r.shape))
 
