@@ -166,6 +166,12 @@ def casa_read_ms(
         p05, p50, p95 = np.percentile(np.abs(uvw[:, i]), [5, 50, 95])
         logger.debug("       U[{}]: {:5.2f} {:5.2f} {:5.2f}".format(i, p05, p50, p95))
 
+    # Baseline length distribution in 5% steps
+    bl_percentiles = np.percentile(bl, np.arange(0, 101, 5))
+    logger.info("Baseline length percentiles (m):")
+    logger.info("  " + " ".join(f"{p:3d}%" for p in range(0, 101, 5)))
+    logger.info("  " + " ".join(f"{v:5.1f}" for v in bl_percentiles))
+
     n_max = len(good_data)
 
     if n_max <= num_vis:
