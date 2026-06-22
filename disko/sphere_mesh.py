@@ -9,18 +9,17 @@
 # https://stackoverflow.com/questions/7975522/mesh-generation-for-computational-science-in-python
 
 import logging
-import pygmsh
+
 import h5py
-# import gmsh
-
-
-from scipy.spatial import Delaunay
 import meshio
-
-from .sphere import FoV, hp2elaz, elaz2lmn
-from .resolution import Resolution
-
 import numpy as np
+import pygmsh
+
+# import gmsh
+from scipy.spatial import Delaunay
+
+from .resolution import Resolution
+from .sphere import FoV, elaz2lmn, hp2elaz
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
@@ -33,8 +32,7 @@ def centroid(cell, points):
 def area(cell, points):
     p, q, r = points[cell]
     return np.abs(
-        0.5 * (p[0] * (q[1] - r[1]) + q[0] *
-               (r[1] - p[1]) + r[0] * (p[1] - q[1]))
+        0.5 * (p[0] * (q[1] - r[1]) + q[0] * (r[1] - p[1]) + r[0] * (p[1] - q[1]))
     )
 
 
@@ -52,64 +50,72 @@ def area(cell, points):
 
 # class AdaptiveMeshFoVNew(FoV):
 
-    # def __init__(self, res_min, res_max, radius_rad):
-    # self.radius_rad = radius_rad
-    # self.fov = np.degrees(radius_rad * 2)
-    # self.res_arcmin = np.degrees(res_max)*60
+# def __init__(self, res_min, res_max, radius_rad):
+# self.radius_rad = radius_rad
+# self.fov = np.degrees(radius_rad * 2)
+# self.res_arcmin = np.degrees(res_max)*60
 
-    # self.res_max = res_max
-    # self.res_min = res_min
+# self.res_max = res_max
+# self.res_min = res_min
 
-    # edge_size = res_max / radius_rad
-    # logger.info(f" Starting mesh generation {pygmsh.__version__}")
+# edge_size = res_max / radius_rad
+# logger.info(f" Starting mesh generation {pygmsh.__version__}")
 
-    # with pygmsh.geo.Geometry() as geom:
-    # geom.add_circle(
-    # [0.0, 0.0, 0.0],
-    # 1.0,
-    # mesh_size=edge_size,
-    # num_sections=4,
-    # compound=True,
-    # )
-    # mesh = geom.generate_mesh()
-    # print(mesh)
-    # X = mesh.points
-    # cells = mesh.get_cells_type("triangle")
-    # logger.info(f" Mesh generated: pts={X.shape}, cells={cells.shape}")
-    # print(cells)
+# with pygmsh.geo.Geometry() as geom:
+# geom.add_circle(
+# [0.0, 0.0, 0.0],
+# 1.0,
+# mesh_size=edge_size,
+# num_sections=4,
+# compound=True,
+# )
+# mesh = geom.generate_mesh()
+# print(mesh)
+# X = mesh.points
+# cells = mesh.get_cells_type("triangle")
+# logger.info(f" Mesh generated: pts={X.shape}, cells={cells.shape}")
+# print(cells)
 
-    # @classmethod
-    # def from_resolution(
-    # cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius_rad=0.0
-    # ):
-    # Theta is co-latitude measured southward from the north pole
-    # Phi is [0..2pi]
+# @classmethod
+# def from_resolution(
+# cls, res_arcmin=None, res_arcmax=None, theta=0.0, phi=0.0, radius_rad=0.0
+# ):
+# Theta is co-latitude measured southward from the north pole
+# Phi is [0..2pi]
 
-    # res_max = np.radians(res_arcmax / 60)
-    # res_min = np.radians(res_arcmin / 60)
-    # ret = cls(res_min, res_max, radius_rad)
-    # logger.info("AdaptiveMeshFoV from_res, npix={}".format(ret.npix))
+# res_max = np.radians(res_arcmax / 60)
+# res_min = np.radians(res_arcmin / 60)
+# ret = cls(res_min, res_max, radius_rad)
+# logger.info("AdaptiveMeshFoV from_res, npix={}".format(ret.npix))
 
-    # return ret
+# return ret
+
 
 def get_mesh(radius_rad, edge_size):
 
-    logger.info(f"Generating Mesh: Radius: {Resolution.from_rad(radius_rad)}, edge = {Resolution.from_rad(edge_size)}")
+    logger.info(
+        f"Generating Mesh: Radius: {Resolution.from_rad(radius_rad)}, edge = {Resolution.from_rad(edge_size)}"
+    )
     logger.info(f" Starting mesh generation {pygmsh.__version__}")
 
-    with pygmsh.geo.Geometry() as geom:
-        geom.add_circle(
-            [0.0, 0.0, 0.0],
-            1.0,
-            mesh_size=edge_size/radius_rad
-        )
-        # gmsh.option.setNumber('Mesh.MeshSizeFactor', 1)
-        # gmsh.option.setNumber('Mesh.MeshSizeMax', edge_size/radius_rad)
+    geom = pygmsh.geo.Geometry()
+    geom.__enter__()
+    geom.add_circle([0.0, 0.0, 0.0], 1.0, mesh_size=edge_size / radius_rad)
 
-        # gmsh.option.setNumber('Mesh.OptimizeThreshold', 0.5)
+    mesh = geom.generate_mesh()
+    optimized_mesh = pygmsh.optimize(mesh, method="")
 
-        mesh = geom.generate_mesh()
-        optimized_mesh = pygmsh.optimize(mesh, method="")
+    # Work around pygmsh/gmsh incompatibility: the context manager's
+    # __exit__ calls removeSizeCallback which fails on gmsh >= 4.12.
+    try:
+        geom.__exit__(None, None, None)
+    except Exception:
+        try:
+            import gmsh
+
+            gmsh.finalize()
+        except Exception:
+            pass
 
     X = optimized_mesh.points
     cells = np.array(optimized_mesh.get_cells_type("triangle"), dtype=np.int64)
@@ -117,7 +123,8 @@ def get_mesh(radius_rad, edge_size):
     # logger.info("Optimizing Mesh")
     # X, cells = optimesh.optimize_points_cells(X, cells,  "CVT (block-diagonal)", 1e-5, 10, verbose=False)
 
-    return X*radius_rad, cells
+    return X * radius_rad, cells
+
 
 # def get_mesh_old(radius_rad, edge_size):
 #
@@ -139,11 +146,7 @@ def get_mesh(radius_rad, edge_size):
 def get_lmn(radius_rad, edge_size):
     X, cells = get_mesh(radius_rad, edge_size)
 
-    pixel_areas = (
-        np.array(
-            [area(cell=c, points=X) for c in cells]
-        )
-    )
+    pixel_areas = np.array([area(cell=c, points=X) for c in cells])
 
     centroids = np.sum(X[cells], axis=1) / 3
 
@@ -151,14 +154,14 @@ def get_lmn(radius_rad, edge_size):
     y = centroids[:, 1]
     r = np.sqrt(x * x + y * y)  # in radians
 
-    '''
+    """
         Convert the x,y to theta and phi,
                                                         |r
                                                         |
         obs----------------------1.0---------------------
         sin(el_r) = r
 
-    '''
+    """
 
     theta = r
     phi = np.arctan2(x, y)
@@ -181,7 +184,8 @@ class AdaptiveMeshFoV(FoV):
 
     def __init__(self, res_min, res_max, fov, theta, phi, recompute=True):
         logger.info(
-            f"New AdaptiveMeshFoV(fov={fov}) res_min={res_min}, res_max={res_max})")
+            f"New AdaptiveMeshFoV(fov={fov}) res_min={res_min}, res_max={res_max})"
+        )
         self.radius_rad = fov.radians() / 2
         self.fov = fov
         self.res_arcmin = res_max.arcmin()
@@ -193,7 +197,8 @@ class AdaptiveMeshFoV(FoV):
 
         if recompute:
             points, simplices, pixel_areas, el_r, az_r, l, m, n = get_lmn(
-                self.radius_rad, self.res_max.radians())
+                self.radius_rad, self.res_max.radians()
+            )
 
             self.l = l
             self.m = m
@@ -225,48 +230,52 @@ class AdaptiveMeshFoV(FoV):
         with h5py.File(filename, "w") as h5f:
             self.to_hdf_header(h5f)
 
-            h5f.create_dataset('npix', data=[self.npix])
-            h5f.create_dataset('res_min', data=[self.res_min.radians()])
-            h5f.create_dataset('res_max', data=[self.res_max.radians()])
-            h5f.create_dataset('fov', data=[self.fov.radians()])
-            h5f.create_dataset('theta', data=[self.theta])
-            h5f.create_dataset('phi', data=[self.phi])
-            h5f.create_dataset('radius_rad', data=[self.radius_rad])
+            h5f.create_dataset("npix", data=[self.npix])
+            h5f.create_dataset("res_min", data=[self.res_min.radians()])
+            h5f.create_dataset("res_max", data=[self.res_max.radians()])
+            h5f.create_dataset("fov", data=[self.fov.radians()])
+            h5f.create_dataset("theta", data=[self.theta])
+            h5f.create_dataset("phi", data=[self.phi])
+            h5f.create_dataset("radius_rad", data=[self.radius_rad])
 
-            h5f.create_dataset('pixels', data=self.pixels)
-            h5f.create_dataset('points', data=self.points)
-            h5f.create_dataset('simplices', data=self.simplices)
-            h5f.create_dataset('pixel_areas', data=self.pixel_areas)
-            h5f.create_dataset('l', data=self.l)
-            h5f.create_dataset('m', data=self.m)
-            h5f.create_dataset('n_minus_1', data=self.n_minus_1)
-            h5f.create_dataset('el_r', data=self.el_r)
-            h5f.create_dataset('az_r', data=self.az_r)
+            h5f.create_dataset("pixels", data=self.pixels)
+            h5f.create_dataset("points", data=self.points)
+            h5f.create_dataset("simplices", data=self.simplices)
+            h5f.create_dataset("pixel_areas", data=self.pixel_areas)
+            h5f.create_dataset("l", data=self.l)
+            h5f.create_dataset("m", data=self.m)
+            h5f.create_dataset("n_minus_1", data=self.n_minus_1)
+            h5f.create_dataset("el_r", data=self.el_r)
+            h5f.create_dataset("az_r", data=self.az_r)
 
     @classmethod
     def from_hdf(cls, h5f):
-        res_min = h5f['res_min'][:][0]
-        res_max = h5f['res_max'][:][0]
-        fov = h5f['fov'][:][0]
-        theta = h5f['theta'][:][0]
-        phi = h5f['phi'][:][0]
-        _radius_rad = h5f['radius_rad'][:][0]
+        res_min = h5f["res_min"][:][0]
+        res_max = h5f["res_max"][:][0]
+        fov = h5f["fov"][:][0]
+        theta = h5f["theta"][:][0]
+        phi = h5f["phi"][:][0]
+        _radius_rad = h5f["radius_rad"][:][0]
 
-        ret = AdaptiveMeshFoV(Resolution.from_rad(res_min),
-                                 Resolution.from_rad(res_max),
-                                 Resolution.from_rad(fov),
-                                 theta, phi, recompute=False)
+        ret = AdaptiveMeshFoV(
+            Resolution.from_rad(res_min),
+            Resolution.from_rad(res_max),
+            Resolution.from_rad(fov),
+            theta,
+            phi,
+            recompute=False,
+        )
 
-        ret.npix = h5f['npix'][:][0]
-        ret.pixels = h5f['pixels'][:]
-        ret.points = h5f['points'][:]
-        ret.simplices = h5f['simplices'][:]
-        ret.pixel_areas = h5f['pixel_areas'][:]
-        ret.l = h5f['l'][:]
-        ret.m = h5f['m'][:]
-        ret.n_minus_1 = h5f['n_minus_1'][:]
-        ret.el_r = h5f['el_r'][:]
-        ret.az_r = h5f['az_r'][:]
+        ret.npix = h5f["npix"][:][0]
+        ret.pixels = h5f["pixels"][:]
+        ret.points = h5f["points"][:]
+        ret.simplices = h5f["simplices"][:]
+        ret.pixel_areas = h5f["pixel_areas"][:]
+        ret.l = h5f["l"][:]
+        ret.m = h5f["m"][:]
+        ret.n_minus_1 = h5f["n_minus_1"][:]
+        ret.el_r = h5f["el_r"][:]
+        ret.az_r = h5f["az_r"][:]
         return ret
 
     def fast_mesh(self, pts, simplices):
@@ -276,22 +285,19 @@ class AdaptiveMeshFoV(FoV):
         self.pixels = np.zeros(self.npix)
 
         # Scale points
-        self.points = self.radius_rad*np.sum(pts[simplices], axis=1) / 3
+        self.points = self.radius_rad * np.sum(pts[simplices], axis=1) / 3
         self.simplices = simplices
-        pixel_areas = (
-            np.array(
-                [area(cell=c, points=pts) for c in simplices]
-            )
-        )
+        pixel_areas = np.array([area(cell=c, points=pts) for c in simplices])
         total_area = np.sum(pixel_areas)
 
         logger.info(f"Total area {total_area}")
 
         self.pixel_areas = pixel_areas / total_area
 
-        if (self.pixel_areas.shape[0] != self.npix):
+        if self.pixel_areas.shape[0] != self.npix:
             raise RuntimeError(
-                f"self.pixel_areas.shape != self.N, {self.pixel_areas.shape} != {self.npix}")
+                f"self.pixel_areas.shape != self.N, {self.pixel_areas.shape} != {self.npix}"
+            )
 
         self.set_lmn()
 
@@ -310,13 +316,11 @@ class AdaptiveMeshFoV(FoV):
         self.pixels = np.zeros(self.npix)
 
         # Scale points
-        self.points = self.radius_rad * \
-            np.sum(self.tri.points[self.tri.simplices], axis=1) / 3
-        pixel_areas = (
-            np.array(
-                [area(cell=c, points=self.tri.points)
-                 for c in self.tri.simplices]
-            )
+        self.points = (
+            self.radius_rad * np.sum(self.tri.points[self.tri.simplices], axis=1) / 3
+        )
+        pixel_areas = np.array(
+            [area(cell=c, points=self.tri.points) for c in self.tri.simplices]
         )
         total_area = np.sum(pixel_areas)
 
@@ -324,9 +328,10 @@ class AdaptiveMeshFoV(FoV):
 
         self.pixel_areas = pixel_areas / total_area
 
-        if (self.pixel_areas.shape[0] != self.npix):
+        if self.pixel_areas.shape[0] != self.npix:
             raise RuntimeError(
-                f"self.pixel_areas.shape != self.N, {self.pixel_areas.shape} != {self.npix}")
+                f"self.pixel_areas.shape != self.N, {self.pixel_areas.shape} != {self.npix}"
+            )
 
         self.set_lmn()
 
@@ -356,8 +361,7 @@ class AdaptiveMeshFoV(FoV):
                         cell_pairs.append([p1, p2])
                     else:
                         n_ignored += 1
-        logger.info("Gradient Ignored: {} of {} points".format(
-            n_ignored, self.npix))
+        logger.info("Gradient Ignored: {} of {} points".format(n_ignored, self.npix))
 
         return np.array(gradients), cell_pairs
 
@@ -374,8 +378,7 @@ class AdaptiveMeshFoV(FoV):
         rlist = gradr[:, 1]
 
         p05, p50, p95 = np.percentile(grad, [5, 50, 95])
-        logger.info(
-            "Grad Percentiles: 5: {} 50: {} 95: {}".format(p05, p50, p95))
+        logger.info("Grad Percentiles: 5: {} 50: {} 95: {}".format(p05, p50, p95))
         r05, r50, r95 = np.percentile(rlist, [5, 50, 95])
         logger.info("r Percentiles: 5: {} 50: {} 95: {}".format(r05, r50, r95))
 
@@ -389,8 +392,7 @@ class AdaptiveMeshFoV(FoV):
                 new_count += 1
 
         logger.info(
-            "Added {} points to {} -> ".format(new_count,
-                                               self.tri.points.shape)
+            "Added {} points to {} -> ".format(new_count, self.tri.points.shape)
         )
 
         # self.tri.add_points(new_pts)
@@ -424,8 +426,7 @@ class AdaptiveMeshFoV(FoV):
 
         grad = np.abs(np.array(gradlist))
         p05, p50, p95 = np.percentile(grad, [5, 50, 95])
-        logger.info(
-            "Grad Percentiles: 5: {} 50: {} 95: {}".format(p05, p50, p95))
+        logger.info("Grad Percentiles: 5: {} 50: {} 95: {}".format(p05, p50, p95))
 
         new_indices = []  # Just store the indices
         # Now remove entire cells
@@ -452,9 +453,7 @@ class AdaptiveMeshFoV(FoV):
         plt.plot(self.tri.points[:, 0], self.tri.points[:, 1], "o")
         plt.plot(self.points[:, 0], self.points[:, 1], ".")
         plt.triplot(
-            self.tri.points[:, 0],
-            self.tri.points[:, 1],
-            self.tri.simplices.copy()
+            self.tri.points[:, 0], self.tri.points[:, 1], self.tri.simplices.copy()
         )
 
     def callback(self, x, i):
@@ -499,7 +498,6 @@ class AdaptiveMeshFoV(FoV):
 
 
 if __name__ == "__main__":
-
     # logger = logging.getLogger()
     # logger.setLevel(logging.DEBUG)
     #

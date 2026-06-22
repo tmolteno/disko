@@ -23,6 +23,7 @@ dependencies = [
     "imageio>=0.6.0b1",
     "pygmsh>=7.1.17,<8.0.0",
     "dask-ms>=0.2.25,<0.3.0",
+    "gmsh<4.13",
 ]
 
 [project.optional-dependencies]

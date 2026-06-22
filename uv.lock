@@ -374,6 +374,7 @@ version = "1.3.3"
 source = { editable = "." }
 dependencies = [
     { name = "dask-ms" },
+    { name = "gmsh" },
     { name = "h5py" },
     { name = "healpy" },
     { name = "imageio" },
@@ -403,6 +404,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "dask-ms", specifier = ">=0.2.25,<0.3.0" },
+    { name = "gmsh", specifier = "<4.13" },
     { name = "h5py", specifier = ">=3.7" },
     { name = "healpy", specifier = ">=1.15.0,<2.0.0" },
     { name = "imageio", specifier = ">=0.6.0b1" },
@@ -496,13 +498,13 @@ wheels = [
 
 [[package]]
 name = "gmsh"
-version = "4.15.2"
+version = "4.12.2"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/19/a6/f3f74f53234c812ffa0191ce2aceb0811ea82bdf12867a73bebb03f28f7a/gmsh-4.15.2-py2.py3-none-macosx_10_15_x86_64.whl", hash = "sha256:9f5a97b6633e40be331cb777ab571cef96e6ff5979bb7b20aad2438724ca417b", size = 40171095, upload-time = "2026-03-24T19:33:46.37Z" },
-    { url = "https://files.pythonhosted.org/packages/3d/b4/0d25938ad62ea4db6bcbdecbc77c72d05d8a6a679abe4addcd86167ffd77/gmsh-4.15.2-py2.py3-none-macosx_12_0_arm64.whl", hash = "sha256:f6649b3e59f49272e7ee8ab282ecb4d1a6e0d627e86cf3e3b1a83fd07417e4f8", size = 36427761, upload-time = "2026-03-24T19:33:51.161Z" },
-    { url = "https://files.pythonhosted.org/packages/ab/d4/336becb1488ac4fbab205043987128839c8c62d54e2036b7e887bd009040/gmsh-4.15.2-py2.py3-none-manylinux_2_24_x86_64.whl", hash = "sha256:4076a948ce22625330d1413d4982e22b5c69fc2f0f7951f5df64c778cf54108c", size = 40006930, upload-time = "2026-03-24T19:33:55.549Z" },
-    { url = "https://files.pythonhosted.org/packages/78/e9/63c763c0d75544680800651d5ea8c7c3203ae4b5e054706f19a54021a7fb/gmsh-4.15.2-py2.py3-none-win_amd64.whl", hash = "sha256:7b36083bb410fa27c5d0e052929d1a9844a5b09169d66017b72b41aabd49d711", size = 42235999, upload-time = "2026-03-24T19:34:00.529Z" },
+    { url = "https://files.pythonhosted.org/packages/01/46/5bb37524e7c445eb8cfb111aab29cb0ec17a7c20397004b60d1080d3ff7e/gmsh-4.12.2-py2.py3-none-macosx_10_15_x86_64.whl", hash = "sha256:28d91487f1666eacbcf3b24bf832ee5e4e09acfb8cff966e90a263623fbd26e0", size = 39871715, upload-time = "2024-01-21T21:20:11.158Z" },
+    { url = "https://files.pythonhosted.org/packages/13/1b/12825e919509a198d36f78886b2cbb9778fa89c6219fc2d2915de0ae2a4b/gmsh-4.12.2-py2.py3-none-macosx_12_0_arm64.whl", hash = "sha256:0620c62006443da23fffb211e6c579bf284b2340a1b9a74b5636b3367fc14096", size = 36083175, upload-time = "2024-01-21T21:20:16.534Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/cc/2f7b3d1a3025badb6a8548db8e89254957a9492f8fa61cc826a4274ce505/gmsh-4.12.2-py2.py3-none-manylinux_2_24_x86_64.whl", hash = "sha256:df6981be2dee9e6083a6d4f6a9b1d1ebd56e7c0cf2ed49ae97bc791f268af78e", size = 39279328, upload-time = "2024-01-21T21:20:21.628Z" },
+    { url = "https://files.pythonhosted.org/packages/40/8d/76ae548e16d06455952dde61898d933c663144092953945c004a2489d0e5/gmsh-4.12.2-py2.py3-none-win_amd64.whl", hash = "sha256:3af271f67efe7cb921fbcbd66bf994bf0e556324cc3b33b6ae582359cb12cd9e", size = 41691421, upload-time = "2024-01-21T21:20:28.715Z" },
 ]
 
 [[package]]
