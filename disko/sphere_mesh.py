@@ -13,9 +13,12 @@ import logging
 import h5py
 import meshio
 import numpy as np
-import pygmsh
 
-# import gmsh
+try:
+    import gmsh
+except ImportError:
+    gmsh = None
+
 from scipy.spatial import Delaunay
 
 from .resolution import Resolution
@@ -92,38 +95,61 @@ def area(cell, points):
 
 
 def get_mesh(radius_rad, edge_size):
+    """Generate a triangular mesh of a unit disc using gmsh.
+
+    Returns (points, cells) where points is (N, 3) scaled by radius_rad
+    and cells is (M, 3) integer array of triangle vertex indices.
+    """
+    if gmsh is None:
+        raise RuntimeError("gmsh is required for mesh generation")
 
     logger.info(
-        f"Generating Mesh: Radius: {Resolution.from_rad(radius_rad)}, edge = {Resolution.from_rad(edge_size)}"
+        f"Generating Mesh: Radius: {Resolution.from_rad(radius_rad)},"
+        f" edge = {Resolution.from_rad(edge_size)}"
     )
-    logger.info(f" Starting mesh generation {pygmsh.__version__}")
+    logger.info(f" Starting mesh generation gmsh {gmsh.__version__}")
 
-    geom = pygmsh.geo.Geometry()
-    geom.__enter__()
-    geom.add_circle([0.0, 0.0, 0.0], 1.0, mesh_size=edge_size / radius_rad)
-
-    mesh = geom.generate_mesh()
-    optimized_mesh = pygmsh.optimize(mesh, method="")
-
-    # Work around pygmsh/gmsh incompatibility: the context manager's
-    # __exit__ calls removeSizeCallback which fails on gmsh >= 4.12.
+    gmsh.initialize()
     try:
-        geom.__exit__(None, None, None)
-    except Exception:
-        try:
-            import gmsh
+        # Create a unit disc in the xy-plane
+        gmsh.model.occ.addDisk(0, 0, 0, 1, 1)
+        gmsh.model.occ.synchronize()
 
-            gmsh.finalize()
-        except Exception:
-            pass
+        # Apply the mesh size field
+        gmsh.model.mesh.setSize(gmsh.model.getEntities(0), edge_size / radius_rad)
 
-    X = optimized_mesh.points
-    cells = np.array(optimized_mesh.get_cells_type("triangle"), dtype=np.int64)
+        # Generate 2D mesh
+        gmsh.model.mesh.generate(2)
 
-    # logger.info("Optimizing Mesh")
-    # X, cells = optimesh.optimize_points_cells(X, cells,  "CVT (block-diagonal)", 1e-5, 10, verbose=False)
+        # Optimize
+        gmsh.model.mesh.optimize("Laplace2D")
 
-    return X * radius_rad, cells
+        # Extract nodes
+        node_tags, coords, _ = gmsh.model.mesh.getNodes()
+        X = np.array(coords).reshape(-1, 3)
+
+        # Extract triangle elements
+        elem_types, elem_tags, elem_node_tags = gmsh.model.mesh.getElements(2, -1)
+        cells = None
+        for et, ent in zip(elem_types, elem_node_tags):
+            if et == 2:  # 2 = 3-node triangle
+                cells = np.array(ent).reshape(-1, 3) - 1  # 1-based to 0-based
+                break
+
+        if cells is None:
+            raise RuntimeError("No triangle elements in mesh")
+
+        # Build a meshio object for the existing pygmsh-compatible return
+        mesh = meshio.Mesh(X, [("triangle", cells)])
+        optimized_mesh = mesh  # gmsh.optimize already did it
+
+        logger.info(f"Mesh generated: {X.shape[0]} points, {cells.shape[0]} cells")
+    finally:
+        gmsh.finalize()
+
+    X_out = optimized_mesh.points
+    cells_out = np.array(optimized_mesh.get_cells_type("triangle"), dtype=np.int64)
+    return X_out * radius_rad, cells_out
 
 
 # def get_mesh_old(radius_rad, edge_size):
