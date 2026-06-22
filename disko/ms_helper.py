@@ -6,18 +6,16 @@ Copyright (c) 2022-2026.
 License. GPLv3.
 """
 
-import logging
 import datetime
-import numpy as np
+import logging
 
+import numpy as np
+from astropy.coordinates import EarthLocation
 from casacore.tables import table
 
-from .rime import resolution_min_baseline, rayleigh_criterion, get_wavelengths
+from .rime import rayleigh_criterion, resolution_min_baseline
 
 logger = logging.getLogger("disko")
-
-
-from astropy.coordinates import EarthLocation
 
 
 def get_array_location(ms_file: str):

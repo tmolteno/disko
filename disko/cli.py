@@ -383,7 +383,7 @@ def main():
                 sphere.pixels = sphere.pixels / sphere.pixel_areas
 
     else:
-        sky = disko.solve_vis(disko.vis_arr, sphere)
+        _sky = disko.solve_vis(disko.vis_arr, sphere)  # noqa: F841
 
     if ARGS.HDF:
         fpath = os.path.join(ARGS.dir, ARGS.HDF)

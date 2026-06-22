@@ -9,9 +9,6 @@ License. GPLv3.
 import logging
 
 import numpy as np
-import os
-import json
-import re
 from astropy import constants
 
 LOGGER = logging.getLogger("disko")

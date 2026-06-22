@@ -155,7 +155,7 @@ def get_lmn(radius_rad, edge_size):
         Convert the x,y to theta and phi,
                                                         |r
                                                         |
-        obs----------------------1.0---------------------  
+        obs----------------------1.0---------------------
         sin(el_r) = r
 
     '''
@@ -166,7 +166,7 @@ def get_lmn(radius_rad, edge_size):
     el_r = np.pi / 2 - theta
     az_r = -phi
 
-    l = np.sin(az_r) * np.cos(el_r)
+    l = np.sin(az_r) * np.cos(el_r)  # noqa: E741
     m = np.cos(az_r) * np.cos(el_r)
     # Often written in this weird way... np.sqrt(1.0 - l**2 - m**2)
     n = np.sin(el_r)
@@ -250,7 +250,7 @@ class AdaptiveMeshFoV(FoV):
         fov = h5f['fov'][:][0]
         theta = h5f['theta'][:][0]
         phi = h5f['phi'][:][0]
-        radius_rad = h5f['radius_rad'][:][0]
+        _radius_rad = h5f['radius_rad'][:][0]
 
         ret = AdaptiveMeshFoV(Resolution.from_rad(res_min),
                                  Resolution.from_rad(res_max),
@@ -479,7 +479,7 @@ class AdaptiveMeshFoV(FoV):
             cell_data={"flux": [self.pixels]},
         )
 
-    def set_lmn(self):
+    def set_lmn(self):  # noqa: E741
         x = self.points[:, 0]
         y = self.points[:, 1]
         r = np.sqrt(x * x + y * y)
@@ -494,7 +494,7 @@ class AdaptiveMeshFoV(FoV):
         self.el_r = el_r
         self.az_r = az_r
 
-        self.l, self.m, n = elaz2lmn(self.el_r, self.az_r)
+        self.l, self.m, n = elaz2lmn(self.el_r, self.az_r)  # noqa: E741
         self.n_minus_1 = n - 1
 
 

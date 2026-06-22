@@ -4,11 +4,8 @@
 # License: GPLv3
 
 import argparse
-import datetime
-import json
 import logging
 import sys
-import os
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -114,11 +111,11 @@ def main():
     ts = field_of_view.timestamp
     geo = field_of_view.geolocation
     logger.info(f"geo {geo}")
-   
+
     if ARGS.sqrt:
         new_pixels = np.sqrt(field_of_view.pixels)
         field_of_view.set_visible_pixels(new_pixels)
- 
+
     src_list = None
     if ARGS.show_sources:
         api = api_handler.APIhandler("")

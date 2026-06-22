@@ -3,10 +3,11 @@
 # License: GPLv3
 #
 # Init for the DiSkO imaging algorithm
-import logging
+import logging  # noqa: F401
 
-from .cli import disko_from_ms
-from .disko import (
+# Public API — imported by external users
+from .cli import disko_from_ms  # noqa: F401
+from .disko import (  # noqa: F401
     DirectImagingOperator,
     DiSkO,
     DiSkOOperator,
@@ -14,17 +15,15 @@ from .disko import (
     jomega,
     vis_to_real,
 )
-from .draw_sky import mask_to_sky
-from .healpix_sphere import HealpixFoV, HealpixSubFoV
-from .multivariate_gaussian import MultivariateGaussian
-from .parser_support import sphere_args_parser, sphere_from_args
-from .projection_lsqr import plsqr
-from .resolution import Resolution
-from .sphere import SquareFoV
-from .sphere_mesh import AdaptiveMeshFoV, area
-
-# from .sphere_mesh import AdaptiveMeshFoV, area
-from .telescope_operator import (
+from .draw_sky import mask_to_sky  # noqa: F401
+from .healpix_sphere import HealpixFoV, HealpixSubFoV  # noqa: F401
+from .multivariate_gaussian import MultivariateGaussian  # noqa: F401
+from .parser_support import sphere_args_parser, sphere_from_args  # noqa: F401
+from .projection_lsqr import plsqr  # noqa: F401
+from .resolution import Resolution  # noqa: F401
+from .sphere import SquareFoV  # noqa: F401
+from .sphere_mesh import AdaptiveMeshFoV, area  # noqa: F401
+from .telescope_operator import (  # noqa: F401
     TelescopeOperator,
     dask_svd,
     normal_svd,

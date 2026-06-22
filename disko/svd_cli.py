@@ -120,14 +120,14 @@ def main():
 
         flag_list = [] # [4, 5, 14, 22]
 
-        original_positions = deepcopy(config.get_antenna_positions())
+        _original_positions = deepcopy  # noqa: F841(config.get_antenna_positions())
 
         gains_json = calib_info['gains']
         gains = np.asarray(gains_json['gain'])
         phase_offsets = np.asarray(gains_json['phase_offset'])
         config = settings.from_api_json(info['info'], ant_pos)
 
-        measurements = []
+        _measurements = []  # noqa: F841
         for d in calib_info['data']:
             vis_json, source_json = d
             cv, timestamp = api_imaging.vis_calibrated(vis_json, config, gains, phase_offsets, flag_list)
@@ -185,8 +185,8 @@ def main():
             null_harmonic = to.null_harmonic(h2)
             fun_plot(to, (null_harmonic), "natural_null_fringe_{:05d}".format(h2))
 
-            #harmonic = Vh @ null_harmonic 
-            #fun_plot(harmonic, "natural_restored_fringe_{}".format(h))
+            # harmonic = Vh @ null_harmonic
+            # fun_plot(harmonic, "natural_restored_fringe_{}".format(h))
 
     if ARGS.psf:
         # Make a point sky
@@ -194,7 +194,7 @@ def main():
         sky[to.n_s-100] = 1.0
         sky = sky.reshape([-1,1])
 
-        vis = to.gamma @ sky 
+        vis = to.gamma @ sky
 
         sky = to.image_visibilities(vis, sphere)
         sphere.plot(plt, src_list)

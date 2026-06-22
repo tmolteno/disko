@@ -44,7 +44,7 @@ class TestUtil(unittest.TestCase):
         theta, phi = sphere.elaz2hp(el, az)
         self.assertEqual(theta, 0)
         self.assertEqual(phi, 0)
-            
+
 
     def test_load_save(self):
 

@@ -2,7 +2,6 @@
 # Copyright Tim Molteno 2022-2026 tim@elec.ac.nz
 #
 
-import json
 import logging
 from argparse import ArgumentParser
 
@@ -11,9 +10,7 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .disko import DiSkO
 from .healpix_sphere import HealpixFoV
-from .telescope_operator import TelescopeOperator
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)

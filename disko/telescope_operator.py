@@ -8,23 +8,17 @@
 # of the telescope
 #
 #
-from .util import log_array, da_identity, da_diagsvd
 import logging
 import time
-import scipy
-import numpy as np
-import matplotlib.pyplot as plt
-
-import dask.array as da
-import dask
-
-
-import h5py
-
 from pathlib import Path
 
-from .disko import vis_to_real
+import dask.array as da
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy
+
 from .multivariate_gaussian import MultivariateGaussian
+from .util import log_array
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
@@ -38,8 +32,7 @@ def plot_spectrum(s, n_s, n_v, rank, name):
     plt.plot(s)
     plt.grid(True)
     plt.title(
-        "Singular Value Spectrum $N_s={}$,  $N_v={}$, $r={}$".format(
-            n_s, n_v, rank)
+        "Singular Value Spectrum $N_s={}$,  $N_v={}$, $r={}$".format(n_s, n_v, rank)
     )
     plt.xlabel("Rank ($i$)")
     plt.ylabel("Singular value $\\sigma_i$")
@@ -63,7 +56,7 @@ def tf_svd(x, tol=SVD_TOL):
 
     try:
         rank = np.min(np.argwhere(s < tol))
-    except:
+    except Exception:
         rank = s.shape[0]
 
     return [U, s, Vh], rank
@@ -82,7 +75,7 @@ def normal_svd(x, tol=SVD_TOL):
     tol = s[0] / MAX_COND
     try:
         rank = np.min(np.argwhere(s < tol))
-    except:
+    except Exception:
         # OK its full rank.
         rank = s.shape[0]
 
@@ -119,7 +112,7 @@ def dask_svd(x, tol=SVD_TOL):
     # Do the SVD
     U, s, Vh = scipy.linalg.svd(A, full_matrices=True)
 
-    #sigma = da_diagsvd(s, n_v, n_s)
+    # sigma = da_diagsvd(s, n_v, n_s)
     sigma = scipy.linalg.diagsvd(s, n_v, n_s)
 
     U = da.from_array(U, chunks="auto")
@@ -246,7 +239,7 @@ class TelescopeOperator:
             self.sigma = npzfile["sigma"]
             self.rank = npzfile["rank"]
             self.V = self.Vh.conj().T
-            self.V_1 = self.V[:, 0: self.rank]
+            self.V_1 = self.V[:, 0:self.rank]
             self.V_2 = self.V[:, self.rank:]
 
         else:
@@ -254,15 +247,14 @@ class TelescopeOperator:
 
             # Take the SVD of the gamma matrix.
             if USE_DASK:
-                [self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(
-                    self.gamma)
+                [self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(self.gamma)
             else:
                 [self.U, self.sigma, self.Vh], self.s, self.rank = normal_svd(
                     np.array(self.gamma)
                 )
 
             self.V = self.Vh.T
-            self.V_1 = self.V[:, 0: self.rank]
+            self.V_1 = self.V[:, 0:self.rank]
             self.V_2 = self.V[:, self.rank:]
             # logger.info("Calculating orthogonal projections")
 
@@ -271,7 +263,12 @@ class TelescopeOperator:
             if use_cache:
                 logger.info("Writing to cache: {}".format(fname))
                 np.savez_compressed(
-                    fname, U=self.U, Vh=self.Vh, s=self.s, sigma=self.sigma, rank=self.rank
+                    fname,
+                    U=self.U,
+                    Vh=self.Vh,
+                    s=self.s,
+                    sigma=self.sigma,
+                    rank=self.rank,
                 )
                 logger.info("Cache file {} saved".format(fname))
 
@@ -281,10 +278,10 @@ class TelescopeOperator:
 
         logger.info("rank = {}".format(self.rank))
 
-        self.U_1 = self.U[:, 0: self.rank]
-        self.U_2 = self.U[:, self.rank:]
+        self.U_1 = self.U[:, 0:self.rank]
+        self.U_2 = self.U[:, self.rank :]
 
-        self.sigma_1 = self.sigma[0: self.rank, 0: self.rank]
+        self.sigma_1 = self.sigma[0:self.rank, 0:self.rank]
 
         self.A_r = self.U_1 @ self.sigma_1  #
 
@@ -359,7 +356,7 @@ class TelescopeOperator:
 
     def null_to_sky(self, x_n):
         x = np.zeros(self.n_s)
-        x[self.rank: -1] = x_n
+        x[self.rank:-1] = x_n
         return self.natural_to_sky(x)
 
     def image_visibilities(self, vis_arr, sphere, scale=True):
@@ -375,13 +372,11 @@ class TelescopeOperator:
 
         if vis_arr.shape[0] != self.n_v:
             raise ValueError(
-                "Visibility array {} wrong shape {}".format(
-                    vis_arr.shape, self.n_v)
+                "Visibility array {} wrong shape {}".format(vis_arr.shape, self.n_v)
             )
 
         logger.info(
-            "Imaging Direct gamma={}, vis={}".format(
-                self.gamma.shape, vis_arr.shape)
+            "Imaging Direct gamma={}, vis={}".format(self.gamma.shape, vis_arr.shape)
         )
         t0 = time.time()
 
@@ -389,7 +384,6 @@ class TelescopeOperator:
             np.array(self.gamma), np.array(vis_arr), rcond=None
         )
 
-        t1 = time.time()
         logger.info("Elapsed {}s".format(time.time() - t0))
 
         sphere.set_visible_pixels(sky.flatten(), scale)
@@ -412,13 +406,13 @@ class TelescopeOperator:
         logger.info("Imaging Natural nside={}".format(sphere.nside))
         t0 = time.time()
 
-        s = self.s[0: self.rank]
-        D = np.diag(s)  # / (s**2 + 0.25)) # np.diag(1.0/self.s[0:self.rank])
+        s = self.s[0:self.rank]
+        D = np.diag(s)  # noqa: F841
 
         logger.info("vis_arr = {}".format(vis_arr.shape))
         logger.info("A_r = {}".format(self.A_r.shape))
 
-        #x_r = D @ self.U_1.T @ vis_arr
+        # x_r = D @ self.U_1.T @ vis_arr
         v_n = self.U_1.T @ vis_arr
 
         x_r = np.linalg.solve(self.A_r, v_n)
@@ -442,7 +436,7 @@ class TelescopeOperator:
         using the power of the SVD!
         """
         D = np.array(self.sigma).T
-        np.fill_diagonal(D, self.s / (self.s ** 2 + alpha ** 2), wrap=False)
+        np.fill_diagonal(D, self.s / (self.s**2 + alpha**2), wrap=False)
         logger.info("D = {}".format(D.shape))
         logger.info("vis_arr = {}".format(vis_arr.shape))
 
@@ -534,10 +528,9 @@ class TelescopeOperator:
         return prior
 
     def plot_uv(self, name):
-        uv = []
+        uv = []  # noqa: F841
 
-        plt.figure(num=None, figsize=(5, 4), dpi=300,
-                   facecolor="w", edgecolor="k")
+        plt.figure(num=None, figsize=(5, 4), dpi=300, facecolor="w", edgecolor="k")
         for u, v, w in zip(self.grid.u_arr, self.grid.v_arr, self.grid.w_arr):
             plt.plot(u, v, ".", color="black")
 

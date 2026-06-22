@@ -6,19 +6,23 @@
 #
 
 import logging
-import svgwrite
-import copy
-import h5py
 
+import h5py
 import healpy as hp
 import numpy as np
-
-from .sphere import FoV
-from .sphere import image_stats
-
-from .sphere import hp2elaz, elaz2lmn, PlotCoords, HpAngle, elaz2hp, ElAz
+import svgwrite
 
 from .resolution import Resolution
+from .sphere import (
+    ElAz,
+    FoV,
+    HpAngle,
+    PlotCoords,
+    elaz2hp,
+    elaz2lmn,
+    hp2elaz,
+    image_stats,
+)
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
@@ -35,15 +39,13 @@ def create_fov(nside, fov, res, theta=0.0, phi=0.0):
         sphere = HealpixFoV(nside)
     elif nside is not None and fov is not None:
         radius_rad = fov.radians() / 2
-        sphere = HealpixSubFoV(nside=nside,
-                               theta=theta, phi=phi,
-                               radius_rad=radius_rad)
+        sphere = HealpixSubFoV(nside=nside, theta=theta, phi=phi, radius_rad=radius_rad)
     elif res is not None and fov is not None:
         radius_rad = fov.radians() / 2
         res_arcmin = res.arcmin()
-        sphere = HealpixSubFoV(res_arcmin=res_arcmin,
-                               theta=theta, phi=phi,
-                               radius_rad=radius_rad)
+        sphere = HealpixSubFoV(
+            res_arcmin=res_arcmin, theta=theta, phi=phi, radius_rad=radius_rad
+        )
     else:
         raise RuntimeError("Either nside, or res_arcmin must be specified")
 
@@ -52,9 +54,9 @@ def create_fov(nside, fov, res, theta=0.0, phi=0.0):
 
 
 def cmap(fract):
-    '''
-        Build a colour map
-    '''
+    """
+    Build a colour map
+    """
     start = 1.0
     rot = -1.5
     sat = 1.5
@@ -93,13 +95,14 @@ class HealpixFoV(FoV):
         self._min_res = Resolution.from_arcmin(res)
 
         logger.info(
-            f"New HeadpixFoV, nside={nside}. npix={self.npix}, res={self.min_res()}")
+            f"New HeadpixFoV, nside={nside}. npix={self.npix}, res={self.min_res()}"
+        )
 
         self.pixel_indices = np.arange(self.npix)
         theta, phi = hp.pix2ang(nside, self.pixel_indices)
 
         self.pixels = np.zeros(self.npix)  # + hp.UNSEEN
-        self.pixel_areas = 4*np.pi*np.ones(self.npix)/self.npix
+        self.pixel_areas = 4 * np.pi * np.ones(self.npix) / self.npix
 
         el_r, az_r = hp2elaz(theta, phi)
 
@@ -138,16 +141,16 @@ class HealpixFoV(FoV):
     def to_hdf(self, filename):
         with h5py.File(filename, "w") as h5f:
             self.to_hdf_header(h5f)
-            h5f.create_dataset('nside', data=[self.nside])
-            h5f.create_dataset('pixels', data=self.pixels)
+            h5f.create_dataset("nside", data=[self.nside])
+            h5f.create_dataset("pixels", data=self.pixels)
 
     @classmethod
     def from_hdf(cls, h5f):
 
-        nside = h5f['nside'][:][0]
+        nside = h5f["nside"][:][0]
 
         ret = cls(nside)
-        ret.pixels = h5f['pixels'][:]
+        ret.pixels = h5f["pixels"][:]
         return ret
 
     def to_svg(
@@ -162,12 +165,13 @@ class HealpixFoV(FoV):
 
         if self.fov is None:
             raise Exception(
-                "Field of view is required for SVG generation. Use PDF instead")
+                "Field of view is required for SVG generation. Use PDF instead"
+            )
         h = 4000
         w = 4200
         dwg = svgwrite.Drawing(filename=fname, size=(w, h))
 
-        pc = PlotCoords(h, self.fov.radians()/2)
+        pc = PlotCoords(h, self.fov.radians() / 2)
         line_size = pc.line_size
 
         # dwg.desc("Gridless imaging from visibilities.")
@@ -181,7 +185,7 @@ class HealpixFoV(FoV):
 
             if title is None:
                 title = self.timestamp.isoformat()
-                
+
             y = font_size
             dwg.add(
                 dwg.text(
@@ -191,7 +195,7 @@ class HealpixFoV(FoV):
                     font_size=font_str,
                 )
             )
-                
+
             y = font_size * 2
             dwg.add(
                 dwg.text(
@@ -289,16 +293,15 @@ class HealpixFoV(FoV):
                             "{}".format(i),
                             (x, y),
                             text_anchor="middle",
-                            font_size = f"{font_size}px",
+                            font_size=f"{font_size}px",
                         )
                     )
             else:
                 (r, g, b) = cmap(self.normalize_pixel(value, stats))
-                    # (value - stats["min"]) / (1e-14 + stats["max"] - stats["min"]))
+                # (value - stats["min"]) / (1e-14 + stats["max"] - stats["min"]))
                 colour = svgwrite.rgb(r, g, b)
                 if min_lat > 0.07:  # Ignore points on, or below the horizon
-                    svg_pixels.add(dwg.polygon(
-                        points=poly, fill=colour, stroke=colour))
+                    svg_pixels.add(dwg.polygon(points=poly, fill=colour, stroke=colour))
 
         grid_color = "black"
         if not pixels_only:
@@ -336,8 +339,7 @@ class HealpixFoV(FoV):
 
                 poly = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
                 colour = svgwrite.rgb(r, g, b)
-                bar_boxes.add(dwg.polygon(
-                    points=poly, fill=colour, stroke=colour))
+                bar_boxes.add(dwg.polygon(points=poly, fill=colour, stroke=colour))
                 # logger.info("box {}".format(poly))
 
                 if (i == np.argmin(np.abs(values))) and (i != 0):
@@ -346,7 +348,7 @@ class HealpixFoV(FoV):
                             "0",
                             (x0 - font_size / 2, y1 + font_size / 2),
                             text_anchor="end",
-                            font_size = f"{font_size}px",
+                            font_size=f"{font_size}px",
                         )
                     )
                     bar_boxes.add(
@@ -364,7 +366,7 @@ class HealpixFoV(FoV):
                             "{:5.3f}".format(pixmin),
                             (x0 - font_size / 2, y1),
                             text_anchor="end",
-                            font_size = f"{font_size}px",
+                            font_size=f"{font_size}px",
                         )
                     )
 
@@ -374,7 +376,7 @@ class HealpixFoV(FoV):
                             "{:5.3f}".format(pixmax),
                             (x0 - font_size / 2, y1 + font_size),
                             text_anchor="end",
-                            font_size = f"{font_size}px",
+                            font_size=f"{font_size}px",
                         )
                     )
 
@@ -388,8 +390,7 @@ class HealpixFoV(FoV):
                 stroke_width="{}".format(line_size / 2),
                 stroke_linejoin="round",
             )
-            box_border.add(dwg.polygon(
-                points=[(x0, y0), (x1, y0), (x1, y1), (x0, y1)]))
+            box_border.add(dwg.polygon(points=[(x0, y0), (x1, y0), (x1, y1), (x0, y1)]))
             dwg.add(box_border)
 
         if show_grid:
@@ -406,8 +407,7 @@ class HealpixFoV(FoV):
             for rad in np.linspace(0, fov_rad / 2, 4)[1:]:  # three circles
                 radius = pc.from_d(np.sin(rad))
                 grid_lines.add(
-                    dwg.circle(
-                        center=(pc.from_x(0.0), pc.from_y(0.0)), r=radius)
+                    dwg.circle(center=(pc.from_x(0.0), pc.from_y(0.0)), r=radius)
                 )
 
             for angle in range(0, 360, 30):
@@ -502,8 +502,7 @@ class HealpixSubFoV(HealpixFoV):
         if nside is None:  # Calculate nside to the appropriate resolution
             nside = 1
             while hp.nside2resol(nside, arcmin=True) > res_arcmin:
-                logger.debug(
-                    f"nside={nside} res={hp.nside2resol(nside, arcmin=True)}")
+                logger.debug(f"nside={nside} res={hp.nside2resol(nside, arcmin=True)}")
                 nside *= 2
 
         self.nside = nside
@@ -525,18 +524,19 @@ class HealpixSubFoV(HealpixFoV):
         self.npix = self.pixel_indices.shape[0]
 
         logger.info(
-            f"New SubFoV, nside={self.nside} npix={self.npix}, res={self._min_res}")
+            f"New SubFoV, nside={self.nside} npix={self.npix}, res={self._min_res}"
+        )
 
         theta, phi = hp.pix2ang(nside, self.pixel_indices)
 
         self.fov = Resolution.from_rad(radius_rad * 2)
         self.pixels = np.zeros(self.npix)  # + hp.UNSEEN
 
-        area = 4*np.pi*(self.npix / hp.nside2npix(nside))
-        self.pixel_areas = area*np.ones(self.npix)/self.npix
+        area = 4 * np.pi * (self.npix / hp.nside2npix(nside))
+        self.pixel_areas = area * np.ones(self.npix) / self.npix
 
         el_r, az_r = hp2elaz(theta, phi)
-        
+
         self.el_min_r = np.min(el_r)
 
         self.el_r = el_r
@@ -552,30 +552,34 @@ class HealpixSubFoV(HealpixFoV):
         with h5py.File(filename, "w") as h5f:
             self.to_hdf_header(h5f)
 
-            h5f.create_dataset('nside', data=[self.nside])
-            h5f.create_dataset('res_arcmin', data=[self.res_arcmin])
-            h5f.create_dataset('theta', data=[self.theta])
-            h5f.create_dataset('phi', data=[self.phi])
-            h5f.create_dataset('radius_rad', data=[self.radius_rad])
+            h5f.create_dataset("nside", data=[self.nside])
+            h5f.create_dataset("res_arcmin", data=[self.res_arcmin])
+            h5f.create_dataset("theta", data=[self.theta])
+            h5f.create_dataset("phi", data=[self.phi])
+            h5f.create_dataset("radius_rad", data=[self.radius_rad])
 
-            h5f.create_dataset('pixels', data=self.pixels)
-            h5f.create_dataset('pixel_indices', data=self.pixel_indices)
+            h5f.create_dataset("pixels", data=self.pixels)
+            h5f.create_dataset("pixel_indices", data=self.pixel_indices)
 
     @classmethod
     def from_hdf(cls, h5f):
 
-        nside = h5f['nside'][:][0]
-        res_arcmin = h5f['res_arcmin'][:][0]
-        theta = h5f['theta'][:][0]
-        phi = h5f['phi'][:][0]
-        radius_rad = h5f['radius_rad'][:][0]
+        nside = h5f["nside"][:][0]
+        res_arcmin = h5f["res_arcmin"][:][0]
+        theta = h5f["theta"][:][0]
+        phi = h5f["phi"][:][0]
+        radius_rad = h5f["radius_rad"][:][0]
 
-        ret = HealpixSubFoV(nside=nside, res_arcmin=res_arcmin,
-                               theta=theta, phi=phi,
-                               radius_rad=radius_rad)
+        ret = HealpixSubFoV(
+            nside=nside,
+            res_arcmin=res_arcmin,
+            theta=theta,
+            phi=phi,
+            radius_rad=radius_rad,
+        )
 
-        ret.pixels = h5f['pixels'][:]
-        ret.pixel_indices = h5f['pixel_indices'][:]
+        ret.pixels = h5f["pixels"][:]
+        ret.pixel_indices = h5f["pixel_indices"][:]
         return ret
 
     def plot(self, plt, src_list):

@@ -10,7 +10,6 @@ import json
 import copy
 import h5py
 import datetime
-import json
 
 import numpy as np
 import healpy as hp
@@ -18,11 +17,10 @@ import healpy as hp
 from tart.util import utc
 
 from astropy.coordinates import EarthLocation
+from .resolution import Resolution
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
-
-from .resolution import Resolution
 
 
 PI_OVER_2 = np.pi / 2
@@ -151,7 +149,7 @@ class PlotCoords(object):
 
 
 def elaz2lmn(el_r, az_r):
-    l = np.sin(az_r) * np.cos(el_r)
+    l = np.sin(az_r) * np.cos(el_r)  # noqa: E741
     m = np.cos(az_r) * np.cos(el_r)
     # Often written in this weird way... np.sqrt(1.0 - l**2 - m**2)
     n = np.sin(el_r)
@@ -219,10 +217,10 @@ def factors(n):
 class FoV(object):
     """
     A base class for all sphere's including grids. The sphere must be aware of coordinates.
-    
+
     A sphere has a phase-center, and optionally a domain (field-of-view for circular skies)
-    
-    The base coordinates are SkyCoordinates, so the 
+
+    The base coordinates are SkyCoordinates, so the
     The two coordinate systems are elevation and azimuth in the geolocated frame (the phase center is
     straight up)
     """
@@ -245,7 +243,7 @@ class FoV(object):
 
     def callback(self, x, i):
         fname = f"callback_{i:05d}.hdf"
-        stats = self.set_visible_pixels(x)
+        self.set_visible_pixels(x)
         self.to_hdf(fname)
 
     def copy(self):
@@ -343,7 +341,7 @@ class FoV(object):
 
         # Make a grid on the plane, at the width of the narrowest pixel
         # f = scipy.interpolate.interp2d(self.el_r, self.az_r, self.pixels, fill_value=-1)
-        l = np.sin(self.az_r) * np.cos(self.el_r)
+        l = np.sin(self.az_r) * np.cos(self.el_r)  # noqa: E741
         m = -np.cos(self.az_r) * np.cos(self.el_r)
 
         points = (l, m)
@@ -392,11 +390,11 @@ class SquareFoV(FoV):
 
         self.theta = theta
         self.phi = phi
-        
+
         # Actual width and resolution
         self.width_pix = 2*int(np.ceil(np.degrees(width_rad)*60 / res_arcmin))
         self.res_arcmin = np.degrees(width_rad)*60 / self.width_pix
-        
+
         self.npix = self.width_pix*self.width_pix
 
         logger.info(
@@ -412,29 +410,29 @@ class SquareFoV(FoV):
         el_r = []
         az_r = []
         center = self.width_pix // 2
-       
+
 
         arcmin2rad = np.radians(1.0/60)
         def pixels_to_rad(pix):
            return (pix*self.res_arcmin*arcmin2rad) / 2  # Nyquist
-       
+
         # TODO add self.el_r and self.az_r
         for i in range(self.width_pix):
             dx = (i - center)
             for j in range(self.width_pix):
                 dy = j - center
-                
+
                 dr = np.sqrt(dx*dx + dy*dy)
                 el = np.pi/2 - pixels_to_rad(dr)
-                
+
                 az = np.arctan2(dy,dx)
 
                 el_r.append(el)
                 az_r.append(az)
-        
+
         self.el_r = np.array(el_r)
         self.az_r = np.array(az_r)
-        
+
         self.l, self.m, self.n = elaz2lmn(self.el_r, self.az_r)
         self.n_minus_1 = self.n - 1
 

@@ -73,7 +73,7 @@ def plsqr(A, v, alpha, eps=1e-4):
 
     n = 0
     while True:
-        reg = (
+        _reg = (
             linear_model.LinearRegression()
         )  # ElasticNet(alpha=alpha, l1_ratio=0.01, max_iter=10000, positive=False)
         x0 = A0p @ v0

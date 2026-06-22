@@ -2,7 +2,6 @@
 # Copyright Tim Molteno 2022-2026 tim@elec.ac.nz
 #
 
-import os
 import unittest
 
 import numpy as np

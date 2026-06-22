@@ -3,17 +3,14 @@
 # Copyright Tim Molteno 2022-2026 tim@elec.ac.nz
 # License: GPLv3
 import argparse
-import datetime
 import json
 import logging
 import os
 import time
 from copy import deepcopy
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.special
 from tart.imaging import calibration, elaz, visibility
 from tart.operation import settings
 from tart_tools import api_imaging
@@ -128,14 +125,14 @@ def handle_bayes(ARGS):
 
         flag_list = []  # [4, 5, 14, 22]
 
-        original_positions = deepcopy(config.get_antenna_positions())
+        _original_positions = deepcopy  # noqa: F841(config.get_antenna_positions())
 
         gains_json = calib_info["gains"]
         gains = np.asarray(gains_json["gain"])
         phase_offsets = np.asarray(gains_json["phase_offset"])
         config = settings.from_api_json(info["info"], ant_pos)
 
-        measurements = []
+        _measurements = []  # noqa: F841
         for d in calib_info["data"]:
             vis_json, source_json = d
             cv, timestamp = api_imaging.vis_calibrated(
@@ -212,8 +209,6 @@ def handle_bayes(ARGS):
         lon = json_info["lon"]
         height = json_info["height"]
         sphere.set_info(timestamp=timestamp, lon=lon, lat=lat, height=height)
-
-        src_list = None
 
         prior = create_prior(disko.vis_arr, sphere, ARGS.prior)
 
@@ -414,7 +409,7 @@ def main():
     # fh.setLevel(logging.INFO)
 
     # create console handler and set level to debug
-    ch = logging.StreamHandler()
+    ch = logging.StreamHandler()  # noqa: F841
     # ch.setLevel(logging.INFO)
 
     # create formatter
