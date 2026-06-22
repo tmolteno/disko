@@ -2,22 +2,22 @@
 # Copyright Tim Molteno 2022-2026 tim@elec.ac.nz
 #
 
-from argparse import ArgumentParser
 import json
 import logging
+from argparse import ArgumentParser
 
 import healpy as hp
+import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 
-from scipy import misc
-
-from .healpix_sphere import HealpixFoV
 from .disko import DiSkO
+from .healpix_sphere import HealpixFoV
 from .telescope_operator import TelescopeOperator
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
+
 
 def mask_to_sky(mask, nside):
     height, width, col = mask.shape
@@ -36,14 +36,12 @@ def mask_to_sky(mask, nside):
     s = np.zeros(npix)
 
     for i in pixel_indices:
-
         th = theta[i]  # elevation np.pi/2 is horizon, zero vertical
         ph = phi[i]
 
         # Calcular image pixel corresponding to the theta, phi
 
         if th < np.pi / 2:
-
             r = rmax * np.sin(th)
 
             x = int(x0 + r * np.sin(ph))
@@ -60,16 +58,14 @@ if __name__ == "__main__":
         description="Draw something in the Null Space.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--mask", default="batman.jpeg",
-                        help="Use the mask file.")
-    parser.add_argument("--nside", default=32, type=int,
-                        help="Use the mask file.")
+    parser.add_argument("--mask", default="batman.jpeg", help="Use the mask file.")
+    parser.add_argument("--nside", default=32, type=int, help="Use the mask file.")
 
     source_json = None
 
     ARGS = parser.parse_args()
 
-    mask = misc.imread(ARGS.mask)
+    mask = imageio.v3.imread(ARGS.mask)
     s = mask_to_sky(mask, ARGS.nside)
 
     sphere = HealpixFoV(ARGS.nside)
