@@ -2,17 +2,15 @@
 # Copyright Tim Molteno 2022-2026 tim@elec.ac.nz
 #
 
-import unittest
-import logging
 import json
+import logging
+import unittest
 
 import numpy as np
-
-from disko import TelescopeOperator, HealpixFoV, DiSkO
-
 from tart.operation import settings
 from tart_tools import api_imaging
 
+from disko import DiSkO, HealpixFoV, TelescopeOperator
 
 logger = logging.getLogger(__name__)
 # Add a null handler so logs can go somewhere
@@ -21,31 +19,31 @@ logger.setLevel(logging.INFO)
 
 
 class TestTelescopeOperator(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         # Load data from a JSON file
-        np.seterr(all='raise')
-        fname = 'test_data/test_data.json'
+        np.seterr(all="raise")
+        fname = "test_data/test_data.json"
         logger.info("Getting Data from file: {}".format(fname))
-        with open(fname, 'r') as json_file:
+        with open(fname, "r") as json_file:
             calib_info = json.load(json_file)
 
-        info = calib_info['info']
-        ant_pos = calib_info['ant_pos']
-        config = settings.from_api_json(info['info'], ant_pos)
+        info = calib_info["info"]
+        ant_pos = calib_info["ant_pos"]
+        config = settings.from_api_json(info["info"], ant_pos)
 
         flag_list = []
 
-        gains_json = calib_info['gains']
-        gains = np.asarray(gains_json['gain'])
-        phase_offsets = np.asarray(gains_json['phase_offset'])
-        config = settings.from_api_json(info['info'], ant_pos)
+        gains_json = calib_info["gains"]
+        gains = np.asarray(gains_json["gain"])
+        phase_offsets = np.asarray(gains_json["phase_offset"])
+        config = settings.from_api_json(info["info"], ant_pos)
 
-        for d in calib_info['data']:
+        for d in calib_info["data"]:
             vis_json, source_json = d
             cv, timestamp = api_imaging.vis_calibrated(
-                vis_json, config, gains, phase_offsets, flag_list)
+                vis_json, config, gains, phase_offsets, flag_list
+            )
             # src_list = elaz.from_json(source_json, 0.0)
 
         cls.disko = DiSkO.from_cal_vis(cv)
@@ -62,21 +60,24 @@ class TestTelescopeOperator(unittest.TestCase):
     def test_svd(self):
         test = np.dot(self.to.U, np.dot(self.to.sigma, self.to.Vh))
         self.assertTrue(np.allclose(test, self.to.gamma))
-        self.assertTrue(np.allclose(np.identity(self.to.n_s),
-                        np.dot(self.to.V, self.to.Vh)))
+        self.assertTrue(
+            np.allclose(np.identity(self.to.n_s), np.dot(self.to.V, self.to.Vh))
+        )
 
     def test_harmonics(self):
-        # Check the harmonics are normalized. The value is modified by the number of pixels in the sky
+        # Check the harmonics are normalized. Each harmonic element is
+        # exp(j*phase) * pixel_area, so sum(|h|^2) = sum(pixel_area^2).
+        a = self.to.sphere.pixel_areas
+        expected = float(np.dot(a, a))  # sum of squared pixel areas
         n_h = self.to.n_v // 2
         for i in range(0, n_h):
             h_re = self.to.harmonic(i)
-            h_im = self.to.harmonic(i+n_h)
+            h_im = self.to.harmonic(i + n_h)
 
-            h_i = h_re + 1.0j*h_im
+            h_i = h_re + 1.0j * h_im
             dot = h_i @ h_i.conj().T
 
-            # dot = np.dot(h_re, h_re) + np.dot(h_im, h_im)
-            self.assertAlmostEqual(dot.compute() * self.to.n_s, 1.0)
+            self.assertAlmostEqual(dot.compute(), expected)
 
     def test_null_harmonics(self):
         # Check the harmonics are normalized and are in the null space of Gamma.
@@ -100,7 +101,7 @@ class TestTelescopeOperator(unittest.TestCase):
                 dot = h_i @ h_j.conj().T
                 logger.info("natural dot = {}".format(dot))
 
-                if (i == j):
+                if i == j:
                     self.assertAlmostEqual(dot.compute(), 1.0)
                 else:
                     self.assertAlmostEqual(dot.compute(), 0.0)
@@ -125,7 +126,7 @@ class TestTelescopeOperator(unittest.TestCase):
         vis2 = np.array(A @ x)
         # logger.info("vis2 = {}".format(vis2[:,0]))
 
-        x_r = x[0:self.to.rank]
+        x_r = x[0 : self.to.rank]
         vis3 = np.array(self.to.A_r @ x_r)
         # logger.info("vis3 = {}".format(vis3[:,0]))
 
@@ -154,11 +155,11 @@ class TestTelescopeOperator(unittest.TestCase):
         # Check that v = A_r x_r is the same as Gamma s
         sky = self.get_point_sky()
         # This sky contains null space components, so lets  project those out.
-        vis_orig = (self.to.gamma @ sky)
+        vis_orig = self.to.gamma @ sky
 
         sky_r = self.to.P_r() @ sky
 
-        vis = (self.to.gamma @ sky_r)
+        vis = self.to.gamma @ sky_r
         logger.info("vis = {}".format(np.real(vis)[0:10]))
 
         # Check that the vis from the sky is the same as the vis from the range-space sky.
@@ -167,7 +168,7 @@ class TestTelescopeOperator(unittest.TestCase):
         # Now image the range-space vis
         imaged_sky = self.to.image_visibilities(vis, self.sphere, scale=False)
 
-        vis3 = (self.to.gamma @ imaged_sky)
+        vis3 = self.to.gamma @ imaged_sky
         # Now check that the visibilities from the imaged sky match the original visibiities
 
         for v1, v2 in zip(vis, vis3):
@@ -177,7 +178,7 @@ class TestTelescopeOperator(unittest.TestCase):
     def test_A(self):
 
         # The new telescope operator.
-        Ar = self.to.U_1 @ self.to.sigma[0:self.to.rank, 0:self.to.rank]
+        Ar = self.to.U_1 @ self.to.sigma[0 : self.to.rank, 0 : self.to.rank]
         self.assertEqual(Ar.shape[0], self.to.A_r.shape[0])
         self.assertEqual(Ar.shape[1], self.to.A_r.shape[1])
 
@@ -186,18 +187,19 @@ class TestTelescopeOperator(unittest.TestCase):
         sky = self.get_point_sky()
 
         # Get the visibilities
-        vis = (self.to.gamma @ sky)
+        vis = self.to.gamma @ sky
 
         # Now image the range-space vis
         imaged_sky = self.to.image_natural(vis, self.sphere, scale=False)
 
-        vis3 = (self.to.gamma @ imaged_sky)
+        vis3 = self.to.gamma @ imaged_sky
         # Now check that the visibilities from the imaged sky match the original visibiities
         logger.info(f"pixel_areas = {self.sphere.pixel_areas}")
 
         for v1, v2 in zip(vis, vis3):
             logger.info(
-                f"a,b = {v1.compute()} {v2.compute()} {(v1*self.sphere.pixel_areas[0]).compute()}")
+                f"a,b = {v1.compute()} {v2.compute()} {(v1 * self.sphere.pixel_areas[0]).compute()}"
+            )
             self.assertAlmostEqual(v1[0].compute(), v2[0].compute())
 
     def test_bayes(self):
@@ -208,7 +210,6 @@ class TestTelescopeOperator(unittest.TestCase):
 
         prior_r = prior.linear_transform(self.to.Vh)
 
-        sigma_vis = 1e-6*np.identity(self.to.n_v)
+        sigma_vis = 1e-6 * np.identity(self.to.n_v)
 
-        posterior_r = self.to.sequential_inference(
-            prior_r, vis.flatten(), sigma_vis)
+        posterior_r = self.to.sequential_inference(prior_r, vis.flatten(), sigma_vis)
