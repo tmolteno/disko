@@ -123,47 +123,12 @@ class DiSkOOperator(pylops.LinearOperator):
         self.explicit = False  # Can't be directly inverted
         logger.info("Creating DiSkOOperator data={}".format(self.shape))
 
-        # Precompute the full real-valued operator matrix if it fits in memory.
-        # This avoids recomputing np.exp() on every matvec/rmatvec call.
-        n_u = len(self.u_arr)
-        full_size_bytes = 2 * n_u * self.N * np.dtype(np.float64).itemsize
-        if full_size_bytes < 2e9:  # cache if < 2 GB
-            self._build_cached_matrix()
-        else:
-            self._H_real = None
-
     def __call__(self, x):
         # A callback to use during optimization routintes, should be used to write some temporary results
         if (self.iteration_count > 0) and (self.iteration_count % 10 == 0):
             logger.info(f"callback {self.sphere} {x.shape}")
             self.sphere.callback(x, self.iteration_count)
         self.iteration_count = self.iteration_count + 1
-
-    def _build_cached_matrix(self):
-        """Precompute the full real-valued operator matrix [real(H); imag(H)]
-        as float64.  Stored as two separate arrays for efficient matvec/rmatvec.
-        """
-        n_u = len(self.u_arr)
-        self._H_real = np.zeros((n_u, self.N), dtype=np.float64)
-        self._H_imag = np.zeros((n_u, self.N), dtype=np.float64)
-
-        block_size = self._block_size()
-        for f in self.frequencies:
-            p2j = jomega(f)
-            for i_start in range(0, n_u, block_size):
-                i_end = min(i_start + block_size, n_u)
-                H_block = self._compute_harmonics_block(
-                    p2j,
-                    self.u_arr[i_start:i_end],
-                    self.v_arr[i_start:i_end],
-                    self.w_arr[i_start:i_end],
-                )
-                self._H_real[i_start:i_end] = np.real(H_block).astype(np.float32)
-                self._H_imag[i_start:i_end] = np.imag(H_block).astype(np.float32)
-
-        logger.info(
-            f"Cached operator matrix: {self._H_real.shape}, {self._H_real.nbytes / 1e6:.0f} MB"
-        )
 
     def A(self, i, j, p2j):
         n_vis = len(self.u_arr)
@@ -218,17 +183,9 @@ class DiSkOOperator(pylops.LinearOperator):
         ( v_real    = (T_real   x
           v_imag )     T_imag)
 
-        Uses cached float32 matrix if available, otherwise blocked computation.
+        Matrix-free: computes H @ x in blocks for memory efficiency.
         """
         n_u = self.u_arr.shape[0]
-
-        if self._H_real is not None:
-            xf = np.asarray(x, dtype=np.float64).ravel()
-            y_re = self._H_real @ xf
-            y_im = self._H_imag @ xf
-            return np.concatenate((y_re, y_im))
-
-        # Fallback: blocked computation
         y_re = np.zeros(n_u)
         y_im = np.zeros(n_u)
         block_size = self._block_size()
@@ -255,19 +212,13 @@ class DiSkOOperator(pylops.LinearOperator):
         x = ( T_real' T_imag') (v_real
                                 v_imag)
 
-        Uses cached float32 matrix if available, otherwise blocked computation.
+        Matrix-free: blocked computation for memory efficiency.
         """
         assert v.shape == (self.M,)
         n_u = self.u_arr.shape[0]
         v_real = v[:n_u]
         v_imag = v[n_u:]
 
-        if self._H_real is not None:
-            vrf = np.asarray(v_real, dtype=np.float64).ravel()
-            vif = np.asarray(v_imag, dtype=np.float64).ravel()
-            return self._H_real.T @ vrf + self._H_imag.T @ vif
-
-        # Fallback: blocked computation
         ret = np.zeros(self.N)
         block_size = self._block_size()
 
