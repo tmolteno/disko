@@ -85,7 +85,10 @@ def get_harmonic(p2j, l, m, n_minus_1, u, v, w, pixel_areas):  # noqa: E741 (l i
 
 class DiSkOOperator(pylops.LinearOperator):
     """
-    Linear operator for the telescope with a discrete sky
+    Linear operator for the telescope with a discrete sky.
+
+    Matrix-free: harmonic blocks are computed once and cached
+    (as float32) since UVW and frequency are constant across iterations.
     """
 
     def __init__(self, u_arr, v_arr, w_arr, data, frequencies, sphere):
@@ -121,6 +124,12 @@ class DiSkOOperator(pylops.LinearOperator):
 
         self.shape = (self.M, self.N)
         self.explicit = False  # Can't be directly inverted
+
+        # Cache for precomputed harmonic blocks (keyed by block index)
+        # Since UVW and frequency don't change between iterations, the
+        # harmonic matrix for each block is constant.
+        self._block_cache = {}
+
         logger.info("Creating DiSkOOperator data={}".format(self.shape))
 
     def __call__(self, x):
@@ -175,6 +184,18 @@ class DiSkOOperator(pylops.LinearOperator):
         """Number of visibility rows per block, targeting ~200 MB per block."""
         return max(256, int(200 * 1024 * 1024 / (16 * max(1, self.N))))
 
+    def _get_block(self, block_idx, p2j, u_blk, v_blk, w_blk):
+        """Return (real, imag) float32 arrays for a harmonic block.
+        Computed once, cached for subsequent calls."""
+        key = (block_idx,)
+        if key not in self._block_cache:
+            H = self._compute_harmonics_block(p2j, u_blk, v_blk, w_blk)
+            self._block_cache[key] = (
+                np.asarray(np.real(H), dtype=np.float32),
+                np.asarray(np.imag(H), dtype=np.float32),
+            )
+        return self._block_cache[key]
+
     def _matvec(self, x):
         """
         Multiply by the sky x, producing the set of measurements y
@@ -183,25 +204,26 @@ class DiSkOOperator(pylops.LinearOperator):
         ( v_real    = (T_real   x
           v_imag )     T_imag)
 
-        Matrix-free: computes H @ x in blocks for memory efficiency.
+        Matrix-free: uses cached float32 harmonic blocks.
         """
         n_u = self.u_arr.shape[0]
-        y_re = np.zeros(n_u)
-        y_im = np.zeros(n_u)
+        y_re = np.zeros(n_u, dtype=np.float64)
+        y_im = np.zeros(n_u, dtype=np.float64)
         block_size = self._block_size()
 
         for f in self.frequencies:
             p2j = jomega(f)
-            for i_start in range(0, n_u, block_size):
+            for block_idx, i_start in enumerate(range(0, n_u, block_size)):
                 i_end = min(i_start + block_size, n_u)
-                H_block = self._compute_harmonics_block(
+                Hr, Hi = self._get_block(
+                    block_idx,
                     p2j,
                     self.u_arr[i_start:i_end],
                     self.v_arr[i_start:i_end],
                     self.w_arr[i_start:i_end],
                 )
-                y_re[i_start:i_end] = np.real(H_block) @ x
-                y_im[i_start:i_end] = np.imag(H_block) @ x
+                y_re[i_start:i_end] = Hr @ x.ravel()
+                y_im[i_start:i_end] = Hi @ x.ravel()
 
         return np.concatenate((y_re, y_im))
 
@@ -212,30 +234,28 @@ class DiSkOOperator(pylops.LinearOperator):
         x = ( T_real' T_imag') (v_real
                                 v_imag)
 
-        Matrix-free: blocked computation for memory efficiency.
+        Matrix-free: uses cached float32 harmonic blocks.
         """
         assert v.shape == (self.M,)
         n_u = self.u_arr.shape[0]
-        v_real = v[:n_u]
-        v_imag = v[n_u:]
+        v_real = np.asarray(v[:n_u], dtype=np.float64).ravel()
+        v_imag = np.asarray(v[n_u:], dtype=np.float64).ravel()
 
-        ret = np.zeros(self.N)
+        ret = np.zeros(self.N, dtype=np.float64)
         block_size = self._block_size()
 
         for f in self.frequencies:
             p2j = jomega(f)
-            for i_start in range(0, n_u, block_size):
+            for block_idx, i_start in enumerate(range(0, n_u, block_size)):
                 i_end = min(i_start + block_size, n_u)
-                H_block = self._compute_harmonics_block(
+                Hr, Hi = self._get_block(
+                    block_idx,
                     p2j,
                     self.u_arr[i_start:i_end],
                     self.v_arr[i_start:i_end],
                     self.w_arr[i_start:i_end],
                 )
-                ret += (
-                    np.real(H_block).T @ v_real[i_start:i_end]
-                    + np.imag(H_block).T @ v_imag[i_start:i_end]
-                )
+                ret += Hr.T @ v_real[i_start:i_end] + Hi.T @ v_imag[i_start:i_end]
 
         return ret
 
