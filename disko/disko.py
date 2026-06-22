@@ -125,10 +125,22 @@ class DiSkOOperator(pylops.LinearOperator):
         self.shape = (self.M, self.N)
         self.explicit = False  # Can't be directly inverted
 
-        # Cache for precomputed harmonic blocks (keyed by block index)
+        # Cache for precomputed harmonic blocks (keyed by block index).
         # Since UVW and frequency don't change between iterations, the
-        # harmonic matrix for each block is constant.
-        self._block_cache = {}
+        # harmonic matrix for each block is constant.  Only enabled when
+        # the total cached size would fit within ~500 MB.
+        block_size = self._block_size()
+        n_blocks = (len(self.u_arr) + block_size - 1) // block_size
+        bytes_per_block = 2 * block_size * self.N * np.dtype(np.float32).itemsize
+        total_cache_bytes = n_blocks * bytes_per_block
+        self._use_cache = total_cache_bytes < 500_000_000
+        self._block_cache = {} if self._use_cache else None
+
+        if self._use_cache:
+            logger.info(
+                f"Block cache: {n_blocks} blocks x {bytes_per_block / 1e6:.0f} MB"
+                f" = {total_cache_bytes / 1e6:.0f} MB total"
+            )
 
         logger.info("Creating DiSkOOperator data={}".format(self.shape))
 
@@ -186,7 +198,13 @@ class DiSkOOperator(pylops.LinearOperator):
 
     def _get_block(self, block_idx, p2j, u_blk, v_blk, w_blk):
         """Return (real, imag) float32 arrays for a harmonic block.
-        Computed once, cached for subsequent calls."""
+        Computed once, cached for subsequent calls when cache enabled."""
+        if not self._use_cache:
+            H = self._compute_harmonics_block(p2j, u_blk, v_blk, w_blk)
+            return np.asarray(np.real(H), dtype=np.float32), np.asarray(
+                np.imag(H), dtype=np.float32
+            )
+
         key = (block_idx,)
         if key not in self._block_cache:
             H = self._compute_harmonics_block(p2j, u_blk, v_blk, w_blk)
