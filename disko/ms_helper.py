@@ -44,7 +44,6 @@ def casa_read_ms(
     channel: int = 0,
     field_id: int = 0,
     ddid: int = 0,
-    snapshot: int = 0,
     pol: int = 0,
 ):
     res_deg = angular_resolution  # caller passes degrees from Resolution.degrees()
@@ -79,16 +78,6 @@ def casa_read_ms(
 
     times = subt.getcol("TIME")
     logger.debug(f"times {times.shape}")
-    time_steps, inverse = np.unique(times, return_inverse=True)
-    logger.debug(f"time_steps {time_steps - time_steps[0]}")
-    logger.debug(f"inverse {inverse}")
-
-    t_snapshot = time_steps[snapshot]
-
-    snapshot_indices = np.where((inverse == snapshot))[0]
-    logger.debug(f"Snapshot {t_snapshot}")
-    # logger.debug(f"snapshot_indices {snapshot_indices}")
-    logger.debug(f"snapshot_indices {snapshot_indices.shape}")
 
     uvw = subt.getcol("UVW")
     logger.debug(f"uvw {uvw.shape}")
@@ -103,26 +92,19 @@ def casa_read_ms(
 
     raw_vis = subt.getcol(ms_column)
     logger.debug(f"raw_vis {raw_vis.shape}")
-    raw_vis = raw_vis[snapshot_indices, :, pol][:, channel]
+    raw_vis = raw_vis[:, :, pol][:, channel]
     logger.debug(f"raw_vis {raw_vis.shape}")
 
     try:
-        # Deal with the case where WEIGHT_SPECTRUM is not present.s
         subt_ws = ms.query(
             f"FIELD_ID=={field_id}", sortlist="ARRAY_ID", columns="WEIGHT_SPECTRUM"
         )
-        weight_spectrum = subt_ws.getcol("WEIGHT_SPECTRUM")[snapshot_indices, :, pol][
-            :, channel
-        ]
+        weight_spectrum = subt_ws.getcol("WEIGHT_SPECTRUM")[:, :, pol][:, channel]
     except RuntimeError as e:
         logger.debug(f"{e}")
         weight_spectrum = np.ones_like(raw_vis)
 
-    flags = flags[snapshot_indices, :, pol][:, channel]
-    uvw = uvw[snapshot_indices, :]
-    logger.debug("uvw {}".format(uvw.shape))
-    ant1 = ant1[snapshot_indices]
-    ant2 = ant2[snapshot_indices]
+    flags = flags[:, :, pol][:, channel]
 
     # Create datasets representing each row of the spw table
     spw = table(ms.getkeyword("SPECTRAL_WINDOW"), ack=False)
@@ -147,7 +129,6 @@ def casa_read_ms(
 
     logger.debug("Resolution Max UVW: {:g} meters".format(bl_max))
     logger.debug("Flags: {}".format(flags.shape))
-    logger.debug("Snapshot Flags: {}".format(flags.shape))
 
     # Now report the recommended resolution from the data.
     # 1.0 / 2*np.sin(theta) = limit_u
