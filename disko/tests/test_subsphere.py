@@ -25,7 +25,7 @@ class TestSubsphere(unittest.TestCase):
         self.sphere = HealpixSubFoV(res_arcmin=60.0,
                                        theta=np.radians(10.0),
                                        phi=0.0, radius_rad=np.radians(1))
-        self.sphere.set_info(timestamp=datetime.datetime.now(),
+        self.sphere.set_info(timestamp=datetime.datetime.now(datetime.timezone.utc),
                              lon=170.5, lat=-45.5, height=42)
 
     def test_area(self):
@@ -103,7 +103,7 @@ class TestSubsphere(unittest.TestCase):
                                theta=np.radians(0.0), phi=0.0,
                                radius_rad=np.radians(45))
 
-        sph.set_info(timestamp=datetime.datetime.now(),
+        sph.set_info(timestamp=datetime.datetime.now(datetime.timezone.utc),
                      lon=170.5, lat=-45.5, height=42)
 
         sph.to_hdf('test.h5')
