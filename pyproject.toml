@@ -36,6 +36,9 @@ dev = [
     "pytest>=8",
 ]
 
+[tool.pytest.ini_options]
+addopts = "--ignore=context"
+
 [project.scripts]
 disko = "disko.cli:main"
 disko_draw = "disko.draw_cli:main"
