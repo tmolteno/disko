@@ -47,7 +47,7 @@ def casa_read_ms(
     snapshot: int = 0,
     pol: int = 0,
 ):
-    res_arcmin = angular_resolution / 60.0
+    res_deg = angular_resolution  # caller passes degrees from Resolution.degrees()
     logger.info(f"CASA read ms {ms_file} column: {ms_column}")
     ms = table(ms_file, ack=False, readonly=True, lockoptions="auto")
 
@@ -143,7 +143,7 @@ def casa_read_ms(
     #   Plan is to use data-sequential inference to calibrate by gradually relaxing this
     #   resolution criterion and using multi-level delayed rejection sampling.
     #
-    bl_max = resolution_min_baseline(max_freq=frequency, resolution_deg=res_arcmin * 60)
+    bl_max = resolution_min_baseline(max_freq=frequency, resolution_deg=res_deg)
 
     logger.debug("Resolution Max UVW: {:g} meters".format(bl_max))
     logger.debug("Flags: {}".format(flags.shape))
@@ -169,14 +169,11 @@ def casa_read_ms(
     n_max = len(good_data)
 
     if n_max <= num_vis:
-        indices = good_data  # np.indices(n_max)
+        indices = good_data
     else:
-        indices = good_data[:, 0:num_vis]
         rng = np.random.default_rng()
-        indices = rng.choice(a=good_data, size=num_vis, replace=False, axis=1)
-        indices = np.sort(
-            indices
-        )  # sort the indices to keep them in order (speeds up IO)
+        indices = rng.choice(a=good_data, size=num_vis, replace=False)
+        indices = np.sort(indices)  # sort to speed up IO
 
     logger.debug(f"Indices {indices}")
 
