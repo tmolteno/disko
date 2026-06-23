@@ -70,9 +70,9 @@ dask:
 TART_ARGS=--fov 155deg --res 1deg --ms test_data/test.ms --debug --field 1  --HDF tart.hdf
 #TART_ARGS=--fov 155deg --res 1deg --file test_data/test_data.json --show-sources --HDF tart.hdf
 cygnus_lsmr:
-	${TIME} uv run disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
+	${TIME} uv run disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 0.5arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
 cygnus_fista:
-	${TIME} uv run disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --fista --niter 200 --nvis 5000 --title 'cygnus_fista'
+	${TIME} uv run disko  --debug --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 1arcsec --matrix-free --fista --alpha 1e-7 --niter 200 --nvis 10000 --title 'cygnus_fista'
 
 tart:
 	uv run disko --healpix ${TART_ARGS} --SVG --alpha=0.025 --tikhonov  --title 'tart'

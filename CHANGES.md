@@ -1,5 +1,22 @@
 # Changes
 
+## 1.4.0 (2026-06-22)
+
+- Convert from pygmsh to gmsh native API; remove pygmsh dependency; add meshio
+- Select visibilities from all MS snapshots instead of just snapshot 0
+- Add baseline length percentile output (0-100% in 5% steps)
+- Fix `ms_helper`: rename misleading `res_arcmin` to `res_deg`, remove dead code
+- Fix `image_natural`: broadcast bug in sigma_1 division causing wrong shapes
+- Cache harmonic blocks per-block (float32) for matrix-free FISTA; limit to <500 MB
+- Fix `test_meshsphere`: gmsh compatibility, split standalone `test_areas`
+- Fix `test_telescope_operator`: harmonic normalization for physical pixel areas
+- Fix `test_pylops_operator`: replace broken `from_resolution()` calls
+- Fix `test_sphere`: incorrect zenith physics replaced with round-trip test
+- Fix `test_subsphere`: timezone-naive datetime → UTC-aware
+- Configure pytest to ignore `context/` directory
+- Fix `scipy.misc` deprecation: use `imageio` instead
+- Update copyright notices to 2022-2026 across all files
+
 ## 1.3.3 (2026-06-19)
 
 - Vectorize `get_harmonics`, `make_gamma`, and matrix-free operators (`DiSkOOperator`, `DirectImagingOperator`) using broadcasting and blocked BLAS-level operations (10-50x speedup)

@@ -148,7 +148,7 @@ class DiSkOOperator(pylops.LinearOperator):
         # A callback to use during optimization routintes, should be used to write some temporary results
         if (self.iteration_count > 0) and (self.iteration_count % 10 == 0):
             logger.info(f"callback {self.sphere} {x.shape}")
-            self.sphere.callback(x, self.iteration_count)
+            # self.sphere.callback(x, self.iteration_count)
         self.iteration_count = self.iteration_count + 1
 
     def A(self, i, j, p2j):
