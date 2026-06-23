@@ -123,23 +123,6 @@ class TestPylopsOperator(unittest.TestCase):
 
         dottest(Op, self.disko.n_v * 2, self.sphere.npix, tol=1e-04)
 
-        Op = disko.DirectImagingOperator(
-            self.disko.u_arr,
-            self.disko.v_arr,
-            self.disko.w_arr,
-            data,
-            frequencies,
-            self.sphere,
-        )
-        pylops.utils.dottest(
-            Op,
-            self.sphere.npix,
-            self.disko.n_v * 2,
-            rtol=1e-06,
-            complexflag=0,
-            raiseerror=True,
-            verb=True,
-        )
 
     def test_pylops_tiny(self):
         r"""

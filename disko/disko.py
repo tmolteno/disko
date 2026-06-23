@@ -247,12 +247,12 @@ class DiSkOOperator(pylops.LinearOperator):
 
     def _rmatvec(self, v):
         r"""
-        Returns x = A^H * v, where A^H is the conjugate transpose of A.
+        Returns x = A^T * v, where A^T is the transpose of A.
 
         x = ( T_real' T_imag') (v_real
                                 v_imag)
 
-        Matrix-free: uses cached float32 harmonic blocks.
+        Matrix-free: uses cached float64 harmonic blocks.
         """
         assert v.shape == (self.M,)
         n_u = self.u_arr.shape[0]
@@ -276,117 +276,6 @@ class DiSkOOperator(pylops.LinearOperator):
                 ret += Hr.T @ v_real[i_start:i_end] + Hi.T @ v_imag[i_start:i_end]
 
         return ret
-
-
-class DirectImagingOperator(pylops.LinearOperator):
-    r"""
-    This is the approximate inverse of the DiSkOOperator, and corresponds to
-    imaging by the discrete fourier transform
-    """
-
-    def __init__(self, u_arr, v_arr, w_arr, data, frequencies, sphere):
-        super().__init__()
-        self.N = sphere.npix  # Number of pixels
-        self.u_arr = u_arr
-        self.v_arr = v_arr
-        self.w_arr = w_arr
-        self.dtype = REAL_DATATYPE
-
-        try:
-            self.n_v, self.n_freq, self.npol = data.shape
-        except Exception:
-            raise RuntimeError("Data must be of the shape [n_v, n_freq, n_pol]")
-
-        self.M = self.n_v * self.n_freq
-
-        self.frequencies = frequencies
-        self.sphere = sphere
-
-        if self.sphere.l.shape[0] != self.N:
-            raise RuntimeError(
-                f"self.sphere.l.shape != self.N, {self.sphere.l.shape} != {self.N}"
-            )
-
-        self.shape = (self.N, self.M)
-        self.explicit = False  # Can't be directly inverted
-        logger.info("Creating DirectImagingOperator data={}".format(self.shape))
-
-    def _compute_harmonics_block(self, p2j, u_blk, v_blk, w_blk):
-        """Compute a block of the complex harmonics matrix.
-
-        Args:
-            p2j: complex frequency factor (1j * omega)
-            u_blk, v_blk, w_blk: 1D arrays of UVW coordinates for this
-                block of visibilities.
-
-        Returns:
-            H_block: complex array of shape (len(u_blk), self.N)
-        """
-        phase = p2j * (
-            np.outer(u_blk, self.sphere.l)
-            + np.outer(v_blk, self.sphere.m)
-            + np.outer(w_blk, self.sphere.n_minus_1)
-        )
-        return np.exp(phase) * self.sphere.pixel_areas[np.newaxis, :]
-
-    def _block_size(self):
-        """Number of visibility rows per block, targeting ~200 MB per block."""
-        return max(256, int(200 * 1024 * 1024 / (16 * max(1, self.N))))
-
-    def _matvec(self, v):
-        """
-        Multiply by the measurements v, producing the sky.
-        Returns A * v.
-
-        sky = real(v_complex @ H) where H[i,j] is the harmonic at
-        visibility i, pixel j.  Computed in blocks for memory efficiency.
-        """
-        n_vis = self.n_v // 2
-        vis_complex = v[:n_vis] + 1.0j * v[n_vis:]
-
-        sky = np.zeros(self.N, dtype=self.dtype)
-        block_size = self._block_size()
-
-        for f in self.frequencies:
-            p2j = jomega(f)
-            for i_start in range(0, n_vis, block_size):
-                i_end = min(i_start + block_size, n_vis)
-                H_block = self._compute_harmonics_block(
-                    p2j,
-                    self.u_arr[i_start:i_end],
-                    self.v_arr[i_start:i_end],
-                    self.w_arr[i_start:i_end],
-                )  # shape (block_size, N)
-                sky += np.real(vis_complex[i_start:i_end] @ H_block)
-
-        return sky
-
-    def _rmatvec(self, x):
-        r"""
-        Map sky vector x back to visibilities.
-
-        v_complex = conj(H) @ x, then split into real/imag parts.
-        """
-        assert x.shape == (self.N,)
-        n_vis = self.n_v // 2
-
-        ret_complex = np.zeros(n_vis, dtype=COMPLEX_DATATYPE)
-        block_size = self._block_size()
-
-        for f in self.frequencies:
-            p2j = jomega(f)
-            for i_start in range(0, n_vis, block_size):
-                i_end = min(i_start + block_size, n_vis)
-                H_block = self._compute_harmonics_block(
-                    p2j,
-                    self.u_arr[i_start:i_end],
-                    self.v_arr[i_start:i_end],
-                    self.w_arr[i_start:i_end],
-                )  # shape (block_size, N)
-                # v_complex[i] = dot(conj(H[i,:]), x)  =>  v_block = H_block.conj() @ x
-                ret_complex[i_start:i_end] = H_block.conj() @ x
-
-        return np.concatenate((np.real(ret_complex), np.imag(ret_complex)))
 
 
 class DiSkO(object):
@@ -589,9 +478,6 @@ class DiSkO(object):
         logger.info("frequencies: {}".format(frequencies))
 
         A = DiSkOOperator(self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere)
-        Apre = DirectImagingOperator(
-            self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere
-        )
         d = data.flatten()
 
         logger.info("Data.shape {}".format(data.shape))
@@ -611,7 +497,7 @@ class DiSkO(object):
             sky, niter, cost_history = pylops.optimization.sparsity.fista(
                 Op=A,
                 y=d,
-                x0=np.abs(Apre @ d),
+                x0=np.abs(A.T @ d),
                 eps=eps,
                 tol=1e-10,
                 niter=niter,
@@ -658,7 +544,7 @@ class DiSkO(object):
         if lsmr is True:
             if alpha < 0:
                 alpha = np.mean(self.rms)
-            x0 = Apre @ d
+            x0 = A.T @ d
 
             sky, info = pylops.optimization.leastsquares.normal_equations_inversion(
                 A, Regs=None, y=d, x0=x0, epsI=alpha, show=True

@@ -1,5 +1,10 @@
 # Changes
 
+## 1.4.1 (2026-06-22)
+
+- Remove redundant `DirectImagingOperator` (10% code reduction); `DiSkOOperator` handles the exact adjoint directly via `A.T`.
+- Fix FISTA and LSMR initial guess: Use true adjoint `np.abs(A.T @ d)` to guarantee a physically correct (non-mirrored) starting image.
+
 ## 1.4.0 (2026-06-22)
 
 - Convert from pygmsh to gmsh native API; remove pygmsh dependency; add meshio

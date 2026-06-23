@@ -8,7 +8,6 @@ import logging  # noqa: F401
 # Public API — imported by external users
 from .cli import disko_from_ms  # noqa: F401
 from .disko import (  # noqa: F401
-    DirectImagingOperator,
     DiSkO,
     DiSkOOperator,
     get_all_uvw,
