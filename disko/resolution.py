@@ -6,31 +6,6 @@ import astropy.constants as const
 import numpy as np
 
 
-def parse_ending(x_str, ending):
-    if x_str.endswith(ending):
-        return float(x_str.split(ending)[0])
-    return None
-
-
-DEGREES = "deg"
-MINUTES = "arcmin"
-SECONDS = "arcsec"
-MILLIARCSECONDS = "mas"
-MICROARCSECONDS = "uas"
-
-
-def rayleigh_criterion(bl, frequency):
-    """
-    The accepted criterion for determining the diffraction limit to resolution
-    developed by Lord Rayleigh in the 19th century.
-
-    approx resolution given by first order Bessel functions
-    assuming array is a flat disk of length bl
-    """
-    min_wl = const.c.value / frequency
-    return 1.220 * min_wl / bl
-
-
 class Resolution:
     """
     Degrees (°), minutes ('), seconds (")
@@ -62,19 +37,7 @@ class Resolution:
         # Normalize common symbols to parseable forms
         s = x_str.replace('"', "arcsec").replace("'", "arcmin")
 
-        try:
-            return cls(parse_angle(s))
-        except ValueError:
-            pass
-
-        endings = [MICROARCSECONDS, MILLIARCSECONDS]
-        deg_factors = [3600 * 1000000, 3600 * 1000]
-        parsed = [parse_ending(s, e) for e in endings]
-        for p, f in zip(parsed, deg_factors):
-            if p is not None:
-                return cls.from_deg(p / f)
-
-        return cls.from_deg(float(s))
+        return cls(parse_angle(s))
 
     def radians(self):
         return self.x_rad
@@ -88,27 +51,24 @@ class Resolution:
     def arcsec(self):
         return self.degrees() * 3600
 
-    def mas(self):
-        return np.de
-
     def __repr__(self):
         d = self.degrees()
         if np.abs(d) > 1:
             return f"{d:4.2f}deg"
 
         if np.abs(self.arcmin()) > 1:
-            return f"{self.arcmin():4.2f}{MINUTES}"
+            return f"{self.arcmin():4.2f}arcmin"
 
         arcsec = self.arcsec()
         if np.abs(arcsec) > 1:
-            return f"{arcsec:4.2f}{SECONDS}"
+            return f"{arcsec:4.2f}arcsec"
 
         mas = arcsec * 1000
         if np.abs(mas) >= 1:
-            return f"{mas:4.2f}{MILLIARCSECONDS}"
+            return f"{mas:4.2f}mas"
 
         uas = mas * 1000
-        return f"{uas:4.2f}{MICROARCSECONDS}"
+        return f"{uas:4.2f}uas"
 
     def get_min_baseline(self, frequency):
         """
@@ -132,5 +92,17 @@ class Resolution:
 
     @classmethod
     def from_baseline(cls, bl, frequency):
-        res_limit = rayleigh_criterion(bl, frequency)
+        res_limit = cls.rayleigh_criterion(bl, frequency)
         return cls(res_limit / 2)  # Nyquist requires twice the resolution
+
+    @staticmethod
+    def rayleigh_criterion(bl, frequency):
+        """
+        The accepted criterion for determining the diffraction limit to resolution
+        developed by Lord Rayleigh in the 19th century.
+
+        approx resolution given by first order Bessel functions
+        assuming array is a flat disk of length bl
+        """
+        min_wl = const.c.value / frequency
+        return 1.220 * min_wl / bl

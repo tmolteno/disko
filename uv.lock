@@ -8,11 +8,11 @@ resolution-markers = [
 
 [[package]]
 name = "angle-parser"
-version = "0.1.0"
+version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0f/fa/d28ec199a04f83da08ca2d6b8568004f6947598766d9cda161d0cca0d1f2/angle_parser-0.1.0.tar.gz", hash = "sha256:fa1d3ee2096393c96f079f79f3efa1291ea94a94018571a869878d0b4cc5c82d", size = 2425, upload-time = "2026-07-07T01:44:03.874Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2a/f7/d23c265e13daa3885406da19dd9798fc121ce0fb008252b38b4a18b8d432/angle_parser-0.2.0.tar.gz", hash = "sha256:83f9444113e4ab0da243fb8139d3dcd20d2b0facf63253e97fd41ece47e0f22f", size = 2748, upload-time = "2026-07-07T02:03:43.583Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/55/8b5b2ac53695de84aca190bc39c28b35fc2875475b1aa741b1fa7f78a8a7/angle_parser-0.1.0-py3-none-any.whl", hash = "sha256:0065724c9f153efc2051f923fa11eb713bd518fadb63d0fd72da768f0b765a17", size = 2608, upload-time = "2026-07-07T01:44:02.659Z" },
+    { url = "https://files.pythonhosted.org/packages/71/45/4250a354331ea3a36e7abd14fa1313bb87e59c197061a009afa66b0c24ba/angle_parser-0.2.0-py3-none-any.whl", hash = "sha256:8bba1bf8b03acdc04ffb7dfe21a74981ecceaab671c3d36bf95fd34a6271c30c", size = 2840, upload-time = "2026-07-07T02:03:42.288Z" },
 ]
 
 [[package]]
@@ -413,7 +413,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "angle-parser", specifier = ">=0.1.0" },
+    { name = "angle-parser", specifier = "==0.2.0" },
     { name = "dask-ms", specifier = ">=0.2.25,<0.3.0" },
     { name = "gmsh", specifier = ">=4.9" },
     { name = "h5py", specifier = ">=3.7" },
