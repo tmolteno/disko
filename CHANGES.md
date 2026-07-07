@@ -1,5 +1,10 @@
 # Changes
 
+## 1.4.2 (2026-06-22)
+
+- Delegate angle parsing to `angle-parser` library; remove custom `parse_ending` and unit constants from `Resolution`
+- Add `angle-parser>=0.2.0` dependency; remove fallback for `mas`, `uas` (now handled natively)
+
 ## 1.4.1 (2026-06-22)
 
 - Remove redundant `DirectImagingOperator` (10% code reduction); `DiSkOOperator` handles the exact adjoint directly via `A.T`.
