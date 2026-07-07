@@ -2,9 +2,8 @@
 # Copyright Tim Molteno 2022-2026 tim@elec.ac.nz
 #
 
-import numpy as np
-
 import astropy.constants as const
+import numpy as np
 
 
 def parse_ending(x_str, ending):
@@ -14,28 +13,28 @@ def parse_ending(x_str, ending):
 
 
 DEGREES = "deg"
-MINUTES = 'arcmin'
-SECONDS = 'arcsec'
-MILLIARCSECONDS = 'mas'
-MICROARCSECONDS = 'uas'
+MINUTES = "arcmin"
+SECONDS = "arcsec"
+MILLIARCSECONDS = "mas"
+MICROARCSECONDS = "uas"
 
 
 def rayleigh_criterion(bl, frequency):
-    '''
-        The accepted criterion for determining the diffraction limit to resolution
-        developed by Lord Rayleigh in the 19th century.
+    """
+    The accepted criterion for determining the diffraction limit to resolution
+    developed by Lord Rayleigh in the 19th century.
 
-        approx resolution given by first order Bessel functions
-        assuming array is a flat disk of length bl
-    '''
+    approx resolution given by first order Bessel functions
+    assuming array is a flat disk of length bl
+    """
     min_wl = const.c.value / frequency
-    return (1.220 * min_wl / bl)
+    return 1.220 * min_wl / bl
 
 
 class Resolution:
-    '''
-        Degrees (°), minutes ('), seconds (")
-    '''
+    """
+    Degrees (°), minutes ('), seconds (")
+    """
 
     def __init__(self, x_rad):
         self.x_rad = x_rad
@@ -50,22 +49,32 @@ class Resolution:
 
     @classmethod
     def from_arcmin(cls, x_arcmin):
-        return cls(np.radians(x_arcmin/60))
+        return cls(np.radians(x_arcmin / 60))
 
     @classmethod
     def from_arcsec(cls, x_arcsec):
-        return cls(np.radians(x_arcsec/3600))
+        return cls(np.radians(x_arcsec / 3600))
 
     @classmethod
     def from_string(cls, x_str):
-        endings = [MICROARCSECONDS, MILLIARCSECONDS, SECONDS, MINUTES, DEGREES]
-        deg_factors = [3600*1000000, 3600*1000, 3600, 60, 1]
-        parsed = [parse_ending(x_str, e) for e in endings]
+        from angle_parser import parse_angle
+
+        # Normalize common symbols to parseable forms
+        s = x_str.replace('"', "arcsec").replace("'", "arcmin")
+
+        try:
+            return cls(parse_angle(s))
+        except ValueError:
+            pass
+
+        endings = [MICROARCSECONDS, MILLIARCSECONDS]
+        deg_factors = [3600 * 1000000, 3600 * 1000]
+        parsed = [parse_ending(s, e) for e in endings]
         for p, f in zip(parsed, deg_factors):
             if p is not None:
-                return cls.from_deg(p/f)
+                return cls.from_deg(p / f)
 
-        return cls.from_deg(float(x_str))
+        return cls.from_deg(float(s))
 
     def radians(self):
         return self.x_rad
@@ -102,24 +111,24 @@ class Resolution:
         return f"{uas:4.2f}{MICROARCSECONDS}"
 
     def get_min_baseline(self, frequency):
-        '''
-            Get the shortest baseline length (in meters) that will resolve
-            this resolution, at the specified frequency.
+        """
+        Get the shortest baseline length (in meters) that will resolve
+        this resolution, at the specified frequency.
 
-            Double-slit interferometer (spacing d). Fringe maxima
-            occur at angles where
-                d * sin(theta) = n * wavelength
+        Double-slit interferometer (spacing d). Fringe maxima
+        occur at angles where
+            d * sin(theta) = n * wavelength
 
-            n = 1: sin(theta) = wavelength/d
-            n = 2: sin(theta) = 2*wavelength/d
+        n = 1: sin(theta) = wavelength/d
+        n = 2: sin(theta) = 2*wavelength/d
 
-            angular spacing = wavelength / d
+        angular spacing = wavelength / d
 
-            so d = spacing / theta
-        '''
+        so d = spacing / theta
+        """
         wavelength = const.c.value / frequency
         spacing = wavelength / self.x_rad
-        return spacing*2    # Nyquist requires twice this...
+        return spacing * 2  # Nyquist requires twice this...
 
     @classmethod
     def from_baseline(cls, bl, frequency):
