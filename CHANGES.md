@@ -4,6 +4,9 @@
 
 - Delegate angle parsing to `angle-parser` library; remove custom `parse_ending` and unit constants from `Resolution`
 - Add `angle-parser>=0.2.0` dependency; remove fallback for `mas`, `uas` (now handled natively)
+- Lower minimum gmsh version from 4.9 to 4.0
+- Update optional `tart2ms` dependency from >=0.7.1 to >=0.9.0
+- Update `uv.lock` for all dependency changes
 
 ## 1.4.1 (2026-06-22)
 
