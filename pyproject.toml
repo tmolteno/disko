@@ -24,12 +24,12 @@ dependencies = [
     "gmsh>=4.9",
     "meshio>=5.0",
     "dask-ms>=0.2.25,<0.3.0",
-    "angle-parser==0.2.0",
+    "angle-parser>=0.2.0",
 ]
 
 [project.optional-dependencies]
 ms = [
-    "tart2ms>=0.7.1",
+    "tart2ms>=0.9.0",
 ]
 
 [dependency-groups]
