@@ -1,5 +1,10 @@
 # Changes
 
+## 1.4.3 (2026-06-22)
+
+- Make `gmsh` and `meshio` optional dependencies in new `[mesh]` extras group; `uv sync --extra mesh` to install
+- Clear error messages when using `--mesh` without the optional dependencies
+
 ## 1.4.2 (2026-06-22)
 
 - Delegate angle parsing to `angle-parser` library; remove custom `parse_ending` and unit constants from `Resolution`
