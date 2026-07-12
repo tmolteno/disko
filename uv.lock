@@ -379,17 +379,15 @@ wheels = [
 
 [[package]]
 name = "disko"
-version = "1.4.1"
+version = "1.4.2"
 source = { editable = "." }
 dependencies = [
     { name = "angle-parser" },
     { name = "dask-ms" },
-    { name = "gmsh" },
     { name = "h5py" },
     { name = "healpy" },
     { name = "imageio" },
     { name = "matplotlib" },
-    { name = "meshio" },
     { name = "numpy" },
     { name = "pylops" },
     { name = "scikit-learn" },
@@ -401,6 +399,10 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+mesh = [
+    { name = "gmsh" },
+    { name = "meshio" },
+]
 ms = [
     { name = "tart2ms" },
 ]
@@ -413,14 +415,14 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "angle-parser", specifier = "==0.2.0" },
+    { name = "angle-parser", specifier = ">=0.2.0" },
     { name = "dask-ms", specifier = ">=0.2.25,<0.3.0" },
-    { name = "gmsh", specifier = ">=4.9" },
+    { name = "gmsh", marker = "extra == 'mesh'", specifier = ">=4.0" },
     { name = "h5py", specifier = ">=3.7" },
     { name = "healpy", specifier = ">=1.15.0,<2.0.0" },
     { name = "imageio", specifier = ">=0.6.0b1" },
     { name = "matplotlib", specifier = ">=3.1.0,<4.0.0" },
-    { name = "meshio", specifier = ">=5.0" },
+    { name = "meshio", marker = "extra == 'mesh'", specifier = ">=5.0" },
     { name = "numpy", specifier = ">=1.2.1,<3.0.0" },
     { name = "pylops", specifier = ">=2.0" },
     { name = "scikit-learn", specifier = ">=1.0.1" },
@@ -428,10 +430,10 @@ requires-dist = [
     { name = "svgwrite", specifier = ">=1.4.3" },
     { name = "tart", specifier = ">=1.4.0" },
     { name = "tart-tools", specifier = ">=1.4.0" },
-    { name = "tart2ms", marker = "extra == 'ms'", specifier = ">=0.7.1" },
+    { name = "tart2ms", marker = "extra == 'ms'", specifier = ">=0.9.0" },
     { name = "toolz", specifier = ">=0.11.2" },
 ]
-provides-extras = ["ms"]
+provides-extras = ["ms", "mesh"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1393,6 +1395,23 @@ wheels = [
 ]
 
 [[package]]
+name = "sgp4"
+version = "2.27"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/62/e1282ea86299c76159e182cd36046e6d7980b120fef14c101757e1f650b3/sgp4-2.27.tar.gz", hash = "sha256:06d37247c6985739b707b8b39b6b83e06e8af783b2531e31965501ba983985f9", size = 180401, upload-time = "2026-07-03T12:54:49.443Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/06/01c556ab39ef9c161b44d171fbb0990f59d5079d77959409c1f97685d269/sgp4-2.27-cp311-abi3-macosx_10_9_x86_64.whl", hash = "sha256:5ae1394cf0d91f54418530b02a797b14c10bb28e3f4ab616cad79a3fd67e2399", size = 148927, upload-time = "2026-07-03T12:54:41.296Z" },
+    { url = "https://files.pythonhosted.org/packages/36/d9/05fd166d8f74b326590e78bb13148d6b359ae32be5cd39082fd8a292bf50/sgp4-2.27-cp311-abi3-macosx_11_0_arm64.whl", hash = "sha256:ee68f73cb2383bc950eada2ca1b10357b0165dbf5ab75185962009375bab8761", size = 147745, upload-time = "2026-07-03T12:54:42.31Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/75/633ad7874db149df164168090951e676cdc3541a12d43b2cbb9d20ecb721/sgp4-2.27-cp311-abi3-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:4d3775313120dcb6239535fa0c94cb6d5b089fd84bbfb15220923ae38dec7296", size = 218130, upload-time = "2026-07-03T12:54:43.296Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/bf/a279758ff3eb290cc5658f035845d3107d9728e1d2d52629c9683845313a/sgp4-2.27-cp311-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ef915c124cdd9807a4eae0abe655ade89076c2cee5df0392cad172aef456cd0e", size = 219370, upload-time = "2026-07-03T12:54:44.453Z" },
+    { url = "https://files.pythonhosted.org/packages/30/84/8eebceb87dee7e7095d78375c473b57471c964d87b676c138e2da3e901bb/sgp4-2.27-cp311-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:26cfb6b8ace44e56b71cba79294da61af083b96c6b12f6229dc761c4d8c833eb", size = 215592, upload-time = "2026-07-03T12:54:45.493Z" },
+    { url = "https://files.pythonhosted.org/packages/f4/5d/e7f4a9035cc62e4d10e35f22477498458520cb32b20eed5b4a9e7854d15d/sgp4-2.27-cp311-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:63d30826ebd303e66f184b1e3feba30524d01a379e50baacd47732dd447d97ab", size = 214880, upload-time = "2026-07-03T12:54:46.563Z" },
+    { url = "https://files.pythonhosted.org/packages/56/62/c14d2aaa36ff6e749189e3576c70f3ed21f3ba72fa69e924f20581e760c1/sgp4-2.27-cp311-abi3-win32.whl", hash = "sha256:951ec95ea7f0fe0b5307fc2cd9d28c8923048bcf376b11c6cd93739e15b4722d", size = 147271, upload-time = "2026-07-03T12:54:47.498Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/b5/6e76ddece37a130c1c4c33a0ca2ae381c7aad733ca8e3d9b451594711fc0/sgp4-2.27-cp311-abi3-win_amd64.whl", hash = "sha256:827c63feb60987ad177c2c80f3a927e721ead2f444d6560cd2a4337ca90d2490", size = 148879, upload-time = "2026-07-03T12:54:48.448Z" },
+    { url = "https://files.pythonhosted.org/packages/78/cd/06dc91b31f2b919e788396c2cb5ad313d5ce0754321165343fd585c4be53/sgp4-2.27-py3-none-any.whl", hash = "sha256:5f3f5716649988b638fbe7fcda592830e0956f548ca273b93cfa5f75917b9087", size = 123299, upload-time = "2026-07-12T18:53:05.274Z" },
+]
+
+[[package]]
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1425,6 +1444,21 @@ wheels = [
 ]
 
 [[package]]
+name = "tart-catalogue-client"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "astropy" },
+    { name = "numpy" },
+    { name = "requests" },
+    { name = "sgp4" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f2/85/d8e695a3f154317de11049955dfe316719f56c8c5fa7ae9c9bdd68b1561c/tart_catalogue_client-0.5.1.tar.gz", hash = "sha256:6bcb85bd313c0b04dae079aa8c7dcca1f4655ba689c05e5e2757b298e8eddad8", size = 40752, upload-time = "2026-07-11T03:13:15.052Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/52/56/a064ffd85dbf7c2cd52032ca086bf28fc6943dfe9d7479170b2ad20cf914/tart_catalogue_client-0.5.1-py3-none-any.whl", hash = "sha256:cea788d041df5705035641f3cb53dba58daef1fc9a0bcfe708e52e5779fdd6db", size = 9676, upload-time = "2026-07-11T03:13:13.944Z" },
+]
+
+[[package]]
 name = "tart-tools"
 version = "1.4.5"
 source = { registry = "https://pypi.org/simple" }
@@ -1442,7 +1476,7 @@ wheels = [
 
 [[package]]
 name = "tart2ms"
-version = "0.8.1"
+version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -1456,11 +1490,12 @@ dependencies = [
     { name = "requests" },
     { name = "scipy" },
     { name = "tart" },
+    { name = "tart-catalogue-client" },
     { name = "tart-tools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ec/8f/8eca8444efddd787f19f815294a3f2f6c6ccae08f886af6e4fc6722a0ee8/tart2ms-0.8.1.tar.gz", hash = "sha256:b81222ffd1020b90841aea70e6f12387d491ed3f75fd2ea6f444e181faf1e60b", size = 6360049, upload-time = "2026-06-12T07:10:28.748Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/84/bc1027ab3d56862fb307ccb0e92686298d3ceecf9377aeebcb768a4e8248/tart2ms-0.9.0.tar.gz", hash = "sha256:1b070d0530ec9fdb874875791faedac6ead810862ffcb42ac5a778f8daf50139", size = 6367946, upload-time = "2026-07-11T03:52:23.927Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0c/5a/59d3ec56bcd20405df0273d07a26f299664556f8af61bcfc00e1a8965229/tart2ms-0.8.1-py3-none-any.whl", hash = "sha256:ecd605eb3c50db4e12c64ff066c812cc3d0b5309ee473ffbc010bb21b9867f1a", size = 6505995, upload-time = "2026-06-12T07:10:27.027Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/24/34718a2e94dd1040785d5d6fc3dc093259b78dc76764443a113fb1ffcc2c/tart2ms-0.9.0-py3-none-any.whl", hash = "sha256:3911cab32a631411eb3a235a650a114db6fb375a180c516a961ef5cf42ce450e", size = 6516693, upload-time = "2026-07-11T03:52:21.862Z" },
 ]
 
 [[package]]

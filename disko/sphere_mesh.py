@@ -11,13 +11,17 @@
 import logging
 
 import h5py
-import meshio
 import numpy as np
 
 try:
     import gmsh
 except ImportError:
     gmsh = None
+
+try:
+    import meshio
+except ImportError:
+    meshio = None
 
 from scipy.spatial import Delaunay
 
@@ -100,8 +104,8 @@ def get_mesh(radius_rad, edge_size):
     Returns (points, cells) where points is (N, 3) scaled by radius_rad
     and cells is (M, 3) integer array of triangle vertex indices.
     """
-    if gmsh is None:
-        raise RuntimeError("gmsh is required for mesh generation")
+    if gmsh is None or meshio is None:
+        raise RuntimeError("gmsh and meshio are required for mesh generation. Install with: uv sync --extra mesh")
 
     logger.info(
         f"Generating Mesh: Radius: {Resolution.from_rad(radius_rad)},"

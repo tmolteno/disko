@@ -21,8 +21,6 @@ dependencies = [
     "pylops>=2.0",
     "toolz>=0.11.2",
     "imageio>=0.6.0b1",
-    "gmsh>=4.0",
-    "meshio>=5.0",
     "dask-ms>=0.2.25,<0.3.0",
     "angle-parser>=0.2.0",
 ]
@@ -30,6 +28,10 @@ dependencies = [
 [project.optional-dependencies]
 ms = [
     "tart2ms>=0.9.0",
+]
+mesh = [
+    "gmsh>=4.0",
+    "meshio>=5.0",
 ]
 
 [dependency-groups]
