@@ -370,11 +370,10 @@ class DiSkO(object):
 
     def image_visibilities(self, vis_arr, sphere):
         """
-        Create a DiSkO image from visibilities using the direct adjoint of the
-        measurement operator (corresponds to the inverse DFT)
+        Create a DiSkO image from visibilities using the adjoint of the
+        measurement operator (matrix-free, blocked for memory efficiency).
 
         Args:
-
             vis_arr (np.array): An array of complex visibilities
             sphere (FoV):    a sphere to place
         """
@@ -383,12 +382,16 @@ class DiSkO(object):
         logger.info("Imaging Visabilities resolution={}".format(sphere.min_res()))
         t0 = time.time()
 
-        gamma = self.get_harmonics(sphere)  # shape (n_v, n_pix), complex
-        # sum_i conj(vis_i) * H[i,:]  = conj(vis) @ H  =  H.T @ conj(vis) ...
-        # Actually: pixels = sum_i vis_i * h_i  =  vis @ H  =  (H.T @ vis).T
-        # Each column of H is a harmonic for one visibility.
-        # pixels[j] = sum_i vis_i * H[i,j] = (vis @ H)[j]
-        pixels = vis_arr @ gamma  # (n_vis,) @ (n_vis, n_pix) -> (n_pix,)
+        # Build a DiSkOOperator and use its adjoint (A.T @ d)
+        # This is matrix-free and uses blocked computation to avoid
+        # storing the full Gamma matrix.
+        data = self.vis_to_data(vis_arr)
+        frequencies = [self.frequency]
+        A = DiSkOOperator(
+            self.u_arr, self.v_arr, self.w_arr, data, frequencies, sphere
+        )
+        d = data.flatten()
+        pixels = A.T @ d  # shape (n_pix,)
 
         logger.info("Elapsed {}s".format(time.time() - t0))
 
