@@ -1,5 +1,9 @@
 # Changes
 
+## 1.4.4 (2026-06-22)
+
+- Fix `image_visibilities` RAM: use matrix-free blocked adjoint instead of building the full complex Gamma matrix in memory
+
 ## 1.4.3 (2026-06-22)
 
 - Make `gmsh` and `meshio` optional dependencies in new `[mesh]` extras group; `uv sync --extra mesh` to install
