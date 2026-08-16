@@ -113,6 +113,20 @@ class MultivariateGaussian:
             self._sigma = self.sp_inv(self._sigma_inv)
         return self._sigma
 
+    def is_scaled_identity(self, rtol=1e-10):
+        """True if the covariance is sigma0 * I for a single sigma0.
+
+        Memory-light: allocates no n_s x n_s temporaries.
+        """
+        sigma = self.sigma()
+        diag = sigma.diagonal()
+        if not np.allclose(diag, diag[0], rtol=rtol):
+            return False
+        # sum|Sigma| == D * |diag[0]| iff every off-diagonal entry is zero.
+        return np.isclose(
+            np.abs(sigma).sum(), np.abs(diag[0]) * self.D, rtol=rtol
+        )
+
     def bayes_update(self, precision_y, y, A):
         """
         Return a new MultivariateGaussian, after update by measurements,

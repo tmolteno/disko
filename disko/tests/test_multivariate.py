@@ -60,6 +60,17 @@ class TestMultivariate(unittest.TestCase):
         self.assertTrue(np.allclose(x.variance(), [1.0, 4.0, 9.0]))
         self.assertTrue(np.allclose(x.std(), [1.0, 2.0, 3.0]))
 
+    def test_is_scaled_identity(self):
+        x = mg.MultivariateGaussian(np.zeros(3), sigma=np.diag([2.0, 2.0, 2.0]))
+        self.assertTrue(x.is_scaled_identity())
+
+        y = mg.MultivariateGaussian(np.zeros(3), sigma=np.diag([2.0, 3.0, 2.0]))
+        self.assertFalse(y.is_scaled_identity())
+
+        a = np.random.normal(0, 1, (3, 3))
+        z = mg.MultivariateGaussian(np.zeros(3), sigma=a @ a.T)
+        self.assertFalse(z.is_scaled_identity())
+
     def test_hdf(self):
         D = 100
         fname = 'test.hdf'

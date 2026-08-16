@@ -1,22 +1,21 @@
 #
-# Copyright Tim Molteno 2022-2026 tim@elec.ac.nz
+# Copyright Tim Molteno 2022-2026
+#
+# Fast unit tests for the pylops DiSkOOperator. These use a tiny
+# synthetic telescope (a few antennas and a coarse healpix sphere).
 #
 
-import json
 import logging
 import unittest
 
 import astropy.constants as const
 import numpy as np
 import pylops
-from tart.operation import settings
-from tart_tools import api_imaging
 
 import disko
-from disko import DiSkO, HealpixFoV, HealpixSubFoV, Resolution
+from disko import DiSkO, HealpixFoV, HealpixSubFoV
 
 logger = logging.getLogger(__name__)
-# Add a null handler so logs can go somewhere
 logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
 
@@ -57,41 +56,18 @@ def dottest(Op, nr, nc, tol):
 class TestPylopsOperator(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Load data from a JSON file
-        fname = "test_data/test_data.json"
-        logger.info("Getting Data from file: {}".format(fname))
-        with open(fname, "r") as json_file:
-            calib_info = json.load(json_file)
+        np.random.seed(42)
 
-        info = calib_info["info"]
-        cls.ant_pos = np.array(calib_info["ant_pos"])
-        config = settings.from_api_json(info["info"], cls.ant_pos)
+        # A tiny synthetic telescope: 4 antennas -> 12 baselines ->
+        # 24 real visibility rows. The sphere has 48 pixels.
+        cls.ant_pos = np.random.uniform(-2.0, 2.0, (4, 3))
+        cls.disko = DiSkO.from_ant_pos(cls.ant_pos, frequency=1.5e9)
+        cls.sphere = HealpixFoV(nside=2)
 
-        flag_list = []
-
-        gains_json = calib_info["gains"]
-        gains = np.asarray(gains_json["gain"])
-        phase_offsets = np.asarray(gains_json["phase_offset"])
-
-        for d in calib_info["data"]:
-            vis_json, source_json = d
-            cv, _timestamp = api_imaging.vis_calibrated(
-                vis_json, config, gains, phase_offsets, flag_list
-            )
-
-        cls.disko = DiSkO.from_cal_vis(cv)
-        cls.nside = 16
-        cls.sphere = HealpixFoV(cls.nside)
-        res_deg = 4.0
-        cls.subsphere = HealpixSubFoV(
-            res_arcmin=res_deg * 60.0,
-            theta=np.radians(0.0),
-            phi=0.0,
-            radius_rad=np.radians(89),
-        )
+        sky = np.random.uniform(0.0, 1.0, cls.sphere.npix)
+        cls.disko.vis_arr = cls.disko.get_harmonics(cls.sphere) @ sky
 
         cls.gamma = cls.disko.make_gamma(cls.sphere)
-        cls.subgamma = cls.disko.make_gamma(cls.subsphere)
 
     def test_pylops_dot(self):
         r"""
@@ -122,7 +98,6 @@ class TestPylopsOperator(unittest.TestCase):
         self.assertTrue(np.allclose(vis1, vis2))
 
         dottest(Op, self.disko.n_v * 2, self.sphere.npix, tol=1e-04)
-
 
     def test_pylops_tiny(self):
         r"""

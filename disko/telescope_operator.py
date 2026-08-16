@@ -464,13 +464,18 @@ class TelescopeOperator:
     def image_tikhonov(self, vis_arr, sphere, alpha, scale=True):
         """Do a Tikhonov regularization solution
         using the power of the SVD!
+
+        Singular values below the rank truncation are zero, so the
+        Tikhonov filter factors s/(s^2 + alpha^2) only act on the rank
+        block. Working with the V_1/U_1 factors directly is
+        O(n_s * rank) instead of a dense O(n_s^2) triple product.
         """
-        D = np.array(self.sigma).T
-        np.fill_diagonal(D, self.s / (self.s**2 + alpha**2), wrap=False)
-        logger.info("D = {}".format(D.shape))
+        s = self.s[0 : self.rank]
+        filter_factors = s / (s**2 + alpha**2)
         logger.info("vis_arr = {}".format(vis_arr.shape))
 
-        sky = self.V @ D @ self.U.conj().T @ vis_arr
+        # Compute any lazy dask graph explicitly.
+        sky = np.asarray(self.V_1 @ (filter_factors * (self.U_1.T @ vis_arr)))
         sphere.set_visible_pixels(sky, scale)
         return sky
 

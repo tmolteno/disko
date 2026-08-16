@@ -71,8 +71,6 @@ def do_inference(disko, sphere, prior, sigma_v=None, max_cond=MAX_COND):
 
     to = TelescopeOperator(disko, sphere, max_cond=max_cond)
 
-    # Transform to the natural basis.
-    n_prior = prior.linear_transform(to.Vh)
     n_v = real_vis.shape[0]
 
     # TODO create a proper covariance that ensures the real and imaginary components are linked.
@@ -89,38 +87,71 @@ def do_inference(disko, sphere, prior, sigma_v=None, max_cond=MAX_COND):
     sigma_precision = MultivariateGaussian.sp_inv(sigma_vis)
     del sigma_vis
 
-    if True:
+    # Diagonal-prior fast path. V is orthogonal, so
+    #     V^H (sigma0 I) V == sigma0 I:
+    # the prior covariance needs no rotation into the natural basis
+    # (saving two O(n_s^3) matrix products and their n_s x n_s
+    # temporaries); only the mean is rotated.
+    #
+    # DIAGONAL PRIORS ONLY: a dense prior -- for example the chained
+    # posterior of sequential inference over multiple snapshots -- is
+    # NOT invariant, and takes the general (exact) path below.
+    diagonal_prior = prior.is_scaled_identity()
+    logger.info("Diagonal prior fast path: {}".format(diagonal_prior))
+
+    if diagonal_prior:
+        sigma0 = prior.sigma()[0, 0]
+        mu_natural = to.sky_to_natural(prior.mu)
+        prior_r = MultivariateGaussian(
+            mu_natural[0 : to.rank], sigma=sigma0 * np.identity(to.rank)
+        )
+        del mu_natural
+    else:
+        # Transform to the natural basis (exact for any covariance).
+        n_prior = prior.linear_transform(to.Vh)
         prior_r = n_prior.block(0, to.rank)
         prior_n = n_prior.block(to.rank, to.n_s)
 
-        A_r = to.A_r
-        V = to.V
+    A_r = to.A_r
+    V = np.asarray(to.V)
+    V_1 = np.asarray(to.V_1)
 
-        del to
-        posterior_r = prior_r.bayes_update(sigma_precision, real_vis, A_r)
+    del to
+    posterior_r = prior_r.bayes_update(sigma_precision, real_vis, A_r)
+
+    del A_r
+    del sigma_precision
+    del prior_r
+
+    logger.info("Transforming posterior")
+
+    if diagonal_prior:
+        # Fused posterior assembly, exact for a scaled-identity prior
+        # (the null block stays sigma0 * I). This avoids the n_s x n_s
+        # block-diagonal intermediate and the cross terms that
+        # outer() + linear_transform(V) would compute and discard:
+        #     Sigma = V_1 Sigma_r V_1^T + sigma0 (I - V_1 V_1^T)
+        #     mu    = prior.mu + V_1 (mu_r - V_1^T prior.mu)
+        mu = prior.mu + V_1 @ (posterior_r.mu - V_1.T @ prior.mu)
+        sigma = V_1 @ posterior_r.sigma() @ V_1.T + sigma0 * (
+            np.identity(prior.D) - V_1 @ V_1.T
+        )
+        posterior = MultivariateGaussian(mu, sigma=sigma)
+        del sigma
+    else:
         posterior_n = prior_n
 
-        del A_r
-        del sigma_precision
-        del prior_r
         del prior_n
         del n_prior
 
         posterior = MultivariateGaussian.outer(posterior_r, posterior_n)
 
-        del posterior_r
         del posterior_n
-
-        logger.info("Transforming posterior")
 
         posterior = posterior.linear_transform(V)
 
-        del V
-    else:
-        posterior = to.sequential_inference(n_prior, real_vis, sigma_precision)
-        del to
-        del sigma_precision
-        del n_prior
+    del posterior_r
+    del V
 
     return posterior
 

@@ -270,6 +270,43 @@ class TestTelescopeOperator(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 load_prior_image(fname, self.sphere)
 
+    def test_image_tikhonov(self):
+        # The rank-truncated filter must match the dense V D U^T form.
+        alpha = 0.1
+        vis = np.random.normal(0, 1, self.to.n_v)
+
+        D = np.array(self.to.sigma).T
+        np.fill_diagonal(D, self.to.s / (self.to.s**2 + alpha**2), wrap=False)
+        expected = np.array(self.to.V @ D @ self.to.U.conj().T @ vis)
+
+        sky = self.to.image_tikhonov(vis, self.sphere, alpha, scale=False)
+        self.assertTrue(np.allclose(sky, expected))
+
+    def test_do_inference_sequential(self):
+        # Sequential inference (the HDF5 branch) chains a posterior
+        # back in as the next prior. That prior is dense, so the
+        # diagonal fast path must not apply and the general (exact)
+        # path must produce a correct posterior.
+        prior = create_prior(self.disko.vis_arr, self.sphere, None)
+        self.assertTrue(prior.is_scaled_identity())
+
+        posterior_1 = do_inference(self.disko, self.sphere, prior, sigma_v=1e-6)
+        self.assertFalse(posterior_1.is_scaled_identity())
+
+        posterior_2 = do_inference(
+            self.disko, self.sphere, posterior_1, sigma_v=1e-6
+        )
+
+        # The twice-updated posterior still fits the data, and the
+        # second update (same data, informed prior) moves it little.
+        gamma = np.array(self.to.gamma)
+        self.assertTrue(
+            np.allclose(gamma @ posterior_2.mu, self.real_vis, rtol=1e-3, atol=1e-3)
+        )
+        self.assertTrue(
+            np.allclose(posterior_2.mu, posterior_1.mu, rtol=1e-2, atol=1e-2)
+        )
+
     def test_create_prior(self):
         # The heuristic prior has mean = median |vis| and covariance
         # p95(|vis|)^2 * I (so the prior std is p95).
