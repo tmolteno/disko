@@ -10,6 +10,7 @@ import time
 from copy import deepcopy
 
 import matplotlib.pyplot as plt
+import healpy as hp
 import numpy as np
 from tart.imaging import calibration, elaz, visibility
 from tart.operation import settings
@@ -20,7 +21,7 @@ from .disko import DiSkO, vis_to_real
 from .ms_helper import get_array_location
 from .multivariate_gaussian import MultivariateGaussian
 from .parser_support import sphere_args_parser, sphere_from_args
-from .telescope_operator import TelescopeOperator
+from .telescope_operator import MAX_COND, TelescopeOperator
 
 logger = logging.getLogger(__name__)
 logger.addHandler(
@@ -49,10 +50,26 @@ def create_prior(vis_arr, sphere, hdf_prior):
     return prior
 
 
-def do_inference(disko, sphere, prior, sigma_v=None):
+def load_prior_image(fname, sphere):
+    """Load a full-sky HEALPix FITS map (RING ordering) and subsample it
+    onto the pixels of this sphere. Used as the prior image for null-space
+    completion.
+    """
+    prior_map = hp.read_map(fname)
+    expected = hp.nside2npix(sphere.nside)
+    if len(prior_map) != expected:
+        raise RuntimeError(
+            "Prior image {} has {} pixels, expected {} for nside={}".format(
+                fname, len(prior_map), expected, sphere.nside
+            )
+        )
+    return np.asarray(prior_map)[sphere.pixel_indices]
+
+
+def do_inference(disko, sphere, prior, sigma_v=None, max_cond=MAX_COND):
     real_vis = vis_to_real(disko.vis_arr)
 
-    to = TelescopeOperator(disko, sphere)
+    to = TelescopeOperator(disko, sphere, max_cond=max_cond)
 
     # Transform to the natural basis.
     n_prior = prior.linear_transform(to.Vh)
@@ -145,11 +162,13 @@ def handle_bayes(ARGS):
                 "The --sigma-v option must be supplied when --file JSON input is used"
             )
 
-        prior = create_prior(cv.v, sphere, ARGS.prior)
         timestamp = cv.get_timestamp()
         disko = DiSkO.from_cal_vis(cv)
+        prior = create_prior(disko.vis_arr, sphere, ARGS.prior)
 
-        posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
+        posterior = do_inference(
+            disko, sphere, prior, sigma_v=ARGS.sigma_v, max_cond=ARGS.max_cond
+        )
         handle_output(ARGS, timestamp, posterior, sphere, disko)
 
     elif ARGS.hdf:
@@ -180,7 +199,9 @@ def handle_bayes(ARGS):
             disko = DiSkO.from_cal_vis(cv)
 
             # TODO Calibrate the vis with gains and phases?
-            posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
+            posterior = do_inference(
+                disko, sphere, prior, sigma_v=ARGS.sigma_v, max_cond=ARGS.max_cond
+            )
             handle_output(ARGS, timestamp, posterior, sphere, disko)
     else:
         logger.info("Getting Data from MS file: {}".format(ARGS.ms))
@@ -212,7 +233,9 @@ def handle_bayes(ARGS):
 
         prior = create_prior(disko.vis_arr, sphere, ARGS.prior)
 
-        posterior = do_inference(disko, sphere, prior, sigma_v=ARGS.sigma_v)
+        posterior = do_inference(
+            disko, sphere, prior, sigma_v=ARGS.sigma_v, max_cond=ARGS.max_cond
+        )
         handle_output(ARGS, timestamp, posterior, sphere, disko)
 
 
@@ -274,6 +297,28 @@ def handle_output(ARGS, timestamp, posterior, sphere, disko=None):
             stat["sigma-v"] = ARGS.sigma_v
             logger.info(json.dumps(stat, sort_keys=True))
             save_images("{}_{}_mu".format(ARGS.title, time_repr), source_list=src_list)
+
+        if ARGS.null_prior is not None:
+            logger.info(
+                "Completing image with null-space prior: {}".format(ARGS.null_prior)
+            )
+            if disko is None:
+                raise RuntimeError(
+                    "--null-prior requires visibility data (internal error)"
+                )
+            tic = time.perf_counter()
+            prior_image = load_prior_image(ARGS.null_prior, sphere)
+            to = TelescopeOperator(disko, sphere, max_cond=ARGS.max_cond)
+            completed = to.complete_image(
+                vis_to_real(disko.vis_arr), sphere, prior_image, scale=False
+            )
+            logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
+            stat = sphere.set_visible_pixels(completed.flatten(), scale=False)
+            stat["max-cond"] = ARGS.max_cond
+            logger.info(json.dumps(stat, sort_keys=True))
+            save_images(
+                "{}_{}_complete".format(ARGS.title, time_repr), source_list=src_list
+            )
 
         if ARGS.var:
             tic = time.perf_counter()
@@ -349,6 +394,24 @@ def main():
         type=float,
         default=None,
         help="Diagonal components of the visibility covariance. If not supplied use measurement set values",
+    )
+
+    parser.add_argument(
+        "--max-cond",
+        type=float,
+        default=MAX_COND,
+        help="Rank truncation factor: singular values below max(s)/max_cond "
+        "are treated as null space (invisible to the telescope).",
+    )
+
+    parser.add_argument(
+        "--null-prior",
+        type=str,
+        default=None,
+        help="Full-sky HEALPix FITS map (RING ordering, same nside as the "
+        "imaging sphere). Its null-space component is grafted onto the "
+        "data reconstruction, producing a *_complete image that is "
+        "exactly consistent with the measured visibilities.",
     )
 
     parser.add_argument(

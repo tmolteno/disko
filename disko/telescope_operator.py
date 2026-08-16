@@ -65,14 +65,14 @@ def tf_svd(x, tol=SVD_TOL):
 MAX_COND = 10000.0
 
 
-def normal_svd(x, tol=SVD_TOL):
+def normal_svd(x, tol=SVD_TOL, max_cond=MAX_COND):
     n_v = x.shape[0]
     n_s = x.shape[1]
 
     [U, s, Vh] = scipy.linalg.svd(np.array(x), full_matrices=True)
     logger.info("Cond(A) = {}".format(s[0] / s[-1]))
 
-    tol = s[0] / MAX_COND
+    tol = s[0] / max_cond
     try:
         rank = np.min(np.argwhere(s < tol))
     except Exception:
@@ -91,7 +91,7 @@ def normal_svd(x, tol=SVD_TOL):
     return [U, sigma, Vh], s, rank
 
 
-def dask_svd(x, tol=SVD_TOL):
+def dask_svd(x, tol=SVD_TOL, max_cond=MAX_COND):
     # Try and use a tall and thin svd computation. Will need to be done on the hermitian transpose of the telescope operator.
 
     n_v = x.shape[0]
@@ -120,7 +120,7 @@ def dask_svd(x, tol=SVD_TOL):
 
     # Clean up by condition number
     s_0 = np.amax(s)
-    tol = s_0 / MAX_COND
+    tol = s_0 / max_cond
     rank = np.sum(s > tol, dtype=int)
 
     logger.info("tol = {}".format(tol))
@@ -201,9 +201,15 @@ class TelescopeOperator:
              s = V_1 A_r^{-1} v
     """
 
-    def __init__(self, grid, sphere, use_cache=False):
+    def __init__(self, grid, sphere, use_cache=False, max_cond=MAX_COND):
+        """
+        @param max_cond: rank truncation factor. Singular values below
+            max(s)/max_cond are treated as null space (the telescope
+            cannot usefully measure them).
+        """
         self.grid = grid
         self.sphere = sphere
+        self.max_cond = max_cond
 
         _gamma = grid.make_gamma(sphere)  # , makecomplex=True)
         self.n_v = _gamma.shape[0]
@@ -227,7 +233,7 @@ class TelescopeOperator:
 
         self._P_r = None
 
-        fname = "svd_{}_{}.npz".format(self.n_s, self.n_v)
+        fname = "svd_{}_{}_{}.npz".format(self.n_s, self.n_v, max_cond)
         cache = Path(fname)
 
         if use_cache and cache.is_file():
@@ -247,10 +253,12 @@ class TelescopeOperator:
 
             # Take the SVD of the gamma matrix.
             if USE_DASK:
-                [self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(self.gamma)
+                [self.U, self.sigma, self.Vh], self.s, self.rank = dask_svd(
+                    self.gamma, max_cond=max_cond
+                )
             else:
                 [self.U, self.sigma, self.Vh], self.s, self.rank = normal_svd(
-                    np.array(self.gamma)
+                    np.array(self.gamma), max_cond=max_cond
                 )
 
             self.V = self.Vh.T
@@ -312,7 +320,9 @@ class TelescopeOperator:
     def P_r(self):
         if self._P_r is None:
             V_1h = self.V_1.conj().T
-            self._P_r = self.V_1 @ V_1h  # Projection onto the range space of A
+            # Projection onto the range space of A. Compute any lazy
+            # dask graph explicitly.
+            self._P_r = np.asarray(self.V_1 @ V_1h)
             logger.info(
                 "P_r = {}".format(self._P_r.shape)
             )  # Projection onto the range space of A
@@ -320,11 +330,11 @@ class TelescopeOperator:
 
     def range_harmonic(self, h):
         # The column vector of V_. These are the basis vectors of the Measurable Sky (in the sky space)
-        return self.V_1[:, h]
+        return np.asarray(self.V_1[:, h])
 
     def null_harmonic(self, h):
         # The right singular vectors of the SVD (The columns of V)
-        return self.V_2[:, h]
+        return np.asarray(self.V_2[:, h])
 
     def natural_A_row(self, h):
         # The row vector of the natural-basis telescope operator A = U @ Sigma
@@ -333,26 +343,27 @@ class TelescopeOperator:
         return A[h, :]
 
     """
-        Convert the natural-basis vector x into the sky basis
+        Convert the natural-basis vector x into the sky basis.
+        Dask graphs are computed explicitly; the result is a numpy array.
     """
 
     def natural_to_sky(self, x):
-        return self.V @ x
+        return np.asarray(self.V @ x)
 
     """
         Convert the sky vector to the natural basis. This is the inverse of Vh
-        as it is unitary.
+        as it is unitary. Dask graphs are computed explicitly.
     """
 
     def sky_to_natural(self, s):
-        return self.Vh @ s
+        return np.asarray(self.Vh @ s)
 
     # Project the sky into the null space.
     def sky_to_null(self, s):
         # Storing P_n is very slow as it's a huge projection matrix.
         # self.P_n = self.V_2 @ self.V_2.conj().T  # Projection onto the null-space of A
-        ret = np.dot(self.V_2, np.dot(self.V_2.conj().T, s))
-        return ret  # self.P_n @ s
+        # Compute any lazy dask graph explicitly.
+        return np.asarray(np.dot(self.V_2, np.dot(self.V_2.conj().T, s)))
 
     def null_to_sky(self, x_n):
         x = np.zeros(self.n_s)
@@ -389,7 +400,7 @@ class TelescopeOperator:
         sphere.set_visible_pixels(sky.flatten(), scale)
         return sky
 
-    def image_natural(self, vis_arr, sphere, scale=True):
+    def image_natural(self, vis_arr, sphere, scale=True, null_prior=None):
         """Create a gridless image from visibilities in the natural basis
 
         v = A_r x_r, so just use a solver to find x_r,
@@ -397,22 +408,27 @@ class TelescopeOperator:
         then sky = to_sky(x_r)
 
         Since in the natural basis, A_r is diagonal.
+
+        If null_prior is provided (a sky image, e.g. from another
+        survey), its null-space projection is added to the
+        reconstruction. That component is invisible to the telescope,
+        so the completed image remains exactly consistent with the
+        measured visibilities.
         Args:
 
             vis_arr (np.array): An array of visibilities
-            nside (int):        The healpix nside parameter.
+            sphere (FoV):       a sphere to place
+            null_prior (np.array): optional sky image (n_s pixels)
+                whose null-space component is grafted onto the
+                reconstruction.
         """
 
         logger.info("Imaging Natural nside={}".format(sphere.nside))
         t0 = time.time()
 
-        s = self.s[0 : self.rank]
-        D = np.diag(s)  # noqa: F841
-
         logger.info("vis_arr = {}".format(vis_arr.shape))
         logger.info("A_r = {}".format(self.A_r.shape))
 
-        # x_r = D @ self.U_1.T @ vis_arr
         v_n = self.U_1.T @ vis_arr
 
         # A_r = U_1 @ sigma_1 with U_1^T @ U_1 = I, so:
@@ -421,20 +437,29 @@ class TelescopeOperator:
         # Ravel to 1D for element-wise division, then reshape back.
         x_r = v_n.ravel() / np.diag(self.sigma_1)
         x_r = x_r.reshape(-1, 1)
-        # x_n = np.zeros(self.n_n())
-        logger.info("x_r = {}".format(x_r.shape))
 
-        # x = np.block([x_r.flatten(), x_n])
-        # logging.info("x = {}".format(x.shape))
-
-        # sky = self.natural_to_sky(x)
         sky = self.V_1 @ x_r
+        if null_prior is not None:
+            sky = sky + self.sky_to_null(np.asarray(null_prior).ravel()).reshape(
+                -1, 1
+            )
+
+        # Compute any lazy dask graph explicitly.
+        sky = np.asarray(sky)
         logger.info("sky = {}".format(sky.shape))
         sphere.set_visible_pixels(sky.flatten(), scale)
 
         logger.info("Elapsed {}s".format(time.time() - t0))
 
         return sky
+
+    def complete_image(self, vis_arr, sphere, prior_image, scale=True):
+        """Image the visibilities, then graft on the prior image's
+        null-space component: an image exactly consistent with the
+        measurements that carries the prior's structure in the
+        directions the telescope cannot see.
+        """
+        return self.image_natural(vis_arr, sphere, scale=scale, null_prior=prior_image)
 
     def image_tikhonov(self, vis_arr, sphere, alpha, scale=True):
         """Do a Tikhonov regularization solution

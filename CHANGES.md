@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add null-space image completion: `TelescopeOperator.image_natural(null_prior=...)` and `complete_image()` graft a prior sky image's null-space projection (invisible to the telescope) onto the data reconstruction, producing an image exactly consistent with the measurements. New `disko_bayes --null-prior <HEALPix FITS>` flag saves a `*_complete` image
+- Make the SVD rank truncation configurable: `TelescopeOperator(..., max_cond=...)` (default unchanged at 1e4) and a `disko_bayes --max-cond` option; singular values below max(s)/max_cond are treated as null space. The SVD cache filename now includes the cutoff
+- `TelescopeOperator` basis conversion methods (`sky_to_null`, `null_to_sky`, `sky_to_natural`, `natural_to_sky`, `P_r`, `range_harmonic`, `null_harmonic`) and `image_natural` now compute dask graphs explicitly and return eager numpy arrays
+- Fix crash in `disko_bayes --file` (JSON branch): `create_prior(cv.v, ...)` used a nonexistent attribute; now builds the `DiSkO` first and uses its visibilities, matching the MS branch
 - Fix off-by-one in `TelescopeOperator.null_to_sky`: slice `x[self.rank : -1]` dropped the last null-space component (and would raise a broadcast error for a full-length input); now `x[self.rank :]`. Previously uncalled and untested — now covered by a unit test
 - Fix `MultivariateGaussian.variance()` to return the per-pixel variance (covariance diagonal); it previously returned the standard deviation (√diagonal), so `disko_bayes --var` images were mislabeled σ rather than σ². New `std()` method provides the old behavior under an honest name
 - Convert bayes tests (`test_telescope_operator.py`) to fast unit tests: tiny synthetic telescope (4 antennas, nside=2 sphere) with vectorized SVD/null/range-space property checks — the file now runs in ~1 s instead of tens of minutes; add real assertions to `test_bayes` and new unit tests for `create_prior` and `do_inference` (real-data coverage remains in `test_disko.py` and `test_pylops_operator.py`)

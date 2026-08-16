@@ -15,7 +15,7 @@ import unittest
 import numpy as np
 
 from disko import DiSkO, HealpixFoV, TelescopeOperator
-from disko.bayes_cli import create_prior, do_inference
+from disko.bayes_cli import create_prior, do_inference, load_prior_image
 from disko.disko import vis_to_real
 
 logger = logging.getLogger(__name__)
@@ -178,6 +178,97 @@ class TestTelescopeOperator(unittest.TestCase):
         P_n = np.array(self.to.V_2 @ self.to.V_2.T)
         expected = np.array(self.to.P_r() @ self.sky).flatten() + P_n @ prior.mu
         self.assertTrue(np.allclose(posterior.mu, expected, rtol=1e-3, atol=1e-3))
+
+    def test_complete_image(self):
+        # The completed image fits the data exactly and carries the
+        # prior image's null-space component.
+        gamma = np.array(self.to.gamma)
+        s_prior = np.random.uniform(0.0, 1.0, self.to.n_s)
+        completed = self.to.complete_image(self.vis, self.sphere, s_prior, scale=False)
+
+        self.assertTrue(np.allclose(gamma @ completed, self.vis))
+        self.assertTrue(
+            np.allclose(
+                self.to.sky_to_null(completed.ravel()),
+                self.to.sky_to_null(s_prior),
+            )
+        )
+
+    def test_image_natural_null_prior(self):
+        # image_natural(null_prior=...) adds exactly the prior's
+        # null-space projection to the plain reconstruction.
+        gamma = np.array(self.to.gamma)
+        s_prior = np.random.uniform(0.0, 1.0, self.to.n_s)
+        plain = self.to.image_natural(self.vis, self.sphere, scale=False)
+        completed = self.to.image_natural(
+            self.vis, self.sphere, scale=False, null_prior=s_prior
+        )
+
+        # The injected component is invisible: both fit the data.
+        self.assertTrue(np.allclose(gamma @ plain, self.vis))
+        self.assertTrue(np.allclose(gamma @ completed, self.vis))
+        # And they differ by exactly the null-space projection.
+        self.assertTrue(
+            np.allclose((completed - plain).ravel(), self.to.sky_to_null(s_prior))
+        )
+
+    def test_max_cond(self):
+        # A smaller condition-number cutoff truncates more of the
+        # singular spectrum into the null space.
+        to2 = TelescopeOperator(self.disko, self.sphere, max_cond=2.0)
+        self.assertLess(to2.rank, self.to.rank)
+        self.assertEqual(to2.n_n(), self.to.n_s - to2.rank)
+
+        # The truncation only moves power between the range and null
+        # spaces: the fit is the projection of vis onto the (smaller)
+        # range space, so the residual is orthogonal to it.
+        s_prior = np.random.uniform(0.0, 1.0, to2.n_s)
+        completed = to2.complete_image(self.vis, self.sphere, s_prior, scale=False)
+        fitted = np.array(to2.gamma) @ completed
+        residual = self.vis.flatten() - fitted.flatten()
+        self.assertTrue(
+            np.allclose(np.array(to2.U_1.T @ residual), np.zeros(to2.rank))
+        )
+
+    def test_explicit_computation(self):
+        # The basis conversion methods return eager numpy arrays, not
+        # lazy dask graphs.
+        s = np.random.rand(self.to.n_s)
+        self.assertIsInstance(self.to.sky_to_null(s), np.ndarray)
+        self.assertIsInstance(self.to.sky_to_natural(s), np.ndarray)
+        self.assertIsInstance(self.to.natural_to_sky(s), np.ndarray)
+        self.assertIsInstance(
+            self.to.null_to_sky(np.zeros(self.to.n_n())), np.ndarray
+        )
+        self.assertIsInstance(self.to.P_r(), np.ndarray)
+        self.assertIsInstance(self.to.range_harmonic(0), np.ndarray)
+        self.assertIsInstance(self.to.null_harmonic(0), np.ndarray)
+        self.assertIsInstance(
+            self.to.image_natural(self.vis, self.sphere, scale=False), np.ndarray
+        )
+
+    def test_load_prior_image(self):
+        # A full-sky HEALPix FITS map is subsampled onto the sphere's
+        # pixels (identity for a full-sky sphere).
+        import os
+        import tempfile
+
+        import healpy as hp
+
+        full_map = np.random.uniform(0.0, 1.0, hp.nside2npix(self.sphere.nside))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, "prior.fits")
+            hp.write_map(fname, full_map, overwrite=True)
+            loaded = load_prior_image(fname, self.sphere)
+
+        self.assertTrue(np.allclose(loaded, full_map[self.sphere.pixel_indices]))
+
+        # A map with the wrong nside is rejected with a clear error.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, "wrong_nside.fits")
+            hp.write_map(fname, np.zeros(hp.nside2npix(4)), overwrite=True)
+            with self.assertRaises(RuntimeError):
+                load_prior_image(fname, self.sphere)
 
     def test_create_prior(self):
         # The heuristic prior has mean = median |vis| and covariance
