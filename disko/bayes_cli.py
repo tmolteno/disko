@@ -41,9 +41,9 @@ def create_prior(vis_arr, sphere, hdf_prior):
     p05, p50, p95, p100 = np.percentile(vabs, [5, 50, 95, 100])
 
     var = p95 * p95
-    logger.info("Extimated Sky Prior variance={}".format(var))
+    logger.info("Estimated Sky Prior variance={}".format(var))
     prior = MultivariateGaussian(
-        np.zeros(sphere.npix) + p50, sigma=p95 * np.identity(sphere.npix)
+        np.zeros(sphere.npix) + p50, sigma=var * np.identity(sphere.npix)
     )
 
     return prior

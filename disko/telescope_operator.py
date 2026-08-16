@@ -356,7 +356,7 @@ class TelescopeOperator:
 
     def null_to_sky(self, x_n):
         x = np.zeros(self.n_s)
-        x[self.rank : -1] = x_n
+        x[self.rank :] = x_n
         return self.natural_to_sky(x)
 
     def image_visibilities(self, vis_arr, sphere, scale=True):

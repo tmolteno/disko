@@ -277,8 +277,12 @@ class MultivariateGaussian:
         return np.array(self.mu + A @ y_k)
 
     def variance(self):
-        var = np.diagonal(self.sigma())
-        return np.sqrt(var)
+        """The per-component variance (diagonal of the covariance)."""
+        return np.diagonal(self.sigma())
+
+    def std(self):
+        """The per-component standard deviation."""
+        return np.sqrt(self.variance())
 
     def to_hdf5(self, filename, json_info="{}"):
         """Save the MultivariateGaussian object,

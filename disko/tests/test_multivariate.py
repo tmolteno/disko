@@ -52,6 +52,14 @@ class TestMultivariate(unittest.TestCase):
         self.assertAlmostEqual(
             np.std(samples)**2, (x.sigma()[0, 0]), precision)
 
+    def test_variance_std(self):
+        # variance() is the covariance diagonal; std() is its square root.
+        sigma = np.diag([1.0, 4.0, 9.0])
+        x = mg.MultivariateGaussian(np.zeros(3), sigma=sigma)
+
+        self.assertTrue(np.allclose(x.variance(), [1.0, 4.0, 9.0]))
+        self.assertTrue(np.allclose(x.std(), [1.0, 2.0, 3.0]))
+
     def test_hdf(self):
         D = 100
         fname = 'test.hdf'

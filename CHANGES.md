@@ -1,5 +1,12 @@
 # Changes
 
+## Unreleased
+
+- Fix off-by-one in `TelescopeOperator.null_to_sky`: slice `x[self.rank : -1]` dropped the last null-space component (and would raise a broadcast error for a full-length input); now `x[self.rank :]`. Previously uncalled and untested — now covered by a unit test
+- Fix `MultivariateGaussian.variance()` to return the per-pixel variance (covariance diagonal); it previously returned the standard deviation (√diagonal), so `disko_bayes --var` images were mislabeled σ rather than σ². New `std()` method provides the old behavior under an honest name
+- Convert bayes tests (`test_telescope_operator.py`) to fast unit tests: tiny synthetic telescope (4 antennas, nside=2 sphere) with vectorized SVD/null/range-space property checks — the file now runs in ~1 s instead of tens of minutes; add real assertions to `test_bayes` and new unit tests for `create_prior` and `do_inference` (real-data coverage remains in `test_disko.py` and `test_pylops_operator.py`)
+- Fix `create_prior` prior covariance scale in `disko_bayes`: use `var = p95² · I` (prior std = p95) as logged and as implemented in `DiSkO.sequential_inference` and `TelescopeOperator.get_prior`; previously used `p95 · I`, giving a dimensionally inconsistent prior std of √p95
+
 ## 1.4.4 (2026-06-22)
 
 - Fix `image_visibilities` RAM: use matrix-free blocked adjoint instead of building the full complex Gamma matrix in memory
