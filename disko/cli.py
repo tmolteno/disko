@@ -33,7 +33,9 @@ def get_source_list(source_json, el_limit, jy_limit):
     return src_list
 
 
-def disko_from_ms(ms, column, num_vis, res, channel=0, field_id=0, ddid=0):
+def disko_from_ms(
+    ms, column, num_vis, res, channel=0, field_id=0, ddid=0, rng=None, exclude=None
+):
     u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices = casa_read_ms(
         ms_file=ms,
         num_vis=num_vis,
@@ -43,6 +45,8 @@ def disko_from_ms(ms, column, num_vis, res, channel=0, field_id=0, ddid=0):
         field_id=field_id,
         ddid=ddid,
         pol=0,
+        rng=rng,
+        exclude=exclude,
     )
 
     # Measurement sets do not return the conjugate pairs of visibilities

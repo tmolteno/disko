@@ -45,6 +45,8 @@ def casa_read_ms(
     field_id: int = 0,
     ddid: int = 0,
     pol: int = 0,
+    rng=None,
+    exclude=None,
 ):
     res_deg = angular_resolution  # caller passes degrees from Resolution.degrees()
     logger.info(f"CASA read ms {ms_file} column: {ms_column}")
@@ -158,8 +160,18 @@ def casa_read_ms(
     if n_max <= num_vis:
         indices = good_data
     else:
-        rng = np.random.default_rng()
-        indices = rng.choice(a=good_data, size=num_vis, replace=False)
+        if rng is None:
+            rng = np.random.default_rng()
+        avail = good_data
+        if exclude is not None and len(exclude):
+            avail = np.setdiff1d(good_data, np.asarray(exclude))
+            if len(avail) < num_vis:
+                logger.warning(
+                    "Fewer than {} unused visibilities remain; reusing "
+                    "already-selected rows".format(num_vis)
+                )
+                avail = good_data
+        indices = rng.choice(a=avail, size=num_vis, replace=False)
         indices = np.sort(indices)  # sort to speed up IO
 
     logger.debug(f"Indices {indices}")

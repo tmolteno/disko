@@ -8,6 +8,7 @@ import logging
 import os
 import time
 from copy import deepcopy
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import healpy as hp
@@ -156,9 +157,115 @@ def do_inference(disko, sphere, prior, sigma_v=None, max_cond=MAX_COND):
     return posterior
 
 
+def sequential_inference(
+    disko_list, sphere, prior=None, sigma_v=None, max_cond=MAX_COND
+):
+    """Chain N turns of sequential Bayesian inference.
+
+    Each element of ``disko_list`` is a DiSkO supplying one turn's (complex)
+    visibilities.  When ``prior`` is None the first update starts from the
+    heuristic diagonal prior p95(|vis|)^2 I (``create_prior``); afterwards
+    every posterior becomes the next turn's prior.  Each update uses the
+    reduced, rank-truncated telescope operator (``A_r = U_1 Sigma_1`` via
+    ``do_inference``).
+
+    Returns the list of ``len(disko_list)`` posteriors, i.e. the posterior
+    mean and covariance at every step.
+    """
+    if prior is None:
+        prior = create_prior(disko_list[0].vis_arr, sphere, None)
+    posteriors = []
+    for disko in disko_list:
+        prior = do_inference(
+            disko, sphere, prior, sigma_v=sigma_v, max_cond=max_cond
+        )
+        posteriors.append(prior)
+    return posteriors
+
+
+def _step_fname(fname, step):
+    """Insert a step label into an output filename: prior.h5 -> prior_000.h5."""
+    p = Path(fname)
+    return str(p.with_name("{}_{:03d}{}".format(p.stem, step, p.suffix)))
+
+
+def run_sequential(ARGS, sphere, n_steps):
+    """Perform ``n_steps`` turns of sequential inference on the measurement set.
+
+    Each turn draws ``nvis`` new visibilities from the MS (disjoint from all
+    previous turns while the pool lasts), conjugates them for the CASA UVW
+    convention, and runs one Bayesian update with the reduced telescope
+    operator; each posterior becomes the next turn's prior.  The mean and
+    covariance are written at every step: ``*_step<NNN>_mu`` / ``_var`` /
+    ``_pcf`` images, and a full posterior HDF5 per step when ``--posterior``
+    is given.
+    """
+    json_info = get_array_location(ARGS.ms)
+    lat = json_info["lat"]
+    lon = json_info["lon"]
+    height = json_info["height"]
+
+    rng = np.random.default_rng()
+    used = np.zeros(0, dtype=int)
+    turns = []
+    for _ in range(n_steps):
+        disko = disko_from_ms(
+            ARGS.ms,
+            "DATA",
+            ARGS.nvis,
+            res=sphere.min_res(),
+            channel=ARGS.channel,
+            field_id=ARGS.field,
+            rng=rng,
+            exclude=used,
+        )
+        # CASAcore UVW is conjugated; conjugate visibilities for consistency.
+        disko.vis_arr = disko.vis_arr.conjugate()
+        turns.append(disko)
+        if disko.indices is not None:
+            used = np.unique(np.concatenate((used, np.asarray(disko.indices))))
+
+    sphere.set_info(
+        timestamp=turns[0].timestamp, lon=lon, lat=lat, height=height
+    )
+    prior = create_prior(turns[0].vis_arr, sphere, ARGS.prior)
+    posteriors = sequential_inference(
+        turns,
+        sphere,
+        prior=prior,
+        sigma_v=ARGS.sigma_v,
+        max_cond=ARGS.max_cond,
+    )
+    for i, (posterior, disko) in enumerate(zip(posteriors, turns)):
+        posterior_fname = None
+        if ARGS.posterior is not None:
+            posterior_fname = _step_fname(ARGS.posterior, i)
+        handle_output(
+            ARGS,
+            disko.timestamp,
+            posterior,
+            sphere,
+            disko,
+            title_suffix="_step{:03d}".format(i),
+            posterior_fname=posterior_fname,
+        )
+    return posteriors
+
+
 def handle_bayes(ARGS):
 
     sphere = sphere_from_args(ARGS)
+
+    if ARGS.sequential:
+        if not ARGS.ms:
+            raise RuntimeError("--sequential requires a measurement set (--ms)")
+        if ARGS.file or ARGS.hdf:
+            raise RuntimeError(
+                "--file/--hdf input cannot be re-sampled per turn; use --ms "
+                "with --sequential"
+            )
+        if ARGS.sequential < 1:
+            raise RuntimeError("--sequential N must be a positive integer")
 
     # Create a prior.
     if ARGS.file:
@@ -242,6 +349,11 @@ def handle_bayes(ARGS):
 
         min_res = sphere.min_res()
         logger.info(f"Min Res {min_res}")
+
+        if ARGS.sequential:
+            run_sequential(ARGS, sphere, ARGS.sequential)
+            return
+
         disko = disko_from_ms(
             ARGS.ms,
             "DATA",
@@ -270,7 +382,9 @@ def handle_bayes(ARGS):
         handle_output(ARGS, timestamp, posterior, sphere, disko)
 
 
-def handle_output(ARGS, timestamp, posterior, sphere, disko=None):
+def handle_output(
+    ARGS, timestamp, posterior, sphere, disko=None, title_suffix="", posterior_fname=None
+):
 
     if not ARGS.show_sources:
         src_list = None
@@ -278,8 +392,9 @@ def handle_output(ARGS, timestamp, posterior, sphere, disko=None):
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
 
     # Now save the files.
-    if ARGS.posterior is not None:
-        posterior.to_hdf5(ARGS.posterior)
+    fname = posterior_fname if posterior_fname is not None else ARGS.posterior
+    if fname is not None:
+        posterior.to_hdf5(fname)
 
     def path(ending, image_title):
         os.makedirs(ARGS.dir, exist_ok=True)
@@ -327,7 +442,10 @@ def handle_output(ARGS, timestamp, posterior, sphere, disko=None):
             stat = sphere.set_visible_pixels(np.array(posterior.mu), scale=False)
             stat["sigma-v"] = ARGS.sigma_v
             logger.info(json.dumps(stat, sort_keys=True))
-            save_images("{}_{}_mu".format(ARGS.title, time_repr), source_list=src_list)
+            save_images(
+                "{}_{}{}_mu".format(ARGS.title, time_repr, title_suffix),
+                source_list=src_list,
+            )
 
         if ARGS.null_prior is not None:
             logger.info(
@@ -348,7 +466,8 @@ def handle_output(ARGS, timestamp, posterior, sphere, disko=None):
             stat["max-cond"] = ARGS.max_cond
             logger.info(json.dumps(stat, sort_keys=True))
             save_images(
-                "{}_{}_complete".format(ARGS.title, time_repr), source_list=src_list
+                "{}_{}{}_complete".format(ARGS.title, time_repr, title_suffix),
+                source_list=src_list
             )
 
         if ARGS.var:
@@ -357,7 +476,10 @@ def handle_output(ARGS, timestamp, posterior, sphere, disko=None):
             variance = np.array(posterior.variance())
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
             sphere.set_visible_pixels(variance, scale=False)
-            save_images("{}_{}_var".format(ARGS.title, time_repr), source_list=None)
+            save_images(
+                "{}_{}{}_var".format(ARGS.title, time_repr, title_suffix),
+                source_list=None,
+            )
 
         if ARGS.pcf:
             tic = time.perf_counter()
@@ -368,18 +490,22 @@ def handle_output(ARGS, timestamp, posterior, sphere, disko=None):
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
 
             sphere.set_visible_pixels(pix_cov, scale=False)
-            save_images("{}_{}_pcf".format(ARGS.title, time_repr), source_list=None)
+            save_images(
+                "{}_{}{}_pcf".format(ARGS.title, time_repr, title_suffix),
+                source_list=None,
+            )
 
         for i in range(ARGS.nsamples):
             sphere.set_visible_pixels(posterior.sample(), scale=False)
             save_images(
-                image_title="{}_{}_s{:0>5}".format(ARGS.title, time_repr, i),
+                image_title="{}_{}{}_s{:0>5}".format(
+                    ARGS.title, time_repr, title_suffix, i
+                ),
                 source_list=None,
             )
 
 
-def main():
-    np.random.seed(42)
+def build_parser():
     sphere_parsers = sphere_args_parser()
 
     parser = argparse.ArgumentParser(
@@ -407,6 +533,14 @@ def main():
         type=int,
         default=0,
         help="Use this FIELD_ID from the measurement set.",
+    )
+    parser.add_argument(
+        "--sequential",
+        type=int,
+        default=0,
+        help="Perform N steps of sequential inference: each turn draws nvis NEW "
+        "visibilities from the measurement set, updates the posterior with the "
+        "reduced telescope operator, and writes the mean and covariance.",
     )
 
     parser.add_argument("--dir", required=False, default=".", help="Output directory.")
@@ -492,6 +626,12 @@ def main():
         "--title", required=False, default="disko", help="Prefix the output files."
     )
 
+    return parser
+
+
+def main():
+    np.random.seed(42)
+    parser = build_parser()
     source_json = None
 
     log_fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add `disko_bayes --sequential N`: N turns of sequential Bayesian inference on the measurement set. Each turn draws `nvis` NEW (disjoint while the pool lasts) visibilities from the MS, conjugates them for the CASA UVW convention, and updates the posterior with the reduced (rank-truncated) telescope operator, starting from the diagonal heuristic prior; the mean and covariance are written at every step (`*_step<NNN>_mu`/`_var`/`_pcf` images, plus one posterior HDF5 per step when `--posterior` is given). New unit tests in `test_sequential.py`
+
 - Performance: diagonal-prior fast path in `do_inference` — V is orthogonal, so `V^H (sigma0 I) V == sigma0 I`; the prior covariance is no longer rotated into the natural basis (saving two O(n_s^3) products), and the posterior is assembled fused as `V_1 Sigma_r V_1^T + sigma0 (I - V_1 V_1^T)`, avoiding the block-diagonal intermediate and discarded cross terms. Diagonal priors only (the default heuristic prior); dense priors — e.g. the chained posteriors of sequential inference — are detected via `MultivariateGaussian.is_scaled_identity()` and take the exact general path
 - Performance: `image_tikhonov` uses the rank-truncated factors `V_1 (f * (U_1^T vis))` instead of the dense `V D U^T` triple product (identical results, O(n_s*rank) vs O(n_s^2)); this speeds up the 11-alpha Tikhonov sweep in `disko_svd`
 - Remove the unreachable `if True:/else:` dead branch in `do_inference` (the `else` path duplicated `TelescopeOperator.sequential_inference`)
