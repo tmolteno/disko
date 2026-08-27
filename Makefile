@@ -121,13 +121,12 @@ profile:
 	uv run python -m cProfile -o disko.prof ./bin/disko --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --SVG --arcmin=0.02 --alpha=-0.0695 --nvis 1000 --fista --matrix-free --title 'mf_cyg' --niter 10
 	uv run python prof.py
 
-sequential: step1 step2
-
-step1:
-	uv run disko_bayes --nside 24 --ms test_data/test.ms  --dir test_out --title 'bayes_tart' --sigma-v=0.15 --posterior post.h5
-
-step2:
-	uv run disko_bayes --nside 24 --ms test_data/test.ms  --mu --pcf --var --PNG  --dir test_out --title 'bayes_tart_2' --sigma-v=0.15 --prior post.h5
+sequential:
+	rm -f disko.log
+	uv run disko_bayes --healpix --fov 155deg --res 1deg \
+		--ms test_data/test.ms --sequential 10 \
+		--nvis 1000 --mu --var --pcf --PNG --SVG \
+		--dir test_out --title 'seq_tart' --sigma-v=0.15
 
 h5:
 	uv run disko_bayes --hdf test_data/vis_2021-03-25_20_50_23.568474.hdf --nside 20 --sigma-v=0.15 --mu --pcf --var --PNG --title 'sequential' --dir=seq_out
