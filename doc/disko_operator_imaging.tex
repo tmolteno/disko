@@ -1,0 +1,669 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\usepackage{microtype}
+
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+
+\title{Operator-Based Imaging with the DiSkO Python Package\\
+\large Gridless Radio Synthesis Imaging using a Discrete Sky Operator}
+\author{The DiSkO Developers\\[2mm]
+\small \texttt{https://github.com/tmolteno/disko}}
+\date{\today}
+
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Ns}{N_{\mathrm{s}}}
+\newcommand{\Nv}{N_{\mathrm{v}}}
+\newcommand{\Nb}{N_{\mathrm{b}}}
+\newcommand{\Gammam}{\boldsymbol{\Gamma}}
+\newcommand{\svec}{\boldsymbol{s}}
+\newcommand{\vvec}{\boldsymbol{v}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+DiSkO (``Discrete Sky Operator'') is a Python package for synthesis imaging in
+radio astronomy that avoids the traditional gridding and CLEAN/deconvolution
+pipeline. Instead, the telescope is modelled directly as a finite-dimensional
+linear operator $\Gammam$ that maps a pixelized sky $\svec$ to the measured
+visibilities $\vvec$. The package makes the operator central: it computes the
+singular value decomposition of $\Gammam$ and uses the resulting four
+fundamental subspaces---the range and null spaces of the operator and of its
+adjoint---to understand exactly what the telescope can and cannot measure. From
+this decomposition it derives a ``natural basis'' in which the operator is
+diagonal, giving closed-form images, Tikhonov-regularized images, Bayesian
+sequential inference, and well-conditioned null-space-complete images. For
+large problems the operator is exposed in a matrix-free form compatible with
+iterative solvers (LSQR, LSMR, FISTA). This article describes the mathematics
+of operator-based imaging as implemented in the package, with pointers to the
+relevant classes and functions.
+\end{abstract}
+
+\section{Introduction}
+
+In aperture-synthesis imaging, an array of antennas measures the spatial
+coherence of the electric field arriving from the sky. For each pair of
+antennas (a \emph{baseline}) the measured quantity---the complex
+\emph{visibility}---is, under the usual assumptions of the van~Cittert--Zernike
+theorem, a sample of the two-dimensional Fourier transform of the sky
+brightness distribution \cite{thompson2017,perley1989}. Classical imaging
+proceeds by gridding the visibilities onto a regular Fourier grid and applying
+an inverse FFT followed by a deconvolution stage such as CLEAN or a
+maximum-entropy method.
+
+DiSkO takes a different route. The sky is discretized first, into a set of
+$\Ns$ pixels on the celestial sphere (or on a disc-shaped field of view), and
+the instrument is discretized second, into $\Nv$ visibility measurements. The
+physics of the instrument is then encoded exactly, pixel by pixel, in a
+measurement matrix $\Gammam\in\R^{\Nv\times\Ns}$, so that the measurement
+equation is linear:
+
+\begin{equation}
+  \label{eq:measurement}
+  \vvec \;=\; \Gammam\,\svec \;+\; \boldsymbol{n},
+\end{equation}
+
+where $\boldsymbol{n}$ models additive noise. There is no gridding, no
+pixel-domain Fourier transform of the data, and no restoration step: the image
+is obtained by (regularized) inversion of the operator $\Gammam$ itself. The
+price paid is that $\Gammam$ is at least as large as the data, and in the
+typical imaging regime ($\Ns > \Nv$) it is rank-deficient. The central idea of
+the package is to make this rank deficiency explicit and useful by computing
+the singular value decomposition (SVD) of $\Gammam$ and working in the
+associated \emph{natural basis}.
+
+This article explains how this works, following the actual implementation:
+Section~\ref{sec:model} develops the discrete measurement equation;
+Section~\ref{sec:svd} describes the SVD-based \texttt{TelescopeOperator} and its
+four subspaces; Section~\ref{sec:natural} introduces imaging in the natural
+basis; Section~\ref{sec:reg} covers regularized and sparse imaging;
+Section~\ref{sec:matrixfree} describes the matrix-free operator used with
+iterative solvers; Section~\ref{sec:bayes} derives the Bayesian sequential
+inference used by \texttt{disko\_bayes}; Section~\ref{sec:fov} describes the
+sky discretizations; and Section~\ref{sec:impl} gathers implementation notes.
+Throughout, italicized code names refer to the package
+\href{https://github.com/tmolteno/disko}{tmolteno/disko}.
+
+\section{The discrete measurement equation}
+\label{sec:model}
+
+\subsection{Coordinates}
+
+Let $(\lambda)$ be the observing wavelength. A baseline between two antennas
+has coordinates $(u,v,w)$, measured in meters, in a frame where $w$ points
+towards the phase centre and $(u,v)$ span the plane perpendicular to it. A
+point on the sky is described by the direction cosines
+$(l,m,n)$, with $l^2+m^2+n^2=1$. A unit solid angle around the direction
+$(l,m,n)$ contributes a phase term
+$\exp\!\big(j\,\tfrac{2\pi}{\lambda}\,(ul+vm+w(n-1))\big)$ to each visibility,
+the $w(n-1)$ factor removing the geometric delay of the phase centre.
+
+\subsection{Discretizing the sky}
+
+A field-of-view class (Section~\ref{sec:fov}) provides $\Ns$ pixels with
+direction cosines $l_j,m_j,n_j$ and quadrature weights $A_j$ (the pixel areas,
+normalized to integrate to the observed solid angle). The package stores the
+combination $n_j-1$ as \texttt{n\_minus\_1}. The interferometric measurement
+equation then becomes the discrete sum
+
+\begin{equation}
+  \label{eq:rime}
+  v_i \;=\; \sum_{j=1}^{\Ns}\;
+  \underbrace{\exp\!\Big(j\,\omega\,
+    \big(u_i l_j+v_i m_j+w_i(n_j-1)\big)\Big)\,A_j}_{H_{ij}}\;\;s_j,
+  \qquad \omega=\frac{2\pi}{\lambda},
+\end{equation}
+
+implemented in \texttt{disko.get\_harmonics()} (vectorized with an outer
+product over rows $i$ and columns $j$) and
+\texttt{DiSkO.make\_gamma()}. This is a Riemann-sum discretization of the
+continuous RIME \cite{hamaker1996}, and $H_{ij}$ is called a
+\emph{harmonic}: it is the phase pattern that baseline $i$ records from pixel
+$j$. Note the convention in the code: $s_j$ is the brightness of pixel $j$
+(in units such that the pixel areas carry the solid-angle weight), and because
+$\sum_j A_j^2$ is a constant row energy, every baseline row of $H$ has the same
+norm (verified by \texttt{test\_harmonics} in
+\texttt{disko/tests/test\_telescope\_operator.py}).
+
+\subsection{The real-valued telescope operator}
+
+The harmonics $H\in\C^{\Nb\times\Ns}$ are complex. Complex-valued linear
+systems can be solved directly, but the package instead rewrites
+\eqref{eq:rime} as a real system by stacking the real and imaginary parts of
+the visibilities:
+
+\begin{equation}
+  \label{eq:real}
+  \underbrace{\begin{bmatrix}\Re(\vvec)\\ \Im(\vvec)\end{bmatrix}}_{\vvec\in\R^{\Nv}}
+  \;=\;
+  \underbrace{\begin{bmatrix}\Re(H)\\ \Im(H)\end{bmatrix}}_{\Gammam\in\R^{\Nv\times\Ns}}
+  \;\svec,
+  \qquad \Nv=2\Nb,
+\end{equation}
+
+computed with a memory-efficient \texttt{np.concatenate} in
+\texttt{make\_gamma()}. All subsequent operator analysis (the SVD, the natural
+basis, the Bayesian updates) works with this real matrix $\Gammam$. Every
+complex visibility contributes two real rows, so visibilities arriving from a
+measurement set are converted with \texttt{vis\_to\_real()}.
+
+\begin{definition}[Telescope operator]
+  The \emph{telescope operator} is the matrix $\Gammam\in\R^{\Nv\times\Ns}$ of
+  \eqref{eq:real}. A \emph{sky vector} is $\svec\in\R^{\Ns}$; a
+  \emph{visibility vector} is $\vvec\in\R^{\Nv}$. The forward map is
+  $\vvec=\Gammam\svec$.
+\end{definition}
+
+For a full-sky Healpix field of view with $n_\mathrm{side}=32$,
+$\Ns=12\,n_\mathrm{side}^2=12\,288$ while a modest array produces only a few
+hundred complex baselines, so $\Ns\gg\Nv$ and the operator is very
+rank-deficient: the telescope simply cannot measure most of the sky.
+
+\section{The SVD of the telescope operator}
+\label{sec:svd}
+
+The key construction of the package is the class \texttt{TelescopeOperator}
+(\texttt{disko/telescope\_operator.py}). On construction it forms
+$\Gammam=\texttt{grid.make\_gamma(sphere)}$ and computes the compact SVD
+
+\begin{equation}
+  \label{eq:svd}
+  \Gammam \;=\; U\,\Sigma\,V^{\!\top},
+\end{equation}
+
+with $U\in\R^{\Nv\times\Nv}$, $\Sigma\in\R^{\Nv\times\Ns}$ containing the
+singular values $\sigma_1\ge\sigma_2\ge\dots\ge0$ on its diagonal and $0$
+elsewhere, and $V\in\R^{\Ns\times\Ns}$. (In code $V$ is the conjugate
+transpose $V^{\!\top}$ returned by \texttt{scipy.linalg.svd}. Depending on a
+module flag \texttt{USE\_DASK}, the factorization is computed through
+\texttt{dask\_svd()} on a dask-backed array; the math is identical.)
+
+\subsection{Rank truncation by condition number}
+
+A telescope operator is numerically singular: measured visibilities are noisy,
+and singular values below the noise floor contribute only noise amplification
+if inverted. The package truncates by a condition-number budget
+$\kappa=\texttt{max\_cond}=10^{4}$ (configurable): the numerical rank is
+\begin{equation}
+  r \;=\; \#\big\{i : \sigma_i \ge \sigma_1/\kappa\big\},
+\end{equation}
+and all singular values below that threshold are set to zero
+(\texttt{normal\_svd}/\texttt{dask\_svd}). Equation~\eqref{eq:svd} is then a
+rank-$r$ factorization. The threshold is visible in the singular-value
+spectrum; Figure~\ref{fig:spectrum} shows it for the tiny synthetic telescope
+used by the test-suite (4 antennas, 24 real visibility rows, a 48-pixel
+Healpix sphere, rank $r=12$).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.72\textwidth]{svd_spectrum.png}
+  \caption{Singular-value spectrum of the real telescope operator for the
+  small synthetic telescope used in the unit tests. The vertical red line
+  marks the truncation: singular values to its right are treated as null
+  space. (\texttt{disko/tests/test\_telescope\_operator.py}. The figure is
+  reproduced by \texttt{svd\_spectrum.py} in this directory.)}
+  \label{fig:spectrum}
+\end{figure}
+
+\subsection{The four fundamental subspaces}
+
+Partition the SVD into the significant block (subscript $1$) and the
+truncated block (subscript $2$):
+
+\begin{equation}
+  \Gammam \;=\;
+  \begin{bmatrix}U_1 & U_2\end{bmatrix}
+  \begin{bmatrix}\Sigma_1 & 0\\ 0 & 0\end{bmatrix}
+  \begin{bmatrix}V_1^{\!\top}\\ V_2^{\!\top}\end{bmatrix},
+\end{equation}
+
+with $U_1\in\R^{\Nv\times r}$, $U_2\in\R^{\Nv\times(\Nv-r)}$,
+$V_1\in\R^{\Ns\times r}$, $V_2\in\R^{\Ns\times(\Ns-r)}$, and diagonal
+$\Sigma_1=\operatorname{diag}(\sigma_1,\dots,\sigma_r)$. Because $U$ and $V$
+are orthogonal, the columns of these four blocks are orthonormal bases of four
+mutually orthogonal subspaces, which completely describe the instrument:
+\cite{nullspace2016}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Basis & Subspace & Meaning \\
+\midrule
+$U_1$ & range of $\Gammam$, $\R^{\Nv}$ & visibilities the telescope \\
+      & $=\mathcal{R}(\Gammam)$ & can actually produce \\
+$U_2$ & null space of $\Gammam^{\!\top}$ & ``invisible'' data directions \\
+      & $=\mathcal{N}(\Gammam^{\!\top})$ & (never excited by any sky) \\
+$V_1$ & range of $\Gammam^{\!\top}$, $\R^{\Ns}$ & measurable sky \\
+      & $=\mathcal{R}(\Gammam^{\!\top})$ & (``range harmonics'') \\
+$V_2$ & null space of $\Gammam$ & invisible sky \\
+      & $=\mathcal{N}(\Gammam)$ & (``null harmonics'') \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+In particular the sky space decomposes as the orthogonal direct sum
+\begin{equation}
+  \R^{\Ns} \;=\; \mathcal{R}(\Gammam^{\!\top}) \oplus \mathcal{N}(\Gammam),
+\end{equation}
+i.e.\ every sky is the sum of a \emph{measurable} part (spanned by $V_1$) and
+an \emph{invisible} part (spanned by $V_2$) that produces exactly zero
+visibilities. The four blocks are exposed by the API:
+\texttt{U\_1}, \texttt{U\_2}, \texttt{V\_1}, \texttt{V\_2},
+\texttt{rank} ($r$), \texttt{n\_r()}, \texttt{n\_n()}; the basis vectors are
+retrievable via \texttt{range\_harmonic(h)} and \texttt{null\_harmonic(h)}.
+
+\subsection{Projections}
+
+Orthogonal projectors follow immediately from the orthonormal bases:
+
+\begin{equation}
+  P_r = V_1V_1^{\!\top}
+  \quad(\text{onto measurable sky, \texttt{P\_r()}}),\qquad
+  P_n = V_2V_2^{\!\top}
+  \quad(\text{onto invisible sky, \texttt{sky\_to\_null}}).
+\end{equation}
+
+The package deliberately never forms the dense $P_n$ (an
+$\Ns\times\Ns$ matrix); \texttt{sky\_to\_null} applies the two factors in
+sequence, which costs $\mathcal{O}(\Ns(\Ns-r))$ instead of
+$\mathcal{O}(\Ns^2)$ storage.
+
+\subsection{The natural basis}
+
+Since $V$ is orthogonal, the change of coordinates
+\begin{equation}
+  \label{eq:natural}
+  \svec = V\boldsymbol{x}
+  \qquad\Longleftrightarrow\qquad
+  \boldsymbol{x}=V^{\!\top}\svec
+\end{equation}
+rotates the sky into the \emph{natural basis}
+(\texttt{natural\_to\_sky}/\texttt{sky\_to\_natural}). In this basis the
+forward model becomes diagonal:
+
+\begin{equation}
+  \vvec = \Gammam\svec = U\Sigma V^{\!\top} V\boldsymbol{x}
+       = \underbrace{U\Sigma}_{\text{\texttt{A}}}\boldsymbol{x},
+  \qquad
+  \text{\texttt{A}} =
+  \begin{bmatrix} A_r & 0\\ 0 & 0\end{bmatrix},
+  \qquad A_r = U_1\Sigma_1 \in \R^{\Nv\times r}.
+\end{equation}
+
+The first $r$ components $x_r=V_1^{\!\top}\svec$ are the measurable
+coefficients; the last $\Ns-r$ components $x_n=V_2^{\!\top}\svec$ are
+invisible. Because $U_1^{\!\top}U_1=I_r$ and $\Sigma_1$ is diagonal, the
+truncated operator $A_r$ is diagonal in the natural basis up to an orthogonal
+rotation of the data: for a sky in the range space, the data is
+$\vvec = U_1\Sigma_1 x_r$ and therefore
+
+\begin{equation}
+  \label{eq:diag}
+  U_1^{\!\top}\vvec \;=\; \Sigma_1 x_r,
+\end{equation}
+
+a system that is inverted by division on the diagonal. All quantitative imaging
+and inference in the package is built on this observation.
+
+\section{Imaging in the natural basis}
+\label{sec:natural}
+
+\subsection{Direct (least-squares) imaging}
+
+The most direct reconstruction ignores the decomposition and solves
+\eqref{eq:measurement} in the least-squares sense:
+\texttt{image\_visibilities} computes
+$\hat{\svec}=\Gammam^{+}\vvec$ via \texttt{np.linalg.lstsq}. This is the
+minimum-norm image, but it can be numerically unstable and mixes the measurable
+content with poorly-conditioned modes.
+
+\subsection{Natural-basis imaging}
+
+Better use is made of the structure. \texttt{image\_natural} implements the
+closed form derived from \eqref{eq:diag}:
+
+\begin{enumerate}
+  \item project the data onto the range space: $\boldsymbol{y}=U_1^{\!\top}\vvec$
+        (\texttt{U\_1.T @ vis});
+  \item undo the diagonal: $x_r=\Sigma_1^{-1}\boldsymbol{y}$, an
+        element-wise division by the singular values;
+  \item rotate back: $\hat{\svec}=V_1 x_r$
+        (\texttt{V\_1 @ x\_r}).
+\end{enumerate}
+
+This is imaging by explicit inversion of the well-conditioned part of the
+instrument: the reconstruction is the sky component that the telescope can
+measure, recovered with the correct amplitude and phase of every mode.
+
+\subsection{Null-space completion}
+
+The reconstruction of Section~\ref{sec:natural} leaves the null-space
+component of the image exactly zero. If an external prior sky
+$\svec_{\mathrm{prior}}$ is available (e.g.\ a map from another survey),
+\texttt{image\_natural(null\_prior=...)} / \texttt{complete\_image} grafts its
+invisible component onto the reconstruction:
+
+\begin{equation}
+  \label{eq:complete}
+  \hat{\svec}_{\mathrm{complete}}
+  \;=\; V_1\Sigma_1^{-1}U_1^{\!\top}\vvec
+     \;+\; V_2V_2^{\!\top}\svec_{\mathrm{prior}}.
+\end{equation}
+
+By construction $\Gammam V_2=0$, so the added term contributes \emph{zero}
+visibilities: the completed image fits the measured data \emph{exactly}, while
+carrying the prior's structure in the directions the telescope cannot see
+(verified in \texttt{test\_complete\_image}). The \texttt{disko\_bayes}
+command-line tool exposes this as \texttt{--null-prior}.
+
+\section{Regularized imaging}
+\label{sec:reg}
+
+When $\Ns>\Nv$ the least-squares problem is under-determined and the null
+space must be handled. The package offers two classical regularizations in
+addition to the null-space completion above.
+
+\subsection{Tikhonov (L2) regularization}
+
+\texttt{image\_tikhonov} computes the minimum of
+$\|\vvec-\Gammam\svec\|^2+\alpha^2\|\svec\|^2$. Using the SVD this has the
+famous closed form; the package exploits the truncation to apply the filter
+only on the rank block:
+
+\begin{equation}
+  \label{eq:tikhonov}
+  \hat{\svec}_\alpha
+  \;=\; V_1\,
+    \Big[ \tfrac{\sigma_i}{\sigma_i^2+\alpha^2}\Big]_{i=1}^{r}\,
+    \big(U_1^{\!\top}\vvec\big),
+\end{equation}
+
+i.e.\ each singular value $\sigma_i$ is attenuated by the factor
+$\sigma_i/(\sigma_i^2+\alpha^2)$ while the null space stays at zero. Since
+singular values below the rank cutoff are already zero, there is nothing to
+regularize outside the rank block; working with the $V_1,U_1$ factors is
+$\mathcal{O}(\Ns r)$ rather than a dense
+$\mathcal{O}(\Ns^2)$ triple product
+(\texttt{CHANGES.md}, Unreleased).
+
+\subsection{Sparsity-enforcing (L1) imaging}
+
+For sources that are sparse on the sky, \texttt{image\_lasso} solves the
+elastic-net problem
+\begin{equation}
+  \min_{\svec}\; \tfrac12\|\vvec-\Gammam\svec\|^2
+  \;+\; \alpha\Big(\rho\|\svec\|_1 + \tfrac{1-\rho}{2}\|\svec\|_2^2\Big),
+\end{equation}
+via \texttt{sklearn.linear\_model.ElasticNet} (optionally
+\texttt{ElasticNetCV} with cross-validated $\alpha$). The sparsity of the L1
+term suppresses the null-space leakage that plain least squares would
+introduce, at the cost of a non-linear solve. The regularization strength is
+scaled as $\alpha/\sqrt{\Ns}$ to keep the norm of the L1 penalty comparable
+across pixel counts.
+
+\section{Matrix-free operators and iterative solvers}
+\label{sec:matrixfree}
+
+Explicitly forming and factorizing $\Gammam$ (as
+Section~\ref{sec:svd} does) costs $\mathcal{O}(\Ns\Nv)$ memory and is
+impossible for large telescopes or dense skies. For the iterative and sparse
+paths the package instead exposes a \emph{matrix-free} operator,
+\texttt{DiSkOOperator} (\texttt{disko/disko.py}), a subclass of
+\texttt{pylops.LinearOperator} \cite{pylops2018}.
+
+\subsection{The operator \texttt{DiSkOOperator}}
+
+The operator has shape $M\times N$ with $M=2\Nb\cdot N_{\mathrm{freq}}$ (real
+and imaginary rows, per frequency) and $N=\Ns$. Instead of storing $\Gammam$
+it implements
+
+\begin{itemize}
+  \item \texttt{\_matvec(x)}: computes
+    $\vvec = \begin{bmatrix}\Re(H)\\ \Im(H)\end{bmatrix}\svec$ by summing, over
+    frequencies, the products of the real and imaginary parts of $H$ with the
+    sky. The harmonics are evaluated in \emph{blocks} of visibility rows
+    (\texttt{\_block\_size()} targets $\sim$200\,MB per block) and cached as
+    float32 arrays, valid because the UVW coordinates and frequencies are
+    constant across iterations;
+  \item \texttt{\_rmatvec(v)}: the exact adjoint
+    $\svec = \Re(H)^{\!\top}\vvec_{\mathrm{re}}+
+    \Im(H)^{\!\top}\vvec_{\mathrm{im}}$, the so-called dirty image (the
+    gridless primary beam).
+\end{itemize}
+
+Both are linear in the data and agree with the dense $\Gammam$
+(\texttt{test\_pylops\_operator.py} checks element-by-element agreement and
+passes the pylops dot-test). The operator flag \texttt{explicit=False}
+indicates that it can only be applied, never inverted directly.
+
+\subsection{Iterative solvers}
+
+\texttt{DiSkO.solve\_matrix\_free} plugs this operator into three solvers:
+
+\begin{itemize}
+  \item \textbf{LSQR} \cite{paige1982} via
+    \texttt{scipy.sparse.linalg.lsqr}, with damping parameter
+    \texttt{alpha} ($\ge0$; negative selects the data RMS);
+  \item damped least squares on the normal equations (the
+    \texttt{--lsmr} path) via
+    \texttt{pylops.optimization.leastsquares.normal\_equations\_inversion};
+  \item \textbf{FISTA} \cite{beck2009} via
+    \texttt{pylops.optimization.sparsity.fista} for sparse (L1) imaging, using
+    the soft-threshold form and initialized with the true adjoint image
+    $|\texttt{A.T} @ \texttt{d}|$ so that the starting guess is physically
+    non-negative and correctly oriented (a fix recorded in v1.4.1).
+\end{itemize}
+
+Because each iteration needs only matvec/rmatvec, memory use is dominated by
+the cached harmonic blocks, not by $\Gammam$ itself. This same operator backs
+the plain dirty image used by \texttt{image\_visibilities} in \texttt{DiSkO}
+(adjoint applied with blocked matrix-free code).
+
+\section{Bayesian sequential inference}
+\label{sec:bayes}
+
+The most sophisticated use of the operator structure is full Bayesian
+inference, implemented in \texttt{bayes\_cli.py} and
+\texttt{TelescopeOperator.sequential\_inference}. Let the prior on the sky be a
+multivariate Gaussian
+
+\begin{equation}
+  p(\svec)\;=\;\mathcal{N}(\svec\mid \boldsymbol{\mu}_0,\Sigma_0),
+\end{equation}
+
+with the heuristic default
+$\boldsymbol{\mu}_0=p_{50}(|\vvec|)\mathbf{1}$ (median visibility amplitude)
+and $\Sigma_0=p_{95}(|\vvec|)^2 I$ (\texttt{get\_prior},
+\texttt{create\_prior}). The likelihood for the measured (real) visibilities is
+$p(\vvec\mid\svec)=\mathcal{N}(\vvec\mid\Gammam\svec,\Sigma_v)$ with a
+visibility covariance built from the per-baseline RMS.
+
+\subsection{The update}
+
+The natural basis makes the computation tractable. With
+$\boldsymbol{x}=V^{\!\top}\svec$ and $\vvec=A\boldsymbol{x}$, the prior is
+rotated into the natural basis and split into its range block
+($x_r$, size $r$) and null block ($x_n$, size $\Ns-r$). The likelihood
+couples only to $x_r$ through $A_r=U_1\Sigma_1$
+(\texttt{prior\_r.bayes\_update(precision, vis, A\_r)}), which is a standard
+Gaussian update \cite{bishop2006}:
+
+\begin{align}
+  \Sigma_r^{-1} &= \Sigma_{r,0}^{-1} + A_r^{\!\top}\Sigma_v^{-1} A_r,\\
+  \boldsymbol{\mu}_r &= \Sigma_r \big(\Sigma_{r,0}^{-1}\boldsymbol{\mu}_{r,0}
+  + A_r^{\!\top}\Sigma_v^{-1}\vvec\big),
+\end{align}
+
+while the null block receives \emph{no} information from the data:
+$\Sigma_n=\Sigma_{n,0}$, $\boldsymbol{\mu}_n=\boldsymbol{\mu}_{n,0}$. The
+posterior is the Cartesian product of the two blocks, rotated back to the sky
+space with $V$ (\texttt{MultivariateGaussian.outer} then
+\texttt{linear\_transform(V)}).
+
+Two exact optimizations are used:
+
+\begin{itemize}
+  \item \textbf{Diagonal prior fast path}: when
+    $\Sigma_0=\sigma_0^2 I$ (detected by
+    \texttt{is\_scaled\_identity}), $V^{\!\top}\Sigma_0 V=\sigma_0^2 I$
+    stays diagonal, so only the mean needs rotating, and the posterior is
+    assembled directly as
+    $\Sigma = V_1\Sigma_r V_1^{\!\top}+ \sigma_0^2(I-V_1V_1^{\!\top})$,
+    avoiding two $\mathcal{O}(\Ns^3)$ matrix products
+    (\texttt{do\_inference} in \texttt{bayes\_cli.py});
+  \item the visibility precision $\Sigma_v^{-1}$ is formed once
+    (\texttt{MultivariateGaussian.sp\_inv}).
+\end{itemize}
+
+\subsection{Sequential (multi-snapshot) inference}
+
+Because the posterior is again a multivariate Gaussian, it can be fed back as
+the prior of the next snapshot (\texttt{disko\_bayes --hdf} loops over
+visibilities, chaining \texttt{posterior $\to$ prior}). Chained posteriors are
+dense, so the general (exact) path is used for them; correctness is asserted in
+\texttt{test\_do\_inference\_sequential}. The package also draws posterior
+samples (with results written as \texttt{*\_mu}, \texttt{*\_var},
+\texttt{*\_pcf} and \texttt{*\_sN} images) and reports the point-covariance
+function at the brightest pixel.
+
+\section{Discretizations of the sky}
+\label{sec:fov}
+
+All the machinery above is agnostic to the sky discretization; a field-of-view
+class need only provide \texttt{npix}, \texttt{l}, \texttt{m}, \texttt{n},
+\texttt{n\_minus\_1} and \texttt{pixel\_areas}. The package supplies:
+
+\begin{itemize}
+  \item \texttt{HealpixFoV}: the full celestial sphere with a HEALPix
+        tessellation \cite{gorski2005}, equal-area pixels, used for wide-field
+        or all-sky imaging;
+  \item \texttt{HealpixSubFoV}: a disc-shaped subset of a HEALPix grid
+        centred on a phase centre (built with \texttt{healpy.query\_disc}),
+        with pixel areas renormalized to the disc;
+  \item \texttt{SquareFoV}: a flat-sky square with a fixed resolution in
+        arcminutes, useful for small fields where curvature is negligible;
+  \item \texttt{AdaptiveMeshFoV}: an unstructured triangular mesh generated
+        with \texttt{gmsh} whose resolution can locally refine
+        (\texttt{refine()}) in regions of high gradient during repeated
+        Tikhonov imaging (the \texttt{--mesh} / \texttt{--adaptive} CLI
+        options).
+\end{itemize}
+
+The discretization is what makes the approach \emph{gridless} in one sense:
+pixels may be anywhere on the sphere, at arbitrary sizes, and the operator
+accounts for each pixel's solid angle exactly. The pixel areas $A_j$ appear in
+the harmonics \eqref{eq:rime}, so imaging with any of these skies automatically
+handles varying pixel size.
+
+\section{Implementation notes}
+\label{sec:impl}
+
+A few implementation choices are worth highlighting because they shape the
+mathematics.
+
+\begin{itemize}
+  \item \textbf{Dask}: for large operators, $\Gammam$ is wrapped in a dask
+        array (\texttt{USE\_DASK}) and the SVD is run on it
+        (\texttt{dask\_svd}); all basis methods (\texttt{sky\_to\_null},
+        \texttt{natural\_to\_sky}, \texttt{image\_natural}, \dots) force the
+        lazy graphs eagerly and return plain NumPy arrays
+        (\texttt{test\_explicit\_computation}).
+  \item \textbf{SVD cache}: the factorization is expensive, so it is cached to
+        disk (\texttt{svd\_Ns\_Nv\_maxcond.npz}) keyed by the problem size and
+        the truncation factor, and reloaded when available
+        (\texttt{use\_cache=True}).
+  \item \textbf{Conditioning}: the rank cutoff \texttt{max\_cond} is exposed
+        through \texttt{TelescopeOperator(..., max\_cond=...)} and
+        \texttt{disko\_bayes --max-cond}; a smaller budget moves more modes
+        into the null space (checked in \texttt{test\_max\_cond}).
+  \item \textbf{Data conventions}: measurement-set readers restore the
+        conjugate-symmetric visibility pairs ($\pm(u,v,w)$), so the operator
+        rows come in conjugate pairs; visibilities are natural-weight divided
+        by the per-baseline RMS before imaging, and \texttt{disko} conjugates
+        them where the UVW convention in the data file requires it.
+  \item \textbf{Complexity}: the dense SVD is the main cost,
+        $\mathcal{O}(\min(\Ns\Nv^2,\Nv\Ns^2))$; it is paid once. Imaging in
+        the natural basis is then $\mathcal{O}(\Ns r)$; Tikhonov imaging adds
+        only the diagonal filter; Bayesian updates cost
+        $\mathcal{O}(r^3)$ for the range-block inversion plus
+        $\mathcal{O}(\Ns r)$ rotations.
+\end{itemize}
+
+\section{Conclusion}
+
+Operator-based imaging in DiSkO replaces the classic grid--FFT--CLEAN pipeline
+with a single linear-algebra object: the telescope operator $\Gammam$ and its
+SVD. The SVD reveals exactly what the telescope measures (the range space
+$V_1$), what it cannot measure (the null space $V_2$), and provides a natural
+basis in which the operator is diagonal. On this basis the package builds
+closed-form images, Tikhonov and sparse regularizations, exactly
+data-consistent null-space-completed images, and full Bayesian inference with
+analytic sequential updates. For problems too large for an explicit SVD, the
+same operator is exposed matrix-free to LSQR/LSMR/FISTA. The result is an
+imaging pipeline whose properties---resolution, information content,
+regularization, uncertainty---are all read directly off the operator rather
+than from ad-hoc deconvolution heuristics.
+
+\begin{thebibliography}{9}
+
+\bibitem{thompson2017}
+A.~R. Thompson, J.~M. Moran, and G.~W. Swenson.
+\emph{Interferometry and Synthesis in Radio Astronomy}, 3rd ed.
+Springer, 2017.
+
+\bibitem{perley1989}
+R.~A. Perley, F.~R. Schwab, and A.~H. Bridle (eds.).
+\emph{Synthesis Imaging in Radio Astronomy}.
+ASP Conference Series, vol.~6, 1989.
+
+\bibitem{hamaker1996}
+J.~P. Hamaker, J.~D. Bregman, and R.~J. Sault.
+Understanding radio polarimetry. I. Mathematical foundations.
+\emph{Astron.\ Astrophys.\ Suppl.\ Ser.}, 117:137--147, 1996.
+
+\bibitem{nullspace2016}
+Null space from SVD, Mathematics Stack Exchange,
+\url{https://math.stackexchange.com/questions/1771013/null-space-from-svd}.
+
+\bibitem{paige1982}
+C.~C. Paige and M.~A. Saunders.
+LSQR: An algorithm for sparse linear equations and sparse least squares.
+\emph{ACM Trans.\ Math.\ Softw.}, 8(1):43--71, 1982.
+
+\bibitem{beck2009}
+A.~Beck and M.~Teboulle.
+A fast iterative shrinkage-thresholding algorithm for linear inverse problems.
+\emph{SIAM J.\ Imaging Sci.}, 2(1):183--202, 2009.
+
+\bibitem{bishop2006}
+C.~M. Bishop.
+\emph{Pattern Recognition and Machine Learning}.
+Springer, 2006 (Section~2.3, Bayesian inference for the Gaussian).
+
+\bibitem{gorski2005}
+K.~M. G\'orski, E.~Hivon, A.~J. Banday, B.~D. Wandelt, F.~K. Hansen,
+M.~Reinecke, and M.~Bartelmann.
+HEALPix: A framework for high-resolution discretization and fast analysis of
+data distributed on the sphere.
+\emph{Astrophys.\ J.}, 622:759--771, 2005.
+
+\bibitem{pylops2018}
+PyLops: A linear-operator library for Python,
+\url{https://pylops.readthedocs.io}.
+
+\bibitem{disko}
+T.~Molteno et al., DiSkO: Discrete Sky Operator synthesis imaging,
+\url{https://github.com/tmolteno/disko}.
+
+\end{thebibliography}
+
+\end{document}
