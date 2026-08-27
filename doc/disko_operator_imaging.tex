@@ -527,11 +527,55 @@ Two exact optimizations are used:
 \subsection{Sequential (multi-snapshot) inference}
 
 Because the posterior is again a multivariate Gaussian, it can be fed back as
-the prior of the next snapshot (\texttt{disko\_bayes --hdf} loops over
-visibilities, chaining \texttt{posterior $\to$ prior}). Chained posteriors are
-dense, so the general (exact) path is used for them; correctness is asserted in
-\texttt{test\_do\_inference\_sequential}. The package also draws posterior
-samples (with results written as \texttt{*\_mu}, \texttt{*\_var},
+the prior of the next snapshot. The \texttt{--hdf} mode of
+\texttt{disko\_bayes} does exactly this, looping over visibilities and chaining
+\texttt{posterior $\to$ prior} through the single-update machinery above
+(asserted in \texttt{test\_do\_inference\_sequential}).
+A non-diagonal starting prior (e.g.\ a posterior loaded with
+\texttt{--prior}) takes the same dense per-turn chaining. Because each
+snapshot has its own natural basis, the null block is carried forward in that
+snapshot's basis; this is exact within a single update, and across turns only
+when the successive range spaces coincide.
+
+For the dedicated \texttt{--sequential N} option (N turns, each drawing
+\texttt{nvis} fresh visibilities from the measurement set) the chain instead
+runs in a low-rank \emph{information form} that never leaves the sky frame.
+With a scaled-identity prior $\Sigma_0=\sigma_0^2 I$, the posterior after $k$
+turns has the precision
+\begin{equation}
+  \label{eq:infoprec}
+  \Sigma_k^{-1}
+  \;=\; \sigma_0^{-2}I + \sum_{j=1}^{k} V_{1,j} B_j V_{1,j}^{\!\top},
+  \qquad
+  w_k
+  \;=\; \sigma_0^{-2}\boldsymbol{\mu}_0 + \sum_{j=1}^{k} V_{1,j} c_j,
+\end{equation}
+with $B_j=A_{r,j}^{\!\top}\Sigma_{v,j}^{-1}A_{r,j}$ and
+$c_j=A_{r,j}^{\!\top}\Sigma_{v,j}^{-1}\vvec_j$ the range-block precision and
+data terms of turn $j$. The chain stores only the stacked range bases
+$L_k=[V_{1,1}\,\dots\,V_{1,k}]\in\R^{\Ns\times R}$ ($R=\sum_j r_j$ the
+cumulative rank) and the compressed inverse
+$M_k=\big(C_k^{-1}+\sigma_0^2 L_k^{\!\top}L_k\big)^{-1}$ with
+$C_k=\operatorname{blockdiag}(B_1,\dots,B_k)$, maintained by a bordered Schur
+update per turn; no $\Ns\times\Ns$ matrix is ever formed and no covariance is
+rotated between bases. Sky-space quantities are recovered with Woodbury
+identities only when output is needed:
+\begin{equation}
+  \mu_k=\boldsymbol{\mu}_0+\sigma_0^2 L_k M_k
+    \big(C_k^{-1}c_k-L_k^{\!\top}\boldsymbol{\mu}_0\big),
+  \qquad
+  \Sigma_k=\sigma_0^2 I-\sigma_0^4 L_k M_k L_k^{\!\top},
+\end{equation}
+so the per-step mean image costs $\mathcal{O}(R^2+R\Ns)$, the per-pixel
+variance $\mathcal{O}(R^2\Ns)$ (the diagonal of the low-rank product), and the
+point-covariance row comes from $M_kL_k^{\!\top}$ without materializing
+$\Sigma_k$. This is the exact conjugate-Gaussian posterior of
+\eqref{eq:infoprec} for the sequence of reduced operators---no information is
+dropped between turns---and is asserted against a direct precision-form
+construction in \texttt{test\_sequential.py}, together with the identity
+$\Sigma_k\Sigma_k^{-1}=I$ and the property that each turn's data adds
+precision only along that turn's own range space. The package also draws
+posterior samples (with results written as \texttt{*\_mu}, \texttt{*\_var},
 \texttt{*\_pcf} and \texttt{*\_sN} images) and reports the point-covariance
 function at the brightest pixel.
 

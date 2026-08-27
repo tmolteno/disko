@@ -10,9 +10,11 @@ import time
 from copy import deepcopy
 from pathlib import Path
 
+import h5py
 import matplotlib.pyplot as plt
 import healpy as hp
 import numpy as np
+import scipy
 from tart.imaging import calibration, elaz, visibility
 from tart.operation import settings
 from tart_tools import api_imaging
@@ -157,8 +159,226 @@ def do_inference(disko, sphere, prior, sigma_v=None, max_cond=MAX_COND):
     return posterior
 
 
+def _visibility_covariance(disko, sigma_v):
+    """The real visibility covariance, built exactly as in do_inference:
+    per-baseline sigma_v^2 (or rms^2) on the diagonal with real/imag
+    coupling blocks 0.5 * diag."""
+    n_v = 2 * disko.n_v
+    if sigma_v is None:
+        diag = np.diag(disko.rms**2)
+    else:
+        diag = np.diag(np.ones(n_v // 2) * (sigma_v) ** 2)
+    return np.block([[diag, 0.5 * diag], [0.5 * diag, diag]])
+
+
+class SequentialInfoState:
+    """Low-rank (information-form) sequential posterior.
+
+    Starting from a scaled-identity prior ``Sigma0 = s0^2 I``, the
+    posterior after each turn keeps the Woodbury-ready form
+        Sigma_k = s0^2 I - s0^4 L_k M_k L_k^T,
+        w_k     = s0^{-2} mu0 + L_k c_k   (precision-weighted mean)
+    with ``L_k`` (n_s x R) the per-turn range-space bases ``V_1`` stacked
+    side by side, ``M_k = (C_k^{-1} + s0^2 L_k^T L_k)^{-1}`` the R x R
+    compressed inverse (``C_k = blockdiag(B_j)``, ``B_j = A_r^T Sigma_v^{-1}
+    A_r``), and ``c_k`` the stacked data terms ``A_r^T Sigma_v^{-1} y``.
+    This is exactly the conjugate-Gaussian posterior
+        Sigma_k^{-1} = s0^{-2} I + sum_j V_{1,j} B_j V_{1,j}^T
+    so the chain never forms an n_s x n_s matrix and never rotates a
+    covariance between bases; sky-space quantities are recovered with
+    Woodbury identities only when an accessor is called.  The mean uses
+    the cancellation-free innovation form above; the covariance-family
+    accessors (variance, pcf, covariance) are best conditioned when the
+    likelihood and prior precisions are comparable, as with realistic
+    per-baseline RMS noise.
+    """
+
+    def __init__(self, mu0, s0):
+        self.mu0 = np.asarray(mu0, dtype=np.float64).flatten()
+        self.s0 = float(s0)
+        self.n_s = self.mu0.shape[0]
+        self.L = np.zeros((self.n_s, 0))  # stacked range bases (n_s, R)
+        self.Bs = []  # per-turn B_j = A_r^T Sigma_v^{-1} A_r (for precision)
+        self.hs = []  # per-turn B_j^{-1} c_j (data innovation, for the mean)
+        self.w = self.mu0 / (self.s0 * self.s0)  # precision-weighted mean
+        self.M = np.zeros((0, 0))  # (C^{-1} + s0^2 L^T L)^{-1}
+        self._s2 = self.s0 * self.s0
+        self._cache = {}
+
+    @property
+    def R(self):
+        """Cumulative rank of the absorbed turns."""
+        return self.L.shape[1]
+
+    @property
+    def is_scaled_identity(self):
+        return self.R == 0
+
+    def _invalidate(self):
+        self._cache = {}
+
+    def add_turn(self, to, y, sigma_precision):
+        """Absorb one turn: ``to`` is its rank-truncated TelescopeOperator,
+        ``y`` the real visibilities, ``sigma_precision`` the visibility
+        precision ``Sigma_v^{-1}``."""
+        A_r = np.asarray(to.A_r)  # (n_v, r)
+        V_1 = np.asarray(to.V_1)  # (n_s, r)
+        PA = sigma_precision @ A_r
+        B = A_r.T @ PA  # r x r SPD
+        c = A_r.T @ (sigma_precision @ np.asarray(y).ravel())
+        r = B.shape[0]
+
+        # Bordered update of M = (C^{-1} + s0^2 L^T L)^{-1}:
+        #   Q      = s0^2 L^T V_1            (new off-diagonal block)
+        #   F22    = B^{-1} + s0^2 I_r       (new diagonal block)
+        B_inv = scipy.linalg.inv(B)
+        h = B_inv @ c  # data innovation in the range basis
+        if self.R == 0:
+            newM = scipy.linalg.inv(B_inv + self._s2 * np.identity(r))
+        else:
+            Q = self._s2 * (self.L.T @ V_1)
+            X = self.M @ Q
+            F22 = B_inv + self._s2 * np.identity(r)
+            M22 = scipy.linalg.inv(F22 - Q.T @ X)
+            M12 = -X @ M22
+            M11 = self.M + X @ M22 @ X.T
+            newM = np.block([[M11, M12], [M12.T, M22]])
+
+        self.L = np.hstack((self.L, V_1))
+        self.Bs.append(B)
+        self.hs.append(h)
+        self.w = self.w + V_1 @ c
+        self.M = newM
+        self._invalidate()
+        return self
+
+    def _Y(self):
+        """M @ L^T, cached (shared by variance, pcf and covariance)."""
+        if "Y" not in self._cache:
+            self._cache["Y"] = self.M @ self.L.T
+        return self._cache["Y"]
+
+    def mean(self):
+        """Posterior mean in sky space.
+
+        Computed in the cancellation-free innovation form
+            mu = mu0 + s0^2 L M (C^{-1} c - L^T mu0),
+        which is exact and numerically stable even when the likelihood is
+        vastly more informative than the prior.
+        """
+        if "mu" not in self._cache:
+            g = np.concatenate(self.hs) - self.L.T @ self.mu0
+            t = self.M @ g
+            mu = self.mu0 + self._s2 * (self.L @ t)
+            self._cache["mu"] = mu
+        return self._cache["mu"]
+
+    def variance(self):
+        """Per-pixel posterior variance (diagonal of Sigma_k)."""
+        if "var" not in self._cache:
+            Y = self._Y()
+            d = np.einsum("ia,ai->i", self.L, Y)  # diag(L M L^T)
+            self._cache["var"] = self._s2 - self._s2**2 * d
+        return self._cache["var"]
+
+    def pcf_row(self, i):
+        """Row i of the posterior covariance (the point covariance function),
+        without materializing the full n_s x n_s matrix."""
+        Y = self._Y()
+        row = self.L[i, :] @ Y if self.R > 0 else np.zeros(self.n_s)
+        out = np.zeros(self.n_s)
+        out[i] = self._s2
+        return out - self._s2**2 * row
+
+    def covariance(self):
+        """Full posterior covariance (materializes n_s x n_s)."""
+        Y = self._Y()
+        return self._s2 * np.identity(self.n_s) - self._s2**2 * (self.L @ Y)
+
+    def precision(self):
+        """Full posterior precision (materializes n_s x n_s)."""
+        prec = np.identity(self.n_s) / self._s2
+        for V_1, B in zip(self._blocks(), self.Bs):
+            prec = prec + V_1 @ B @ V_1.T
+        return prec
+
+    def _blocks(self):
+        """The stacked n_s x r_j range-basis blocks of ``self.L``."""
+        start = 0
+        for B in self.Bs:
+            r = B.shape[0]
+            yield self.L[:, start:start + r]
+            start += r
+
+    def sample(self):
+        """Draw a sample from the posterior (materializes Sigma)."""
+        chol = scipy.linalg.cholesky(self.covariance(), lower=True)
+        z = np.random.normal(0.0, 1.0, self.n_s)
+        return self.mean() + chol @ z
+
+    def to_hdf5(self, fname, json_info="{}"):
+        """Save the posterior (mu, sigma, sigma_inv) to HDF5."""
+        mu = self.mean()
+        sigma = self.covariance()
+        sigma_inv = self.precision()
+        with h5py.File(fname, "w") as h5f:
+            conftype = h5py.special_dtype(vlen=bytes)
+            conf_dset = h5f.create_dataset("info", (1,), dtype=conftype)
+            conf_dset[0] = json_info
+            h5f.create_dataset(
+                "sigma", data=sigma, compression="gzip", compression_opts=9
+            )
+            h5f.create_dataset(
+                "sigma_inv", data=sigma_inv, compression="gzip", compression_opts=9
+            )
+            h5f.create_dataset("mu", data=mu, compression="gzip", compression_opts=9)
+
+
+class InfoPosterior:
+    """Per-step view of a :class:`SequentialInfoState` posterior.
+
+    Exposes the same output-facing interface as ``MultivariateGaussian``
+    (mean, variance, covariance, precision, sample, to_hdf5, ...) but
+    materializes sky-space matrices only when an accessor is called.  The
+    view reflects the state at the moment it is handed out and is valid
+    until the next ``add_turn``.
+    """
+
+    def __init__(self, state):
+        self._state = state
+
+    @property
+    def mu(self):
+        return self._state.mean()
+
+    @property
+    def D(self):
+        return self._state.n_s
+
+    def variance(self):
+        return self._state.variance()
+
+    def pcf_row(self, i):
+        return self._state.pcf_row(i)
+
+    def sigma(self):
+        return self._state.covariance()
+
+    def sigma_inv(self):
+        return self._state.precision()
+
+    def sample(self):
+        return self._state.sample()
+
+    def to_hdf5(self, fname, json_info="{}"):
+        self._state.to_hdf5(fname, json_info=json_info)
+
+    def is_scaled_identity(self):
+        return self._state.is_scaled_identity
+
+
 def sequential_inference(
-    disko_list, sphere, prior=None, sigma_v=None, max_cond=MAX_COND
+    disko_list, sphere, prior=None, sigma_v=None, max_cond=MAX_COND, on_step=None
 ):
     """Chain N turns of sequential Bayesian inference.
 
@@ -166,21 +386,47 @@ def sequential_inference(
     visibilities.  When ``prior`` is None the first update starts from the
     heuristic diagonal prior p95(|vis|)^2 I (``create_prior``); afterwards
     every posterior becomes the next turn's prior.  Each update uses the
-    reduced, rank-truncated telescope operator (``A_r = U_1 Sigma_1`` via
-    ``do_inference``).
+    reduced, rank-truncated telescope operator (``A_r = U_1 Sigma_1``).
 
-    Returns the list of ``len(disko_list)`` posteriors, i.e. the posterior
-    mean and covariance at every step.
+    For a scaled-identity starting prior the chain runs in the low-rank
+    information form (:class:`SequentialInfoState`): the posterior is
+    carried as ``s0^{-2} I + L L^T`` and never converted to (or rotated
+    between) sky-space covariance matrices.  Any other prior falls back to
+    the exact dense chaining via ``do_inference``.
+
+    ``on_step(step, posterior)`` is called after each turn with a view of
+    that step's posterior (valid until the next turn).  Returns the final
+    posterior.
     """
     if prior is None:
         prior = create_prior(disko_list[0].vis_arr, sphere, None)
+
+    if prior.is_scaled_identity():
+        s0 = np.sqrt(prior.sigma()[0, 0])
+        state = SequentialInfoState(np.asarray(prior.mu), s0)
+        final = None
+        for i, disko in enumerate(disko_list):
+            to = TelescopeOperator(disko, sphere, max_cond=max_cond)
+            y = vis_to_real(disko.vis_arr)
+            sigma_vis = _visibility_covariance(disko, sigma_v)
+            precision = MultivariateGaussian.sp_inv(sigma_vis)
+            state.add_turn(to, y, precision)
+            view = InfoPosterior(state)
+            if on_step is not None:
+                on_step(i, view)
+            final = view
+        return final
+
+    # Dense (arbitrary) prior: general exact path, pre-existing behaviour.
     posteriors = []
     for disko in disko_list:
         prior = do_inference(
             disko, sphere, prior, sigma_v=sigma_v, max_cond=max_cond
         )
+        if on_step is not None:
+            on_step(len(posteriors), prior)
         posteriors.append(prior)
-    return posteriors
+    return posteriors[-1]
 
 
 def _step_fname(fname, step):
@@ -229,27 +475,31 @@ def run_sequential(ARGS, sphere, n_steps):
         timestamp=turns[0].timestamp, lon=lon, lat=lat, height=height
     )
     prior = create_prior(turns[0].vis_arr, sphere, ARGS.prior)
-    posteriors = sequential_inference(
-        turns,
-        sphere,
-        prior=prior,
-        sigma_v=ARGS.sigma_v,
-        max_cond=ARGS.max_cond,
-    )
-    for i, (posterior, disko) in enumerate(zip(posteriors, turns)):
+
+    def on_step(step, posterior):
+        disko = turns[step]
         posterior_fname = None
         if ARGS.posterior is not None:
-            posterior_fname = _step_fname(ARGS.posterior, i)
+            posterior_fname = _step_fname(ARGS.posterior, step)
         handle_output(
             ARGS,
             disko.timestamp,
             posterior,
             sphere,
             disko,
-            title_suffix="_step{:03d}".format(i),
+            title_suffix="_step{:03d}".format(step),
             posterior_fname=posterior_fname,
         )
-    return posteriors
+
+    final = sequential_inference(
+        turns,
+        sphere,
+        prior=prior,
+        sigma_v=ARGS.sigma_v,
+        max_cond=ARGS.max_cond,
+        on_step=on_step,
+    )
+    return final
 
 
 def handle_bayes(ARGS):
@@ -394,6 +644,9 @@ def handle_output(
     # Now save the files.
     fname = posterior_fname if posterior_fname is not None else ARGS.posterior
     if fname is not None:
+        parent = os.path.dirname(fname)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         posterior.to_hdf5(fname)
 
     def path(ending, image_title):
@@ -486,7 +739,11 @@ def handle_output(
             logger.info("Computing point covariance...")
 
             brightest_pixel = np.argmax(posterior.mu)
-            pix_cov = np.array(posterior.sigma()[brightest_pixel, :])
+            if hasattr(posterior, "pcf_row"):
+                # Matrix-free: no n_s x n_s materialization needed.
+                pix_cov = np.array(posterior.pcf_row(brightest_pixel))
+            else:
+                pix_cov = np.array(posterior.sigma()[brightest_pixel, :])
             logger.info(f"    Took {time.perf_counter() - tic:0.4f} seconds")
 
             sphere.set_visible_pixels(pix_cov, scale=False)
