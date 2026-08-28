@@ -539,7 +539,8 @@ when the successive range spaces coincide.
 
 For the dedicated \texttt{--sequential N} option (N turns, each drawing
 \texttt{nvis} fresh visibilities from the measurement set) the chain instead
-runs in a low-rank \emph{information form} that never leaves the sky frame.
+runs in a low-rank \emph{information form} (class
+\texttt{SequentialInfoState}) that never leaves the sky frame.
 With a scaled-identity prior $\Sigma_0=\sigma_0^2 I$, the posterior after $k$
 turns has the precision
 \begin{equation}
@@ -561,6 +562,7 @@ update per turn; no $\Ns\times\Ns$ matrix is ever formed and no covariance is
 rotated between bases. Sky-space quantities are recovered with Woodbury
 identities only when output is needed:
 \begin{equation}
+  \label{eq:woodbury}
   \mu_k=\boldsymbol{\mu}_0+\sigma_0^2 L_k M_k
     \big(C_k^{-1}c_k-L_k^{\!\top}\boldsymbol{\mu}_0\big),
   \qquad
@@ -578,6 +580,90 @@ precision only along that turn's own range space. The package also draws
 posterior samples (with results written as \texttt{*\_mu}, \texttt{*\_var},
 \texttt{*\_pcf} and \texttt{*\_sN} images) and reports the point-covariance
 function at the brightest pixel.
+
+\subsection{Variance shrinkage, localization, and conditioning}
+\label{sec:variance}
+
+Carrying the posterior in information form makes two structural properties of
+the sequential posterior explicit. Both hold exactly, and both are exercised
+step by step by the unit tests.
+
+\begin{proposition}[Monotone variance shrinkage]
+\label{prop:shrink}
+Each turn adds a positive semidefinite term to the precision
+\eqref{eq:infoprec}, so the posterior covariances decrease in the Loewner
+order,
+\begin{equation}
+  \Sigma_{k+1}^{-1} \;=\; \Sigma_k^{-1} + V_{1,k+1}B_{k+1}V_{1,k+1}^{\!\top}
+  \;\succeq\; \Sigma_k^{-1}
+  \qquad\Longrightarrow\qquad
+  \Sigma_{k+1} \;\preceq\; \Sigma_k .
+\end{equation}
+Every pixel's variance therefore weakly decreases from turn to turn
+(diagonals obey the same ordering, since
+$e_i^{\!\top}\Sigma_{k+1}e_i\le e_i^{\!\top}\Sigma_ke_i$), the decrease is
+strict at every pixel with a nonzero component along the new turn's range
+basis $V_{1,k+1}$ (for which $e_i^{\!\top}V_{1,k+1}B_{k+1}V_{1,k+1}^{\!\top}
+e_i>0$), and the trace falls monotonically below its prior value
+$\Ns\sigma_0^2$.
+\end{proposition}
+
+\begin{proposition}[Null-space localization]
+\label{prop:localize}
+Let $v\in\mathcal{N}(L_k^{\!\top})$ be a sky direction orthogonal to every
+absorbed range basis. The Woodbury form \eqref{eq:woodbury} then gives
+$v^{\!\top}\Sigma_k v=\sigma_0^2\|v\|^2$ and
+$v^{\!\top}(\boldsymbol{\mu}_k-\boldsymbol{\mu}_0)=0$: such directions keep
+the prior variance and prior mean \emph{exactly}, at every step of the chain.
+In particular, a pixel whose basis vector $e_i$ has zero entries in all
+stacked range bases $V_{1,1},\dots,V_{1,k}$---a pixel no turn has ever
+projected onto---is never moved by the data.
+\end{proposition}
+
+Two consequences deserve note. First, if successive range bases have
+\emph{disjoint supports} (so that
+$\operatorname{span}(V_{1,i})\perp\operatorname{span}(V_{1,j})$ for $i\neq j$),
+the precision sum decomposes over orthogonal subspaces and the posterior is
+block diagonal: turn $k+1$ then changes neither the variance nor the mean of
+pixels informed only by earlier turns---data cannot perturb a posterior
+coordinate it does not project onto. Second, for real telescope geometries the
+range bases are generic and no pixel direction is exactly orthogonal to the
+span of all of them: \emph{every} pixel acquires at least a little
+information, so all per-pixel variances decrease at every step, and exact
+null pixels arise only by construction. Both propositions are verified against
+hand-built range bases with exact zero rows
+(\texttt{TestVarianceLocalization} in \texttt{test\_sequential.py}), the
+monotone decrease is asserted at every step of the chain on distinct turns,
+and the chain is also exercised end-to-end on synthetic data generated with
+the package's own forward operator: the tartball tool \cite{tartball}
+predicts a known spot model through the operator for the 24-antenna TART
+layout onto an $n_\mathrm{side}=16$ healpix sphere, adds Gaussian noise, and
+writes a measurement set (\texttt{test\_data/synth.ms}); the test draws
+disjoint pools
+of baselines from it exactly as \texttt{run\_sequential} does, and verifies
+Proposition~\ref{prop:shrink} at every step together with a data-fit
+improvement of the posterior mean over the prior mean
+(\texttt{TestSequentialSyntheticMs}).
+
+\emph{Numerical conditioning of the covariance accessors.} The sky-space
+covariance quantities evaluate the Woodbury difference
+$\sigma_0^2-\sigma_0^4\operatorname{diag}(L_kM_kL_k^{\!\top})$, a
+cancellation of comparable terms whose relative error grows with the
+likelihood-to-prior precision ratio. On the 48-pixel test problem the
+per-pixel variance recovered by \texttt{variance()} agrees with a dense
+precision-form oracle to machine precision when
+$\Sigma_v^{-1}\sim\sigma_0^{-2}$, to $4\times10^{-9}$ at
+$\sigma_v=10^{-4}$ and $4\times10^{-5}$ at $\sigma_v=10^{-6}$; beyond that
+($\sigma_v\lesssim10^{-8}$) the recovered sky-space covariance is dominated by
+round-off, although the internal information state $(\boldsymbol{w}_k, M_k,
+L_k)$ remains accurate---only the back-transfer to sky space degrades (and a
+dense oracle degrades equally, since
+$\operatorname{cond}(\Sigma_k^{-1})$ grows with the same ratio). The
+well-conditioned operating point is therefore a realistic per-baseline noise
+level with likelihood and prior precisions comparable---the regime of the
+\texttt{--sigma-v} values used by \texttt{disko\_bayes} (e.g.\
+$\sigma_v=0.15$)---and the exactness tests use such well-conditioned
+likelihoods for all covariance comparisons.
 
 \section{Discretizations of the sky}
 \label{sec:fov}
@@ -651,7 +737,9 @@ $V_1$), what it cannot measure (the null space $V_2$), and provides a natural
 basis in which the operator is diagonal. On this basis the package builds
 closed-form images, Tikhonov and sparse regularizations, exactly
 data-consistent null-space-completed images, and full Bayesian inference with
-analytic sequential updates. For problems too large for an explicit SVD, the
+analytic sequential updates whose uncertainty shrinks monotonically and
+exactly on the subspace the data informs. For problems too large for an
+explicit SVD, the
 same operator is exposed matrix-free to LSQR/LSMR/FISTA. The result is an
 imaging pipeline whose properties---resolution, information content,
 regularization, uncertainty---are all read directly off the operator rather
@@ -707,6 +795,10 @@ PyLops: A linear-operator library for Python,
 \bibitem{disko}
 T.~Molteno et al., DiSkO: Discrete Sky Operator synthesis imaging,
 \url{https://github.com/tmolteno/disko}.
+
+\bibitem{tartball}
+T.~Molteno et al., tartball: simulation of TART radio telescope data,
+\url{https://github.com/tart-telescope/tartball}.
 
 \end{thebibliography}
 
