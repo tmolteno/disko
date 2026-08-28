@@ -404,6 +404,10 @@ def sequential_inference(
     if prior.is_scaled_identity():
         s0 = np.sqrt(prior.sigma()[0, 0])
         state = SequentialInfoState(np.asarray(prior.mu), s0)
+        # The information form keeps only mu0 and s0; the prior's n_s x n_s
+        # covariance (GBs for large maps) is dead weight here. Drop our
+        # reference before the per-turn SVDs begin.
+        del prior
         final = None
         for i, disko in enumerate(disko_list):
             to = TelescopeOperator(disko, sphere, max_cond=max_cond)
@@ -411,6 +415,9 @@ def sequential_inference(
             sigma_vis = _visibility_covariance(disko, sigma_v)
             precision = MultivariateGaussian.sp_inv(sigma_vis)
             state.add_turn(to, y, precision)
+            # Release this turn's operator (its SVD Vh is the largest
+            # allocation of the turn) before the next turn's SVD starts.
+            del to, y, precision
             view = InfoPosterior(state)
             if on_step is not None:
                 on_step(i, view)
@@ -474,7 +481,6 @@ def run_sequential(ARGS, sphere, n_steps):
     sphere.set_info(
         timestamp=turns[0].timestamp, lon=lon, lat=lat, height=height
     )
-    prior = create_prior(turns[0].vis_arr, sphere, ARGS.prior)
 
     def on_step(step, posterior):
         disko = turns[step]
@@ -494,7 +500,10 @@ def run_sequential(ARGS, sphere, n_steps):
     final = sequential_inference(
         turns,
         sphere,
-        prior=prior,
+        # create_prior is passed inline (no other reference): the
+        # information form releases its n_s x n_s covariance once the
+        # chain has extracted mu0 and s0.
+        prior=create_prior(turns[0].vis_arr, sphere, ARGS.prior),
         sigma_v=ARGS.sigma_v,
         max_cond=ARGS.max_cond,
         on_step=on_step,
