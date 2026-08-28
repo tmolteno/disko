@@ -489,7 +489,7 @@ class TestSequentialCli(unittest.TestCase):
             calls = []
 
             def fake_disko_from_ms(*args, **kwargs):
-                calls.append(kwargs)
+                calls.append((args, kwargs))
                 return turns[len(calls) - 1]
 
             with mock.patch(
@@ -497,17 +497,22 @@ class TestSequentialCli(unittest.TestCase):
             ), mock.patch(
                 "disko.bayes_cli.get_array_location",
                 return_value={"lon": 0.0, "lat": -40.0, "height": 10.0},
+            ), mock.patch(
+                "disko.bayes_cli.good_visibility_count", return_value=12
             ):
                 final = run_sequential(ARGS, sphere, 3)
 
             # one read of nvis new visibilities per turn
             self.assertEqual(len(calls), 3)
-            self.assertEqual(len(calls[0]["exclude"]), 0)
+            for args, _kwargs in calls:
+                self.assertEqual(args[2], 4)
+            self.assertEqual(len(calls[0][1]["exclude"]), 0)
             self.assertEqual(
-                list(calls[1]["exclude"]), list(np.unique(np.asarray(turns[0].indices)))
+                list(calls[1][1]["exclude"]),
+                list(np.unique(np.asarray(turns[0].indices))),
             )
             self.assertEqual(
-                list(calls[2]["exclude"]),
+                list(calls[2][1]["exclude"]),
                 list(
                     np.unique(
                         np.concatenate(
@@ -529,6 +534,118 @@ class TestSequentialCli(unittest.TestCase):
             # covariance available
             self.assertEqual(final.mu.shape, (sphere.npix,))
             self.assertEqual(final.sigma().shape, (sphere.npix, sphere.npix))
+
+    def test_run_sequential_splits_pool_when_nvis_exceeds_it(self):
+        # When n_steps * nvis > pool, each turn's draw is reduced to
+        # pool // n_steps so every step still consumes NEW visibilities,
+        # and a warning tells the user what happened.
+        parser = build_parser()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ARGS = parser.parse_args(
+                [
+                    "--ms",
+                    "fake.ms",
+                    "--sequential",
+                    "3",
+                    "--nvis",
+                    "4",
+                    "--healpix",
+                    "--nside",
+                    "2",
+                    "--posterior",
+                    os.path.join(tmpdir, "post.h5"),
+                    "--sigma-v",
+                    "1e-6",
+                ]
+            )
+            from disko.parser_support import sphere_from_args
+
+            sphere = sphere_from_args(ARGS)
+
+            ant_pos = np.random.uniform(-2.0, 2.0, (4, 3))
+            base = DiSkO.from_ant_pos(ant_pos, frequency=1.5e9)
+            sky = np.random.uniform(0.0, 1.0, sphere.npix)
+            full_vis = base.get_harmonics(sphere) @ sky
+            pairs = _conjugate_pairs(4)
+            turns = [
+                _make_turn(
+                    base,
+                    sphere,
+                    full_vis,
+                    list(pairs[0]) + list(pairs[1]),
+                    1.5e9,
+                    datetime.datetime(2026, 1, i + 1, tzinfo=datetime.timezone.utc),
+                )
+                for i in range(3)
+            ]
+
+            calls = []
+
+            def fake_disko_from_ms(*args, **kwargs):
+                calls.append((args, kwargs))
+                return turns[len(calls) - 1]
+
+            with mock.patch(
+                "disko.bayes_cli.disko_from_ms", side_effect=fake_disko_from_ms
+            ), mock.patch(
+                "disko.bayes_cli.get_array_location",
+                return_value={"lon": 0.0, "lat": -40.0, "height": 10.0},
+            ), mock.patch(
+                "disko.bayes_cli.good_visibility_count", return_value=6
+            ), self.assertLogs("disko.bayes_cli", level="WARNING") as cm:
+                run_sequential(ARGS, sphere, 3)
+
+            # pool 6 < 3 turns x 4 nvis -> 6 // 3 = 2 new visibilities per turn
+            self.assertEqual(len(calls), 3)
+            for args, _kwargs in calls:
+                self.assertEqual(args[2], 2)
+            self.assertTrue(
+                any("exceeds the pool" in m for m in cm.output),
+                "expected a warning about the pool split",
+            )
+
+    def test_run_sequential_warns_when_pool_cannot_be_split(self):
+        # A pool smaller than the turn count cannot give every turn new
+        # data; the code still runs (reusing rows) but warns about it.
+        parser = build_parser()
+        ARGS = parser.parse_args(
+            [
+                "--ms", "fake.ms", "--sequential", "3", "--nvis", "4",
+                "--healpix", "--nside", "2", "--sigma-v", "1e-6",
+            ]
+        )
+        from disko.parser_support import sphere_from_args
+
+        sphere = sphere_from_args(ARGS)
+        ant_pos = np.random.uniform(-2.0, 2.0, (4, 3))
+        base = DiSkO.from_ant_pos(ant_pos, frequency=1.5e9)
+        sky = np.random.uniform(0.0, 1.0, sphere.npix)
+        full_vis = base.get_harmonics(sphere) @ sky
+        turn = _make_turn(base, sphere, full_vis, [0, 1, 2, 3], 1.5e9)
+
+        calls = []
+
+        def fake_disko_from_ms(*args, **kwargs):
+            calls.append((args, kwargs))
+            return turn
+
+        with mock.patch(
+            "disko.bayes_cli.disko_from_ms", side_effect=fake_disko_from_ms
+        ), mock.patch(
+            "disko.bayes_cli.get_array_location",
+            return_value={"lon": 0.0, "lat": -40.0, "height": 10.0},
+        ), mock.patch(
+            "disko.bayes_cli.good_visibility_count", return_value=2
+        ), self.assertLogs("disko.bayes_cli", level="WARNING") as cm:
+            run_sequential(ARGS, sphere, 3)
+
+        self.assertEqual(len(calls), 3)
+        for args, _kwargs in calls:
+            self.assertEqual(args[2], 1)  # max(1, 2 // 3)
+        self.assertTrue(
+            any("too small" in m for m in cm.output),
+            "expected a warning about turns reusing visibilities",
+        )
 
     def test_input_validation(self):
         parser = build_parser()

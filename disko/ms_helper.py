@@ -18,6 +18,17 @@ from .rime import rayleigh_criterion, resolution_min_baseline
 logger = logging.getLogger("disko")
 
 
+def _good_indices(uvw, flags, frequency, res_deg):
+    """Rows of a FIELD_ID query whose visibilities are unflagged and within
+    the resolution-limited baseline length (the pool ``--sequential`` draws
+    its per-turn samples from).  Shared by ``casa_read_ms`` and
+    ``good_visibility_count`` so the two can never disagree about which rows
+    are usable."""
+    bl = np.sqrt(uvw[:, 0] ** 2 + uvw[:, 1] ** 2 + uvw[:, 2] ** 2)
+    bl_max = resolution_min_baseline(max_freq=frequency, resolution_deg=res_deg)
+    return np.array(np.where((flags == 0) & (bl < bl_max))).T.reshape((-1,))
+
+
 def get_array_location(ms_file: str):
     ms = table(ms_file)
     ant = table(ms.getkeyword("ANTENNA"))
@@ -140,7 +151,7 @@ def casa_read_ms(
     res_limit = rayleigh_criterion(max_freq=np.max(frequency), baseline_lengths=bl)
     logger.debug("Nyquist resolution: {:g} arcmin".format(res_limit * 60.0))
 
-    good_data = np.array(np.where((flags == 0) & (bl < bl_max))).T.reshape((-1,))
+    good_data = _good_indices(uvw, flags, frequency, res_deg)
 
     logger.debug("Maximum UVW: {}".format(limit_uvw))
     logger.debug("Minimum UVW: {}".format(np.min(np.abs(uvw), 0)))
@@ -157,7 +168,18 @@ def casa_read_ms(
 
     n_max = len(good_data)
 
+    if n_max == 0:
+        ms.close()
+        raise RuntimeError(
+            "No unflagged, resolution-limited visibilities in field {} for "
+            "channel {} (res={} deg)".format(field_id, np.array(channel)[()], res_deg)
+        )
+
     if n_max <= num_vis:
+        logger.warning(
+            "Only {} unflagged, resolution-limited visibilities in field {}; "
+            "returning all of them (requested {})".format(n_max, field_id, num_vis)
+        )
         indices = good_data
     else:
         if rng is None:
@@ -227,3 +249,43 @@ def casa_read_ms(
 
     # return ant_p, ant1, ant2, u_arr, v_arr, w_arr, frequencies, raw_vis, corrected_vis, seconds, rms_arr
     return u_arr, v_arr, w_arr, frequency, raw_vis, hdr, timestamp, rms_arr, indices
+
+
+def good_visibility_count(
+    ms_file: str,
+    angular_resolution: float,
+    channel: int = 0,
+    field_id: int = 0,
+    pol: int = 0,
+    ms_column: str = "DATA",
+):
+    """How many unflagged, resolution-limited visibilities exist for the given
+    field -- the pool that ``--sequential`` draws its per-turn samples from.
+
+    Uses exactly the same selection as ``casa_read_ms`` (see
+    ``_good_indices``) but only counts, so it is cheap enough to call once
+    up front to plan a sequential run.  Returns an int.
+    """
+    res_deg = angular_resolution  # caller passes degrees from Resolution.degrees()
+    ms = table(ms_file, ack=False, readonly=True, lockoptions="auto")
+    try:
+        channel = np.array(channel)
+        subt = ms.query(
+            f"FIELD_ID=={field_id}",
+            sortlist="ARRAY_ID",
+            columns=f"TIME, {ms_column}, UVW, FLAG",
+        )
+        try:
+            flags = subt.getcol("FLAG")[:, :, pol][:, channel]
+            uvw = subt.getcol("UVW")
+            spw = table(ms.getkeyword("SPECTRAL_WINDOW"), ack=False)
+            try:
+                frequencies = spw.getcol("CHAN_FREQ")[0]
+                frequency = frequencies[channel]
+            finally:
+                spw.close()
+            return int(len(_good_indices(uvw, flags, frequency, res_deg)))
+        finally:
+            subt.close()
+    finally:
+        ms.close()

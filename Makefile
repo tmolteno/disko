@@ -122,6 +122,8 @@ profile:
 	uv run python prof.py
 
 sequential:
+	# Field 0 has 276 good visibilities; run_sequential splits that pool across the
+	# 10 turns (27 visibilities per turn, with a warning) so each step sees NEW data.
 	rm -f disko.log
 	uv run disko_bayes --healpix --fov 155deg --res 1deg \
 		--ms test_data/test.ms --sequential 10 \

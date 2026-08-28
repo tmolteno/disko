@@ -21,7 +21,7 @@ from tart_tools import api_imaging
 
 from .cli import disko_from_ms
 from .disko import DiSkO, vis_to_real
-from .ms_helper import get_array_location
+from .ms_helper import get_array_location, good_visibility_count
 from .multivariate_gaussian import MultivariateGaussian
 from .parser_support import sphere_args_parser, sphere_from_args
 from .telescope_operator import MAX_COND, TelescopeOperator
@@ -452,11 +452,39 @@ def run_sequential(ARGS, sphere, n_steps):
     covariance are written at every step: ``*_step<NNN>_mu`` / ``_var`` /
     ``_pcf`` images, and a full posterior HDF5 per step when ``--posterior``
     is given.
+
+    If the requested ``nvis`` cannot be met for every turn (``n_steps *
+    nvis`` exceeds the field's pool of unflagged, resolution-limited
+    visibilities) the per-turn draw is reduced to ``pool // n_steps`` so
+    that every step still consumes genuinely NEW visibilities; the
+    reduction is logged as a warning.
     """
     json_info = get_array_location(ARGS.ms)
     lat = json_info["lat"]
     lon = json_info["lon"]
     height = json_info["height"]
+
+    pool = good_visibility_count(
+        ARGS.ms,
+        sphere.min_res().degrees(),
+        channel=ARGS.channel,
+        field_id=ARGS.field,
+    )
+    nvis_turn = ARGS.nvis
+    if pool < n_steps * ARGS.nvis:
+        nvis_turn = max(1, pool // n_steps)
+        logger.warning(
+            "Field {} has only {} unflagged, resolution-limited visibilities; "
+            "{} turns x --nvis {} exceeds the pool. Drawing {} visibilities "
+            "per turn so every step consumes new data.".format(
+                ARGS.field, pool, n_steps, ARGS.nvis, nvis_turn
+            )
+        )
+        if nvis_turn * n_steps > pool:
+            logger.warning(
+                "The pool is too small for {} disjoint turns; later turns "
+                "will reuse already-seen visibilities.".format(n_steps)
+            )
 
     rng = np.random.default_rng()
     used = np.zeros(0, dtype=int)
@@ -465,7 +493,7 @@ def run_sequential(ARGS, sphere, n_steps):
         disko = disko_from_ms(
             ARGS.ms,
             "DATA",
-            ARGS.nvis,
+            nvis_turn,
             res=sphere.min_res(),
             channel=ARGS.channel,
             field_id=ARGS.field,
