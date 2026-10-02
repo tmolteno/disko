@@ -21,7 +21,11 @@ from tart_tools import api_imaging
 
 from .cli import disko_from_ms
 from .disko import DiSkO, vis_to_real
-from .ms_helper import get_array_location, good_visibility_count
+from .ms_helper import (
+    get_array_location,
+    good_visibility_count,
+    phase_center_from_hdr,
+)
 from .multivariate_gaussian import MultivariateGaussian
 from .parser_support import sphere_args_parser, sphere_from_args
 from .telescope_operator import MAX_COND, TelescopeOperator
@@ -507,7 +511,11 @@ def run_sequential(ARGS, sphere, n_steps):
             used = np.unique(np.concatenate((used, np.asarray(disko.indices))))
 
     sphere.set_info(
-        timestamp=turns[0].timestamp, lon=lon, lat=lat, height=height
+        timestamp=turns[0].timestamp, lon=lon, lat=lat, height=height,
+        phase_center=phase_center_from_hdr(
+            getattr(turns[0], "info", None),
+            field_info=getattr(turns[0], "field_info", None),
+        ),
     )
 
     def on_step(step, posterior):
@@ -659,7 +667,13 @@ def handle_bayes(ARGS):
         lat = json_info["lat"]
         lon = json_info["lon"]
         height = json_info["height"]
-        sphere.set_info(timestamp=timestamp, lon=lon, lat=lat, height=height)
+        sphere.set_info(
+            timestamp=timestamp, lon=lon, lat=lat, height=height,
+            phase_center=phase_center_from_hdr(
+                getattr(disko, "info", None),
+                field_info=getattr(disko, "field_info", None),
+            ),
+        )
 
         prior = create_prior(disko.vis_arr, sphere, ARGS.prior)
 

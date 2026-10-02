@@ -17,6 +17,7 @@ import healpy as hp
 from tart.util import utc
 
 from astropy.coordinates import EarthLocation
+from . import coords
 from .resolution import Resolution
 
 logger = logging.getLogger(__name__)
@@ -231,15 +232,80 @@ class FoV(object):
         self.pixmax = None
         self.pixel_areas = None
         self.fov = None
+        # The celestial pointing (coords.PhaseCenter) is first-class data:
+        # None until set_info() is given one (e.g. from an MS PHASE_DIR), in
+        # which case the phase centre is derived from the zenith (#14).
+        self.phase_center = None
         self.set_info(timestamp=datetime.datetime.now(datetime.timezone.utc),
                       lon=0, lat=0, height=0)
 
-    def set_info(self, timestamp, lon, lat, height):
+    def set_info(self, timestamp, lon, lat, height, phase_center=None):
         '''
-            Set the timestamp and geographic information about this sphere
+            Set the timestamp and geographic information about this sphere.
+
+            phase_center: optional coords.PhaseCenter giving this sphere's
+            celestial pointing (e.g. from_phase_dir() on an MS PHASE_DIR
+            read). Its obstime and geolocation are filled in from these
+            arguments when it does not carry them, so the pointing always
+            applies at this sphere's site and time. When omitted, any
+            previously set phase centre is left alone; with none set at
+            all the phase centre falls back to the zenith derivation in
+            phase_center_radec().
         '''
         self.timestamp = utc.to_utc(timestamp)
         self.geolocation = GeoLocation(lon=lon, lat=lat, height=height)
+        if phase_center is not None:
+            if phase_center.obstime is None:
+                phase_center.obstime = coords.as_datetime(self.timestamp)
+            if phase_center.geolocation is None:
+                phase_center.geolocation = self.geolocation
+            self.phase_center = phase_center
+
+    def site_obstime(self):
+        '''
+            (lon_deg, lat_deg, height_m, obstime) of this sphere: the
+            geolocation set by set_info() (a GeoLocation wrapper) or by
+            fov.from_hdf() (an astropy EarthLocation). Both expose
+            lon/lat/height.
+        '''
+        lon, lat, height = coords.site_from_geolocation(
+            getattr(self, "geolocation", None)
+        )
+        return lon, lat, height, getattr(self, "timestamp", None)
+
+    def as_elaz(self, x, y, frame="elaz"):
+        '''
+            Interpret (x, y) as coordinates in `frame` and return the
+            equivalent (el, az) in radians for this sphere.
+
+            frame="elaz" (the default) means x, y are elevation and azimuth
+            in radians in the geolocated frame. frame="icrs" means x, y are
+            right ascension and declination in degrees, converted using
+            this sphere's site and time — so a celestial source can be
+            placed on a phase-steered grid.
+        '''
+        if frame == "elaz":
+            return x, y
+        if frame in ("icrs", "celestial"):
+            lon, lat, height, obstime = self.site_obstime()
+            return coords.radec_to_elaz(
+                x, y, lon, lat, height=height, obstime=obstime
+            )
+        raise ValueError(
+            f"Unknown coordinate frame {frame!r} (expected 'elaz' or 'icrs')"
+        )
+
+    def source_elaz(self, source):
+        '''
+            (el_r, az_r) of a source placed on this sphere. Sources that
+            carry elaz (e.g. the TART catalog objects) are used as they
+            are; sources given in celestial coordinates (ra/dec degrees)
+            are converted with this sphere's site and time.
+        '''
+        lon, lat, height, obstime = self.site_obstime()
+        return coords.source_elaz_rad(
+            source, lon, lat, height=height, obstime=obstime
+        )
 
     def callback(self, x, i):
         fname = f"callback_{i:05d}.hdf"
@@ -252,7 +318,7 @@ class FoV(object):
         ret.pixel_areas = np.array(self.pixel_areas)
         return ret
 
-    def index_of(self, el, az):
+    def index_of(self, el, az, frame="elaz"):
         raise RuntimeError("index_of() not implemented for this sphere")
 
     def min_res(self):
@@ -302,6 +368,12 @@ class FoV(object):
         info_json['timestamp'] = self.timestamp.isoformat()
         info_json['geolocation'] = self.geolocation.to_json()
         info_json['center'] = 2
+        # Optional (issue #10, Phase 1): only written when a phase centre is
+        # stored, and readers ignore keys they do not know, so files written
+        # by older versions still load (and files written here still load in
+        # older code paths).
+        if getattr(self, "phase_center", None) is not None:
+            info_json['phase_center'] = self.phase_center.to_dict()
 
         conf_dset = h5f.create_dataset('information', (1,), dtype=dt)
         conf_dset[0] = json.dumps(info_json)
@@ -340,49 +412,40 @@ class FoV(object):
             Right ascension and declination (degrees, ICRS) of this sphere's
             phase center.
 
-            to_fits() grids the image on direction cosines (l, m) about
-            l=0, m=0, which is the direction straight up in the geolocated
-            frame of the sphere (the phase center, see the class docstring).
-            So the phase center is the zenith as seen from this sphere's
-            geolocation at its timestamp, and its celestial coordinates come
-            from exactly those two pieces of sphere data.
+            The stored phase center wins: when the sphere was given one
+            (issue #10 Phase 1 — e.g. read from an MS PHASE_DIR via
+            set_info(..., phase_center=...)), its RA/Dec is returned.
+
+            Otherwise the phase center is derived: to_fits() grids the
+            image on direction cosines (l, m) about l=0, m=0, which is the
+            direction straight up in the geolocated frame of the sphere
+            (the phase center, see the class docstring). So the phase
+            center is the zenith as seen from this sphere's geolocation at
+            its timestamp, and its celestial coordinates come from exactly
+            those two pieces of sphere data (the #14 fix).
         '''
-        import astropy.units as u
-        from astropy.coordinates import AltAz, EarthLocation, SkyCoord
-        from astropy.time import Time
-        from astropy.utils import iers
+        pc = getattr(self, "phase_center", None)
+        if pc is not None:
+            return pc.ra, pc.dec
+        lon, lat, height, obstime = self.site_obstime()
+        return coords.zenith_radec(lon, lat, height=height, obstime=obstime)
 
-        timestamp = getattr(self, "timestamp", None)
-        if timestamp is None:
-            timestamp = datetime.datetime.now(datetime.timezone.utc)
-
-        # set_info() stores a GeoLocation wrapper, fov.from_hdf() stores the
-        # astropy EarthLocation itself. Both expose lon/lat with units.
-        geo = getattr(self, "geolocation", None)
-        if geo is not None and hasattr(geo, "loc"):
-            geo = geo.loc
-        lon = geo.lon.to_value("deg") if geo is not None else 0.0
-        lat = geo.lat.to_value("deg") if geo is not None else 0.0
-
-        frame = AltAz(
-            obstime=Time(timestamp),
-            location=EarthLocation.from_geodetic(lon=lon * u.deg, lat=lat * u.deg),
+    def get_phase_center(self):
+        '''
+            This sphere's phase center as a coords.PhaseCenter, with its
+            provenance: the stored one when there is one ("ms_phase_dir"),
+            else a zenith-derived one ("zenith") built from this sphere's
+            geolocation and timestamp.
+        '''
+        pc = getattr(self, "phase_center", None)
+        if pc is not None:
+            return pc
+        lon, lat, height, obstime = self.site_obstime()
+        ra, dec = coords.zenith_radec(lon, lat, height=height, obstime=obstime)
+        return coords.PhaseCenter.from_zenith(
+            ra, dec, obstime=obstime,
+            geolocation=getattr(self, "geolocation", None),
         )
-
-        # Earth orientation only moves this by a small fraction of a pixel, and
-        # the IERS tables may not be downloadable (offline), so don't let a
-        # stale table stop the FITS file being written.
-        saved = (iers.conf.auto_download, iers.conf.auto_max_age)
-        iers.conf.auto_download = False
-        iers.conf.auto_max_age = None
-        try:
-            zenith = SkyCoord(
-                alt=90 * u.deg, az=0 * u.deg, frame=frame
-            ).transform_to("icrs")
-        finally:
-            iers.conf.auto_download, iers.conf.auto_max_age = saved
-
-        return zenith.ra.deg, zenith.dec.deg
 
     def to_fits(self, fname, title=None, info={}):
         from astropy.io import fits

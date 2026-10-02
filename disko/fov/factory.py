@@ -12,6 +12,7 @@ from tart.util import utc
 from ..healpix_sphere import HealpixFoV, HealpixSubFoV
 from ..sphere_mesh import AdaptiveMeshFoV
 from ..sphere import GeoLocation
+from ..coords import PhaseCenter
 
 logger = logging.getLogger(__name__)
 
@@ -42,5 +43,19 @@ def from_hdf(filename):
         ret.timestamp = timestamp
         ret.geolocation = geolocation
         ret.centre = centre
+
+        # Optional (issue #10, Phase 1): files written before the phase
+        # centre became first-class data have no 'phase_center' key and
+        # keep loading with the zenith-derived fallback; readers of older
+        # versions ignore this key, so files written here still load there.
+        phase_center_json = info_json.get('phase_center')
+        if phase_center_json is not None:
+            ret.phase_center = PhaseCenter.from_dict(phase_center_json)
+            # Fill anything the file did not carry from the file's own
+            # timestamp/location, the same way set_info() would.
+            if ret.phase_center.obstime is None:
+                ret.phase_center.obstime = timestamp
+            if ret.phase_center.geolocation is None:
+                ret.phase_center.geolocation = geolocation
 
     return ret

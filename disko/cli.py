@@ -21,7 +21,7 @@ from tart.imaging import elaz
 from .disko import DiSkO
 from .parser_support import sphere_from_args, sphere_args_parser
 
-from .ms_helper import casa_read_ms, get_array_location
+from .ms_helper import casa_read_ms, get_array_location, phase_center_from_hdr
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,10 @@ def get_source_list(source_json, el_limit, jy_limit):
 def disko_from_ms(
     ms, column, num_vis, res, channel=0, field_id=0, ddid=0, rng=None, exclude=None
 ):
-    u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices = casa_read_ms(
+    (
+        u_arr, v_arr, w_arr, frequency, cv_vis, hdr, tstamp, rms, indices,
+        field_info,
+    ) = casa_read_ms(
         ms_file=ms,
         num_vis=num_vis,
         ms_column=column,
@@ -64,6 +67,9 @@ def disko_from_ms(
     ret.rms = full_rms
     ret.info = hdr
     ret.indices = indices
+    # Which MS field these visibilities (and hdr's PHASE_DIR) belong to;
+    # phase centres are per-field, issue #10 Phase 1. Only MS input has it.
+    ret.field_info = field_info
 
     logger.info(f"Visibilities: {ret.vis_arr.shape}")
     logger.debug(f"u,v,w: {ret.u_arr.shape}")
@@ -322,7 +328,20 @@ def main():
     else:
         parser.error("Either --file or --ms must be specified.")
 
-    sphere.set_info(timestamp=timestamp, lon=lon, lat=lat, height=height)
+    # For MS input this hands the FIELD PHASE_DIR (read by casa_read_ms) to
+    # the sphere as its phase centre (issue #10, Phase 1); for TART .h5
+    # input disko.info is empty, so the sphere keeps deriving it from the
+    # zenith.
+    sphere.set_info(
+        timestamp=timestamp,
+        lon=lon,
+        lat=lat,
+        height=height,
+        phase_center=phase_center_from_hdr(
+            getattr(disko, "info", None),
+            field_info=getattr(disko, "field_info", None),
+        ),
+    )
 
     if not ARGS.show_sources:
         src_list = None

@@ -14,8 +14,41 @@ from astropy.coordinates import EarthLocation
 from casacore.tables import table
 
 from .rime import rayleigh_criterion, resolution_min_baseline
+from .coords import PhaseCenter
 
 logger = logging.getLogger("disko")
+
+
+def phase_center_from_hdr(hdr, field_info=None):
+    """
+    The phase centre of the measurement set whose header `casa_read_ms`
+    just returned: `hdr` carries the FIELD PHASE_DIR (degrees) as
+    CRVAL1/CRVAL2 (see where the header is built below), so this hands the
+    celestial pointing straight to FoV.set_info(phase_center=...).
+
+    A PHASE_DIR belongs to one field of the MS, not to "the" MS (an MS can
+    hold many fields with different pointings), so the `field_info` dict
+    that `casa_read_ms` returns alongside the header (field_id, n_fields,
+    field_name) is recorded on the phase centre as its provenance detail.
+
+    Returns None when the header carries no world coordinate (e.g. TART
+    .h5 input through DiSkO.from_cal_vis, whose info dict is empty), which
+    leaves the FoV free to fall back to its zenith-derived phase centre.
+    """
+    if not hdr:
+        return None
+    ra = hdr.get("CRVAL1")
+    dec = hdr.get("CRVAL2")
+    if ra is None or dec is None:
+        return None
+    field_info = field_info or {}
+    # MS PHASE_DIR is an ICRS (J2000) direction; this is exactly what
+    # to_fits() already writes into the FITS header for MS input.
+    return PhaseCenter.from_phase_dir(
+        ra, dec,
+        field_id=field_info.get("field_id"),
+        n_fields=field_info.get("n_fields"),
+    )
 
 
 def _good_indices(uvw, flags, frequency, res_deg):
@@ -85,6 +118,14 @@ def casa_read_ms(
     phase_dir = fields.getcol("PHASE_DIR")[field_id][0]
     name = fields.getcol("NAME")[field_id]
     field_time = fields.getcol("TIME")[field_id]
+    # Which field this read is for (and how many the MS holds): PHASE_DIR is
+    # per-field, so the returned phase centre needs to say which one it is
+    # (issue #10, Phase 1). Recorded in the FoV's phase-centre provenance.
+    field_info = {
+        "field_id": int(field_id),
+        "n_fields": int(fields.nrows()),
+        "field_name": name.decode() if isinstance(name, bytes) else str(name),
+    }
     logger.debug(
         f"Field {name} (index {field_id}): Phase Dir {np.degrees(phase_dir)}, t={field_time}"
     )
@@ -248,7 +289,12 @@ def casa_read_ms(
     }
 
     # return ant_p, ant1, ant2, u_arr, v_arr, w_arr, frequencies, raw_vis, corrected_vis, seconds, rms_arr
-    return u_arr, v_arr, w_arr, frequency, raw_vis, hdr, timestamp, rms_arr, indices
+    # field_info says which of the MS's fields this read (and therefore the
+    # PHASE_DIR in hdr) belongs to — phase centres are per-field, issue #10.
+    return (
+        u_arr, v_arr, w_arr, frequency, raw_vis, hdr, timestamp, rms_arr,
+        indices, field_info,
+    )
 
 
 def good_visibility_count(

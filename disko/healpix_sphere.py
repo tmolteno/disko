@@ -121,7 +121,19 @@ class HealpixFoV(FoV):
     def get_lmn(self):
         return self.l, self.m, self.n
 
-    def index_of(self, el, az):
+    def index_of(self, el, az, frame="elaz"):
+        '''
+            Pixel index of a direction.
+
+            frame="elaz" (the default): el/az are elevation/azimuth in
+            radians in the geolocated frame, exactly as before.
+
+            frame="icrs": el/az carry right ascension/declination in
+            degrees, converted with this sphere's site and time — so a
+            source given in celestial coordinates lands on the right pixel
+            of a phase-steered grid (issue #10, Phase 1).
+        '''
+        el, az = self.as_elaz(el, az, frame)
         theta, phi = elaz2hp(el, az)
         return hp.ang2pix(self.nside, theta, phi)
 
@@ -435,17 +447,21 @@ class HealpixFoV(FoV):
                 fill="none", stroke="red", stroke_width="{}".format(line_size)
             )
             for s in src_list:
-                if s.el_r > np.radians(10.0):
-                    elaz = ElAz(s.el_r, s.az_r)
+                # Sources may be given in elaz or in celestial coordinates;
+                # source_elaz() converts the latter with this sphere's site
+                # and time (issue #10, Phase 1).
+                el_r, az_r = self.source_elaz(s)
+                if el_r > np.radians(10.0):
+                    elaz = ElAz(el_r, az_r)
                     (x, y) = pc.from_elaz(elaz)
 
-                    radial_size = angular_size * np.sin(s.el_r)
+                    radial_size = angular_size * np.sin(el_r)
 
                     radiusx = pc.from_d(angular_size)
                     radiusy = pc.from_d(radial_size)
                     # Project the source circle onto an ellipse.
                     circ = dwg.ellipse(center=(x, y), r=(radiusx, radiusy))
-                    circ.rotate(-np.degrees(s.az_r), center=(x, y))
+                    circ.rotate(-np.degrees(az_r), center=(x, y))
 
                     source_circles.add(circ)
             dwg.add(source_circles)
@@ -467,7 +483,8 @@ class HealpixFoV(FoV):
 
         if src_list is not None:
             for s in src_list:
-                self.plot_x(plt, s.el_r, s.az_r)
+                el_r, az_r = self.source_elaz(s)
+                self.plot_x(plt, el_r, az_r)
 
 
 def my_query_disk(nside, x0, radius):
@@ -603,4 +620,5 @@ class HealpixSubFoV(HealpixFoV):
 
         if src_list is not None:
             for s in src_list:
-                self.plot_x(plt, s.el_r, s.az_r)
+                el_r, az_r = self.source_elaz(s)
+                self.plot_x(plt, el_r, az_r)
