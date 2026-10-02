@@ -3,6 +3,7 @@
 #
 
 import logging
+import os
 from argparse import ArgumentParser
 
 import healpy as hp
@@ -14,6 +15,71 @@ from .healpix_sphere import HealpixFoV
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)
+
+
+def output_path(out_dir, ending, image_title):
+    '''
+        Path of an output image "<out_dir>/<image_title>.<ending>",
+        creating the output directory on the way (issue #10, Phase 2:
+        this was disko/cli.py's local path() helper).
+    '''
+    os.makedirs(out_dir, exist_ok=True)
+    fname = "{}.{}".format(image_title, ending)
+    return os.path.join(out_dir, fname)
+
+
+def save_images(fov, out_dir, image_title, source_list=None, info=None,
+                vtk=False, fits=False, svg=False, png=False, pdf=False,
+                display=False):
+    '''
+        Write a FoV's images in the requested formats, titled
+        <image_title> inside `out_dir` (issue #10, Phase 2: the drawing
+        that used to live in disko/cli.py's save_images(), moved here so
+        every CLI shares one implementation; draw_cli.py keeps its own
+        explicit-filename flags and calls FoV.to_svg()/plot() directly).
+
+        Formats and output are byte-for-byte what the CLI produced
+        before: PNG at dpi=300 with a tight layout, PDF at dpi=600
+        (no tight layout), SVG with the grid overplotted, FITS via
+        FoV.to_fits (info = the caller's world coordinate system, which
+        wins over the derived one), VTK mesh, and an optional interactive
+        display.
+    '''
+    if vtk:
+        fov.write_mesh(output_path(out_dir, "vtk", image_title))
+
+    if fits:
+        # Save as a FITS file
+        fov.to_fits(fname=output_path(out_dir, "fits", image_title), info=info)
+
+    if svg:
+        fname = output_path(out_dir, "svg", image_title)
+        fov.to_svg(
+            fname=fname, show_grid=True, src_list=source_list, title=image_title
+        )
+        logger.info("Generating {}".format(fname))
+
+    if png:
+        fname = output_path(out_dir, "png", image_title)
+        fov.plot(plt, source_list)
+        plt.title(image_title)
+        plt.tight_layout()
+        plt.savefig(fname, dpi=300)
+        plt.close()
+        logger.info("Generating {}".format(fname))
+
+    if pdf:
+        fname = output_path(out_dir, "pdf", image_title)
+        fov.plot(plt, source_list)
+        plt.title(image_title)
+        plt.savefig(fname, dpi=600)
+        plt.close()
+        logger.info("Generating {}".format(fname))
+
+    if display:
+        fov.plot(plt, source_list)
+        plt.title(image_title)
+        plt.show()
 
 
 def mask_to_sky(mask, nside):

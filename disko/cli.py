@@ -7,7 +7,6 @@ import os
 
 if os.name == "posix" and "DISPLAY" not in os.environ:
     matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 import argparse
 import logging
@@ -19,6 +18,7 @@ from importlib.metadata import version
 from tart.imaging import elaz
 
 from .disko import DiSkO
+from .draw_sky import output_path, save_images
 from .parser_support import sphere_from_args, sphere_args_parser
 
 from .ms_helper import casa_read_ms, get_array_location, phase_center_from_hdr
@@ -414,74 +414,23 @@ def main():
 
     image_title = f"{ARGS.title}_{time_repr}"
 
-    def path(ending, image_title):
-        os.makedirs(ARGS.dir, exist_ok=True)
-        fname = "{}.{}".format(image_title, ending)
-        return os.path.join(ARGS.dir, fname)
-
     if ARGS.mesh:
         # Save as a VTK file
-        sphere.write_mesh(path("vtk", image_title))
-
-    def save_images(image_title, source_list):
-        if ARGS.VTK:
-            sphere.write_mesh(path("vtk", image_title))
-
-        if ARGS.FITS:
-            # Save as a FITS file
-            sphere.to_fits(fname=path("fits", image_title), info=disko.info)
-
-        if ARGS.SVG:
-            fname = path("svg", image_title)
-            sphere.to_svg(
-                fname=fname, show_grid=True, src_list=source_list, title=image_title
-            )
-            logger.info("Generating {}".format(fname))
-        if ARGS.PNG:
-            fname = path("png", image_title)
-            sphere.plot(plt, source_list)
-            plt.title(image_title)
-            plt.tight_layout()
-            plt.savefig(fname, dpi=300)
-            plt.close()
-            logger.info("Generating {}".format(fname))
-        if ARGS.PDF:
-            fname = path("pdf", image_title)
-            sphere.plot(plt, source_list)
-            plt.title(image_title)
-            plt.savefig(fname, dpi=600)
-            plt.close()
-            logger.info("Generating {}".format(fname))
-        if ARGS.display:
-            sphere.plot(plt, src_list)
-            plt.title(image_title)
-            plt.show()
+        sphere.write_mesh(output_path(ARGS.dir, "vtk", image_title))
 
     if ARGS.FITS or ARGS.SVG or ARGS.PNG or ARGS.PDF:
-        save_images("{}_{}".format(ARGS.title, time_repr), source_list=src_list)
-
-    # if ARGS.SVG:
-    # fname = '{}.svg'.format(image_title)
-    # fpath = os.path.join(ARGS.dir, fname)
-
-    ##sky = disko.image_lasso(disko.vis_arr, sphere, alpha=0.02, scale=False)
-    # sphere.to_svg(fname=fpath, show_grid=True, src_list=src_list, fov=ARGS.fov, title=image_title)
-    # logger.info("Generating {}".format(fname))
-    # if ARGS.PNG:
-    # sphere.plot(plt, src_list)
-    # plt.title(image_title)
-    # fname = '{}.png'.format(image_title)
-    # fpath = os.path.join(ARGS.dir, fname)
-    # plt.savefig(fpath, dpi=300)
-    # plt.close()
-    # logger.info("Generating {}".format(fname))
-    # if ARGS.PDF:
-    # sphere.plot(plt, src_list)
-    # plt.title(image_title)
-    # fname = '{}.pdf'.format(image_title)
-    # fpath = os.path.join(ARGS.dir, fname)
-    # plt.savefig(fpath, dpi=600)
-    # plt.close()
-    # logger.info("Generating {}".format(fname))
-
-    # client.close()
+        # The drawing itself lives in disko.draw_sky (issue #10, Phase 2);
+        # this CLI only collects the flags and hands them over.
+        save_images(
+            sphere,
+            ARGS.dir,
+            "{}_{}".format(ARGS.title, time_repr),
+            source_list=src_list,
+            info=disko.info,
+            vtk=ARGS.VTK,
+            fits=ARGS.FITS,
+            svg=ARGS.SVG,
+            png=ARGS.PNG,
+            pdf=ARGS.PDF,
+            display=ARGS.display,
+        )

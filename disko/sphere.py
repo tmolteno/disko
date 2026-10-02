@@ -307,6 +307,45 @@ class FoV(object):
             source, lon, lat, height=height, obstime=obstime
         )
 
+    def source_lmn(self, source):
+        '''
+            (l, m, n) of a source in this sphere's drawn frame: its
+            direction cosines about this sphere's phase centre (ICRS).
+
+            The image (and its FITS WCS) is centred on the phase centre —
+            l = m = 0 at the centre pixel, CRVAL = the phase centre — so
+            a source's counterpart appears on the image at its l, m about
+            THAT direction, not at its raw el/az, which would place
+            markers as if the grid were zenith-centred and make a
+            phase-steered MS overplot wrong (issue #7, issue #10 Phase 2).
+
+            Sources in el/az are first converted to celestial at this
+            sphere's site and time (coords.source_radec).
+        '''
+        lon, lat, height, obstime = self.site_obstime()
+        ra, dec = coords.source_radec(
+            source, lon, lat, height=height, obstime=obstime
+        )
+        return coords.radec_to_lmn(ra, dec, self.get_phase_center())
+
+    def source_draw_elaz(self, source):
+        '''
+            (el_r, az_r) at which to draw a source marker on this sphere
+            (issue #7, issue #10 Phase 2): the source's celestial
+            direction expressed as direction cosines about this sphere's
+            phase centre (source_lmn), then mapped back into the
+            geolocated decomposition the grid itself is drawn with
+            (coords.lmn_to_elaz, the inverse of elaz2lmn).
+
+            The grid frame and the marker frame therefore differ only by
+            the pole-angle rotation between elaz2lmn's geolocated frame
+            and coords.radec_to_lmn's ICRS frame — the known bound
+            documented in the Phase 2 test (that rotation is Phase 4's to
+            fix, with CDELT).
+        '''
+        l, m, n = self.source_lmn(source)
+        return coords.lmn_to_elaz(l, m, n)
+
     def callback(self, x, i):
         fname = f"callback_{i:05d}.hdf"
         self.set_visible_pixels(x)

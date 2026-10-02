@@ -223,6 +223,52 @@ def lmn_to_radec(l, m, phase_center):  # noqa: E741
     return np.degrees(ra) % 360.0, np.degrees(dec)
 
 
+def lmn_to_elaz(l, m, n):  # noqa: E741
+    '''
+        The geolocated (el_r, az_r) whose direction cosines — in the sense
+        of :func:`disko.sphere.elaz2lmn` — are (l, m, n): the exact
+        inverse of elaz2lmn (el = asin(n), az = atan2(l, m), valid for the
+        visible hemisphere |el| <= pi/2).
+
+        This is how a direction computed in the celestial frame (see
+        :func:`radec_to_lmn`) is drawn on the grid, whose pixel positions
+        come from the geolocated decomposition (issue #7, issue #10 Phase
+        2): marker and grid pixels then share one drawing transform.
+    '''
+    el = np.arcsin(np.clip(float(n), -1.0, 1.0))
+    az = np.arctan2(float(l), float(m))
+    return el, az
+
+
+def source_radec(source, lon, lat, height=0.0, obstime=None):
+    '''
+        ICRS (ra_deg, dec_deg) of a source placed on a FoV, in either
+        frame.
+
+        Sources that carry celestial coordinates (``ra``/``dec`` in
+        degrees) are used as they are; sources given as el/az
+        (``el_r``/``az_r``, e.g. the TART catalog objects) are converted
+        with this site and time — the inverse of
+        :func:`source_elaz_rad`, so a source can be evaluated in the
+        celestial frame where the overplot lives (issue #7, issue #10
+        Phase 2: "TART sources arrive as elaz -> convert with
+        obstime/site").
+    '''
+    el = getattr(source, "el_r", None)
+    az = getattr(source, "az_r", None)
+    if el is not None and az is not None:
+        return elaz_to_radec(el, az, lon, lat, height=height, obstime=obstime)
+
+    ra = getattr(source, "ra", None)
+    dec = getattr(source, "dec", None)
+    if ra is None or dec is None:
+        raise ValueError(
+            f"Source {source!r} has neither elaz (el_r/az_r) nor celestial "
+            "(ra/dec) coordinates"
+        )
+    return float(ra), float(dec)
+
+
 def source_elaz_rad(source, lon, lat, height=0.0, obstime=None):
     '''
         (el_r, az_r) of a source placed on a FoV, in either frame.

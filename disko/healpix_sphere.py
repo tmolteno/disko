@@ -447,12 +447,19 @@ class HealpixFoV(FoV):
                 fill="none", stroke="red", stroke_width="{}".format(line_size)
             )
             for s in src_list:
-                # Sources may be given in elaz or in celestial coordinates;
-                # source_elaz() converts the latter with this sphere's site
-                # and time (issue #10, Phase 1).
+                # Sources may be given in elaz or in celestial coordinates.
+                # Both are placed through this sphere's phase centre
+                # (issue #7, issue #10 Phase 2): source_draw_elaz() is the
+                # source's l,m about the phase centre mapped into the
+                # grid's own geolocated drawing frame, so a phase-steered
+                # MS overplots on its counterparts instead of as if the
+                # grid were zenith-centred. source_elaz() still supplies
+                # the geolocated elevation (the horizon cut) and the
+                # ellipse attitude.
                 el_r, az_r = self.source_elaz(s)
                 if el_r > np.radians(10.0):
-                    elaz = ElAz(el_r, az_r)
+                    draw_el, draw_az = self.source_draw_elaz(s)
+                    elaz = ElAz(draw_el, draw_az)
                     (x, y) = pc.from_elaz(elaz)
 
                     radial_size = angular_size * np.sin(el_r)
@@ -483,7 +490,11 @@ class HealpixFoV(FoV):
 
         if src_list is not None:
             for s in src_list:
-                el_r, az_r = self.source_elaz(s)
+                # Phase-centre aware placement (issue #7, issue #10 Phase
+                # 2): markers land where the source's l,m about this
+                # sphere's phase centre fall on the grid, not at their
+                # raw el/az.
+                el_r, az_r = self.source_draw_elaz(s)
                 self.plot_x(plt, el_r, az_r)
 
 
@@ -620,5 +631,7 @@ class HealpixSubFoV(HealpixFoV):
 
         if src_list is not None:
             for s in src_list:
-                el_r, az_r = self.source_elaz(s)
+                # Phase-centre aware placement (issue #7, issue #10 Phase
+                # 2), as in HealpixFoV.plot.
+                el_r, az_r = self.source_draw_elaz(s)
                 self.plot_x(plt, el_r, az_r)
