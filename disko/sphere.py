@@ -335,6 +335,55 @@ class FoV(object):
             f"Pixels Set {self.pixels.shape}, Image stats: {json.dumps(stats, sort_keys=True)}")
         return stats
 
+    def phase_center_radec(self):
+        '''
+            Right ascension and declination (degrees, ICRS) of this sphere's
+            phase center.
+
+            to_fits() grids the image on direction cosines (l, m) about
+            l=0, m=0, which is the direction straight up in the geolocated
+            frame of the sphere (the phase center, see the class docstring).
+            So the phase center is the zenith as seen from this sphere's
+            geolocation at its timestamp, and its celestial coordinates come
+            from exactly those two pieces of sphere data.
+        '''
+        import astropy.units as u
+        from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+        from astropy.time import Time
+        from astropy.utils import iers
+
+        timestamp = getattr(self, "timestamp", None)
+        if timestamp is None:
+            timestamp = datetime.datetime.now(datetime.timezone.utc)
+
+        # set_info() stores a GeoLocation wrapper, fov.from_hdf() stores the
+        # astropy EarthLocation itself. Both expose lon/lat with units.
+        geo = getattr(self, "geolocation", None)
+        if geo is not None and hasattr(geo, "loc"):
+            geo = geo.loc
+        lon = geo.lon.to_value("deg") if geo is not None else 0.0
+        lat = geo.lat.to_value("deg") if geo is not None else 0.0
+
+        frame = AltAz(
+            obstime=Time(timestamp),
+            location=EarthLocation.from_geodetic(lon=lon * u.deg, lat=lat * u.deg),
+        )
+
+        # Earth orientation only moves this by a small fraction of a pixel, and
+        # the IERS tables may not be downloadable (offline), so don't let a
+        # stale table stop the FITS file being written.
+        saved = (iers.conf.auto_download, iers.conf.auto_max_age)
+        iers.conf.auto_download = False
+        iers.conf.auto_max_age = None
+        try:
+            zenith = SkyCoord(
+                alt=90 * u.deg, az=0 * u.deg, frame=frame
+            ).transform_to("icrs")
+        finally:
+            iers.conf.auto_download, iers.conf.auto_max_age = saved
+
+        return zenith.ra.deg, zenith.dec.deg
+
     def to_fits(self, fname, title=None, info={}):
         from astropy.io import fits
         from scipy.interpolate import griddata
@@ -367,6 +416,27 @@ class FoV(object):
         hdr["CDELT1"] = -self.fov.degrees() / width # note: RA increases East
         hdr["CRPIX2"] = height // 2 + 1.0
         hdr["CDELT2"] = self.fov.degrees() / height
+
+        # Issue #14: the non-MS paths pass no world coordinate system in
+        # `info`, so CRPIX/CDELT alone left an invalid WCS. Derive the rest
+        # from the sphere itself (the reference pixel is the phase center).
+        # Anything the caller supplies (casa_read_ms passes a full WCS)
+        # still wins, see the loop below.
+        wcs_keys = {
+            "RADESYS": ("ICRS", "Celestial coordinate reference frame"),
+            "CTYPE1": ("RA---SIN", "Right ascension angle cosine"),
+            "CUNIT1": ("deg", "Units of CDELT1 and CRVAL1"),
+            "CTYPE2": ("DEC--SIN", "Declination angle cosine"),
+            "CUNIT2": ("deg", "Units of CDELT2 and CRVAL2"),
+        }
+        if "CRVAL1" not in info or "CRVAL2" not in info:
+            ra, dec = self.phase_center_radec()
+            wcs_keys["CRVAL1"] = (ra, "Right ascension of the phase center")
+            wcs_keys["CRVAL2"] = (dec, "Declination of the phase center")
+
+        for key in wcs_keys:
+            if key not in info:
+                hdr[key] = wcs_keys[key]
         for key in info:
             hdr[key] = info[key]
         # https://archive.stsci.edu/fuse/DH_Final/FITS_File_Headers.html

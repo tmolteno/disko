@@ -216,6 +216,9 @@ class AdaptiveMeshFoV(FoV):
         logger.info(
             f"New AdaptiveMeshFoV(fov={fov}) res_min={res_min}, res_max={res_max})"
         )
+        # Pick up the FoV defaults (plot range, timestamp, geolocation) just
+        # like the other sphere types: to_fits() derives its WCS from them.
+        super().__init__()
         self.radius_rad = fov.radians() / 2
         self.fov = fov
         self.res_arcmin = res_max.arcmin()

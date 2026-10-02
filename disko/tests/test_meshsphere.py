@@ -103,10 +103,83 @@ class TestMeshsphere(unittest.TestCase):
 
     @_skip_gmsh
     def test_fits(self):
+        from astropy.io import fits
+        from astropy.wcs import WCS
+
         fname = "test.fits"
-        self.sphere.to_fits(fname=fname)
-        self.assertTrue(os.path.isfile(fname))
-        os.remove(fname)
+        try:
+            self.sphere.to_fits(fname=fname)
+            self.assertTrue(os.path.isfile(fname))
+
+            with fits.open(fname) as hdul:
+                hdr = hdul[0].header
+
+            # Issue #14: FITS written from the non-MS path must carry a real
+            # world coordinate system, not just CRPIX/CDELT.
+            for key in [
+                "RADESYS",
+                "CTYPE1", "CRVAL1", "CUNIT1", "CRPIX1", "CDELT1",
+                "CTYPE2", "CRVAL2", "CUNIT2", "CRPIX2", "CDELT2",
+            ]:
+                self.assertIn(key, hdr)
+
+            self.assertEqual(hdr["RADESYS"].strip(), "ICRS")
+            self.assertEqual(hdr["CTYPE1"].strip(), "RA---SIN")
+            self.assertEqual(hdr["CUNIT1"].strip(), "deg")
+            self.assertEqual(hdr["CTYPE2"].strip(), "DEC--SIN")
+            self.assertEqual(hdr["CUNIT2"].strip(), "deg")
+
+            # The header must parse as a celestial WCS...
+            wcs = WCS(hdr)
+            self.assertTrue(wcs.has_celestial)
+
+            # ... CRVAL is the world coordinate of the reference pixel, which
+            # is the phase center in the middle of the image...
+            crval = np.array([hdr["CRVAL1"], hdr["CRVAL2"]])
+            np.testing.assert_allclose(
+                wcs.all_pix2world([[hdr["CRPIX1"], hdr["CRPIX2"]]], 1)[0],
+                crval,
+                atol=1e-6,
+            )
+
+            # ... so CRVAL lies inside the coordinate range the image covers.
+            # Use the midpoints of the four edges: for a wide field of view
+            # the image corners fall outside the SIN projection disk and are
+            # not on the sky at all, the edge midpoints always are.
+            cx = int(round(hdr["CRPIX1"]))
+            cy = int(round(hdr["CRPIX2"]))
+            self.assertTrue(1 <= cx <= hdr["NAXIS1"])
+            self.assertTrue(1 <= cy <= hdr["NAXIS2"])
+            ra_lo = wcs.all_pix2world([[1, cy]], 1)[0][0]
+            ra_hi = wcs.all_pix2world([[hdr["NAXIS1"], cy]], 1)[0][0]
+            dec_lo = wcs.all_pix2world([[cx, 1]], 1)[0][1]
+            dec_hi = wcs.all_pix2world([[cx, hdr["NAXIS2"]]], 1)[0][1]
+
+            self.assertTrue(
+                min(dec_lo, dec_hi) <= crval[1] <= max(dec_lo, dec_hi),
+                f"CRVAL2 {crval[1]} not in [{dec_lo}, {dec_hi}]",
+            )
+            # Right ascension wraps at 360 degrees, so compare offsets from
+            # CRVAL: the two edges must be on opposite sides of it.
+            d1 = (ra_lo - crval[0] + 180.0) % 360.0 - 180.0
+            d2 = (ra_hi - crval[0] + 180.0) % 360.0 - 180.0
+            self.assertLessEqual(
+                d1 * d2,
+                0.0,
+                f"CRVAL1 {crval[0]} not between {ra_lo} and {ra_hi}",
+            )
+
+            # The WCS comes from the sphere itself: the phase center is the
+            # zenith seen from the sphere's location at its timestamp...
+            ra, dec = self.sphere.phase_center_radec()
+            self.assertAlmostEqual(hdr["CRVAL1"], ra, delta=1e-9)
+            self.assertAlmostEqual(hdr["CRVAL2"], dec, delta=1e-9)
+            # ... whose declination is the observer's latitude (to better
+            # than a degree).
+            self.assertAlmostEqual(hdr["CRVAL2"], -45.5, delta=1.0)
+        finally:
+            if os.path.isfile(fname):
+                os.remove(fname)
 
     @_skip_gmsh
     def test_load_save(self):
