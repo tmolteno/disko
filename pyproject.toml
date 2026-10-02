@@ -16,6 +16,7 @@ dependencies = [
     "tart-tools>=1.4.0",
     "h5py>=3.7",
     "scipy>=1.7.3",
+    "astropy>=5.2",
     "svgwrite>=1.4.3",
     "scikit-learn>=1.0.1",
     "pylops>=2.0",
