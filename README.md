@@ -10,7 +10,11 @@ DiSkO can perform sparsity reduction by regularization and controls the volume o
 
 ## Howto
 
-    disko --display --show-sources
+Write the field of view to HDF, then draw it with `disko_draw` (which
+also does the source overplotting, `--show-sources`):
+
+    disko --ms test_data/test.ms --tikhonov --nside 32 --HDF fov.h5
+    disko_draw fov.h5 --show-sources --SVG draw.svg --PNG draw.png
 
 To load a data from a measurement set 
 

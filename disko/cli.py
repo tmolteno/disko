@@ -104,12 +104,6 @@ def main():
         "--nvis", type=int, default=1000, help="Number of visibilities to use."
     )
     parser.add_argument(
-        "--vis",
-        required=False,
-        default=None,
-        help="Use a local JSON file containing the visibilities to create the image.",
-    )
-    parser.add_argument(
         "--channel", type=int, default=0, help="Use this frequency channel."
     )
     parser.add_argument(
@@ -160,19 +154,21 @@ def main():
         help="Regularization parameter, ratio of l1 to l2 (1.0 means l1 only).",
     )
 
-    parser.add_argument(
-        "--show-sources",
-        action="store_true",
-        help="Show known sources on images (only works on PNG & SVG).",
-    )
+    # Issue #25: --show-sources used to be declared here but could never
+    # do anything — the catalog fetch behind it was removed in aa2d49b
+    # (source_json was always None), so the flag silently drew nothing.
+    # Source overplotting lives in disko_draw now; give the old command
+    # a clear pointer instead of argparse's bare "unrecognized
+    # arguments".
+    if "--show-sources" in sys.argv:
+        parser.error(
+            "--show-sources has moved to disko_draw (issue #25): render the "
+            "field of view to HDF first (disko --HDF fov.h5 ...), then "
+            "'disko_draw fov.h5 --show-sources --SVG out.svg'"
+        )
+
     parser.add_argument(
         "--title", required=False, default="disko", help="Prefix the output files."
-    )
-    parser.add_argument(
-        "--elevation",
-        type=float,
-        default=20.0,
-        help="Elevation limit for displaying sources (degrees).",
     )
     parser.add_argument(
         "--display", action="store_true", help="Display Image to the user."
@@ -205,8 +201,6 @@ def main():
     parser.add_argument(
         "--version", action="store_true", help="Display the current version"
     )
-
-    source_json = None
 
     ARGS = parser.parse_args()
 
@@ -298,8 +292,6 @@ def main():
         lon = config.get_lon()
         height = config.get_alt()
 
-        source_json = None
-
     elif ARGS.ms:
         logger.info(f"Getting Data from MS file: {ARGS.ms} to {sphere}")
 
@@ -343,9 +335,6 @@ def main():
         ),
     )
 
-    if not ARGS.show_sources:
-        src_list = None
-
     time_repr = "{:%Y_%m_%d_%H_%M_%S_%Z}".format(timestamp)
 
     # Processing
@@ -358,9 +347,6 @@ def main():
         disko.vis_arr = disko.vis_arr.conjugate()
     else:
         pass
-
-    if ARGS.show_sources:
-        src_list = get_source_list(source_json, el_limit=ARGS.elevation, jy_limit=1e4)
 
     if ARGS.lasso:
         logger.info("L1 regularization alpha=%f" % ARGS.alpha)
@@ -420,12 +406,13 @@ def main():
 
     if ARGS.FITS or ARGS.SVG or ARGS.PNG or ARGS.PDF:
         # The drawing itself lives in disko.draw_sky (issue #10, Phase 2);
-        # this CLI only collects the flags and hands them over.
+        # this CLI only collects the flags and hands them over. Source
+        # overplotting is not part of it any more: this CLI never had a
+        # working catalog fetch (issue #25) and disko_draw owns it.
         save_images(
             sphere,
             ARGS.dir,
             "{}_{}".format(ARGS.title, time_repr),
-            source_list=src_list,
             info=disko.info,
             vtk=ARGS.VTK,
             fits=ARGS.FITS,

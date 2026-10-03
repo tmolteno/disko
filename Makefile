@@ -68,7 +68,7 @@ dask:
 #         Maximum resident set size (kbytes): 2903484
 
 TART_ARGS=--fov 155deg --res 1deg --ms test_data/test.ms --debug --field 1  --HDF tart.hdf
-#TART_ARGS=--fov 155deg --res 1deg --file test_data/test_data.json --show-sources --HDF tart.hdf
+#TART_ARGS=--fov 155deg --res 1deg --file test_data/test_data.json --HDF tart.hdf  (source overplotting lives in disko_draw: see the draw target)
 cygnus_lsmr:
 	${TIME} uv run disko  --healpix --fov 3arcmin --ms ~/astro/cyg2052.ms --FITS --res 0.5arcsec --matrix-free --lsmr --nvis 5000 --alpha 0.01 --title 'cygnus_lsmr'
 cygnus_fista:
@@ -84,7 +84,7 @@ tart_mesh_fista:
 	uv run disko --mesh ${TART_ARGS}  --fista --niter 1000  --matrix-free  --title 'tarta_mesh_fista'
 
 sphere:
-	uv run disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --show-sources --alpha=0.0025 --tikhonov  --title 'sphere'
+	uv run disko --healpix --nside 64 --ms ./test_data/test.ms --PNG --PDF --alpha=0.0025 --tikhonov  --title 'sphere'
 
 tart_fista:
 	rm -f disko.log
