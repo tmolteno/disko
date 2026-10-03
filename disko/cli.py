@@ -17,7 +17,7 @@ import numpy as np
 from importlib.metadata import version
 from tart.imaging import elaz
 
-from .disko import DiSkO
+from .image.disko import DiSkO
 from .draw_sky import output_path, save_images
 from .parser_support import sphere_from_args, sphere_args_parser
 

@@ -11,7 +11,7 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .healpix_sphere import HealpixFoV
+from .fov.healpix import HealpixFoV
 
 logger = logging.getLogger(__name__)
 # logger.setLevel(logging.INFO)

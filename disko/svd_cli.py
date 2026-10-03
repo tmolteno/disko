@@ -21,10 +21,10 @@ from tart.operation import settings
 from tart_tools import api_imaging
 from tart.imaging import elaz
 
-from .disko import DiSkO, vis_to_real
-from .telescope_operator import TelescopeOperator
+from .image.disko import DiSkO, vis_to_real
+from .image.telescope_operator import TelescopeOperator
 from .cli import get_source_list
-from .healpix_sphere import HealpixFoV
+from .fov.healpix import HealpixFoV
 from .draw_sky import mask_to_sky
 
 logger = logging.getLogger()

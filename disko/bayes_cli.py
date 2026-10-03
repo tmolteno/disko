@@ -20,7 +20,7 @@ from tart.operation import settings
 from tart_tools import api_imaging
 
 from .cli import disko_from_ms
-from .disko import DiSkO, vis_to_real
+from .image.disko import DiSkO, vis_to_real
 from .ms_helper import (
     get_array_location,
     good_visibility_count,
@@ -28,7 +28,7 @@ from .ms_helper import (
 )
 from .multivariate_gaussian import MultivariateGaussian
 from .parser_support import sphere_args_parser, sphere_from_args
-from .telescope_operator import MAX_COND, TelescopeOperator
+from .image.telescope_operator import MAX_COND, TelescopeOperator
 
 logger = logging.getLogger(__name__)
 logger.addHandler(

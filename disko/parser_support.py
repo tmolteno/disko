@@ -6,8 +6,8 @@ import argparse
 import numpy as np
 
 from .resolution import Resolution
-from .healpix_sphere import create_fov
-from .sphere_mesh import AdaptiveMeshFoV
+from .fov.healpix import create_fov
+from .fov.mesh import AdaptiveMeshFoV
 
 
 def sphere_args_parser():

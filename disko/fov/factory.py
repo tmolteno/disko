@@ -9,10 +9,10 @@ import logging
 import numpy as np
 from tart.util import utc
 
-from ..healpix_sphere import HealpixFoV, HealpixSubFoV
-from ..sphere_mesh import AdaptiveMeshFoV
-from ..sphere import GeoLocation
 from ..coords import PhaseCenter
+from .fov import GeoLocation
+from .healpix import HealpixFoV, HealpixSubFoV
+from .mesh import AdaptiveMeshFoV
 
 logger = logging.getLogger(__name__)
 
