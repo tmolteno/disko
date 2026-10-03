@@ -19,17 +19,21 @@ appears on the image at its l,m about THAT direction. These tests pin:
   zenith-centred grid. Pre-Phase-2 code (placement via source_elaz only)
   puts the marker 0.25 deg off centre, so it fails this test.
 
-- the frame bound (the "frame-consistency check" of #10 Phase 2): the
-  grid's pixel positions come from elaz2lmn's geolocated decomposition
-  while the overplot is computed with coords.radec_to_lmn in ICRS about
-  the phase centre. Those frames differ by the pole angle (ITRS z-axis
-  0.151 deg from the ICRS pole in 2026; Phase 1 measured max
-  direction-cosine disagreement 0.0023). That rotation belongs to Phase
-  4 (CDELT work) and is deliberately NOT fixed here — instead this
-  module asserts the resulting bound: marker-vs-grid disagreement is
-  the pole rotation alone (< 0.25 deg), while the overplot's radial
-  geometry (angle from the phase centre) and its elaz<->celestial round
-  trip agree to far better than 0.01 deg.
+- the frame bound (the "frame-consistency check" of #10 Phase 2). The
+  overplot is ICRS l,m about the FoV's phase centre (the frame source
+  catalogues live in and the frame the FITS WCS claims, RADESYS=ICRS).
+  Phase 2 left the grid in its geolocated decomposition, so the two
+  differed by the pole angle (ITRS z-axis 0.151 deg from the ICRS pole
+  in 2026; Phase 1 measured max direction-cosine disagreement 0.0023)
+  and asserted that as a bound. Issue #26 has since fixed it — the
+  image path (to_fits grid, to_svg grid and markers) now decomposes
+  everything through FoV.icrs_lmn_from_elaz, see
+  disko/tests/test_image_frame.py — so what remains asserted here is
+  the frame difference itself: the image frame and the raw geolocated
+  el/az of the same direction still differ by the pole rotation alone
+  (< 0.25 deg), while the overplot's radial geometry (angle from the
+  phase centre) and its elaz<->celestial round trip agree to far
+  better than 0.01 deg.
 """
 
 import datetime
@@ -218,16 +222,17 @@ class TestPhaseSteeredOverplot(unittest.TestCase):
 
 
 class TestOverplotFrameBound(unittest.TestCase):
-    """The frame-consistency check of #10 Phase 2.
+    """The frame-consistency check of #10 Phase 2, post issue #26.
 
     Chosen frame: the overplot is ICRS l,m about the FoV's phase centre
     (the frame source catalogues live in and the frame the FITS WCS
-    claims, RADESYS=ICRS). The grid keeps its geolocated el/az pixel
-    positions (elaz2lmn), and coords.lmn_to_elaz maps the marker into
-    that same drawing transform, so grid and marker share one picture.
-    The residual between the two decompositions of the SAME direction is
-    the pole angle alone — asserted below as the bound. Decomposing the
-    grid in ICRS too (with a consistent CDELT) is Phase 4.
+    claims, RADESYS=ICRS). Since issue #26 the drawn grid shares that
+    frame too (to_svg places both grid polygons and markers from
+    icrs_lmn_from_elaz / source_lmn, so they agree exactly — asserted
+    in disko/tests/test_image_frame.py), so what is left to bound here
+    is the relationship between that image frame and the raw
+    geolocated el/az of the same direction: they differ by the pole
+    angle alone.
     """
 
     def _fov(self, phase_center=None):
@@ -272,18 +277,20 @@ class TestOverplotFrameBound(unittest.TestCase):
         off_sky = sep_deg(src.ra, src.dec, MS_RA0, MS_DEC0)
         self.assertLess(abs(off_grid - off_sky), 0.01)
 
-    def test_grid_and_overplot_differ_only_by_pole_angle(self):
-        # On a zenith-centred FoV (the tart.hdf case) the marker's
-        # celestial frame and the grid's geolocated frame differ only by
-        # the pole-angle rotation: Phase 1 measured max 0.0023 in
-        # direction cosine; here the same quantity is asserted as an
-        # angle. Rationale for NOT achieving < 0.01 deg here: the grid
-        # pixels are placed by elaz2lmn (geolocated, of-date) while the
-        # marker goes through coords.radec_to_lmn (ICRS about the phase
-        # centre); making the two frames identical means decomposing the
-        # grid in ICRS, which moves every drawn pixel and is exactly the
-        # Phase 4 CDELT/l,m-frame work. The bound is asserted here with
-        # the rationale rather than filed as a new issue.
+    def test_image_frame_and_geolocated_differ_only_by_pole_angle(self):
+        # The image frame (ICRS l,m about the phase centre, what the
+        # FITS WCS and the drawn grid now both use) and the raw
+        # geolocated el/az of the same direction differ only by the
+        # pole-angle rotation: Phase 1 measured max 0.0023 in direction
+        # cosine; here the same quantity is asserted as an angle. This
+        # is a property of the two FRAMES, not a mixing of them inside
+        # the image path — since issue #26 grid and marker share one
+        # frame (asserted in test_image_frame.py), so the remaining
+        # bound is image-frame placement vs physical el/az. The bound
+        # is asserted with the rationale rather than removed: a
+        # physically placed marker (source_elaz) is what the healpy
+        # renderer uses, and it must land a pole angle away from the
+        # image-frame placement.
         fov = self._fov()
         pc = fov.get_phase_center()
         self.assertEqual(pc.provenance, coords.PROVENANCE_ZENITH)
@@ -295,10 +302,10 @@ class TestOverplotFrameBound(unittest.TestCase):
             az = rng.uniform(-np.pi, np.pi)
             ra, dec = coords.elaz_to_radec(el, az, LON, LAT, HEIGHT,
                                            obstime=OBSTIME)
-            # The marker's frame (ICRS l,m about the phase centre, drawn
-            # through the grid's transform) ...
+            # The image-frame placement (ICRS l,m about the phase
+            # centre, expressed as an el/az direction) ...
             marker = fov.source_draw_elaz(_CelestialSource(ra, dec))
-            # ... vs the geolocated position the grid itself uses.
+            # ... vs the raw geolocated el/az of the same direction.
             truth = fov.source_elaz(_CelestialSource(ra, dec))
             worst_deg = max(worst_deg, angle_between_elaz(*marker, *truth))
             # The same disagreement in direction cosines (Phase 1's

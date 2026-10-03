@@ -307,6 +307,31 @@ class FoV(object):
             source, lon, lat, height=height, obstime=obstime
         )
 
+    def icrs_lmn_from_elaz(self, el, az):
+        '''
+            (l, m, n) of directions given as geolocated elevation and
+            azimuth, decomposed in the frame the image claims
+            (issue #26): ICRS direction cosines about this sphere's phase
+            centre.
+
+            This is THE frame decision for the image path: ``to_fits()``
+            positions the grid with it and ``to_svg()`` draws both the
+            grid polygons and the source markers with it, so a pixel's
+            world coordinate, its drawn position and an overplotted
+            source can no longer disagree — by the pole angle between
+            the geolocated frame and ICRS (~0.13 deg, issue #26), by
+            the missing half-turn in the old marker transform, or by
+            the phase-steering offset on an MS grid.
+
+            Vectorised: el/az may be arrays (whole grids, all grid
+            corners at once).
+        '''
+        lon, lat, height, obstime = self.site_obstime()
+        ra, dec = coords.elaz_to_radec(
+            el, az, lon, lat, height=height, obstime=obstime
+        )
+        return coords.radec_to_lmn(ra, dec, self.get_phase_center())
+
     def source_lmn(self, source):
         '''
             (l, m, n) of a source in this sphere's drawn frame: its
@@ -330,18 +355,19 @@ class FoV(object):
 
     def source_draw_elaz(self, source):
         '''
-            (el_r, az_r) at which to draw a source marker on this sphere
-            (issue #7, issue #10 Phase 2): the source's celestial
-            direction expressed as direction cosines about this sphere's
-            phase centre (source_lmn), then mapped back into the
-            geolocated decomposition the grid itself is drawn with
-            (coords.lmn_to_elaz, the inverse of elaz2lmn).
+            (el_r, az_r) view of where a source lands in this sphere's
+            image frame (issue #7, issue #10 Phase 2): the source's
+            celestial direction as direction cosines about this sphere's
+            phase centre (source_lmn), mapped back through the inverse
+            of elaz2lmn's geolocated decomposition.
 
-            The grid frame and the marker frame therefore differ only by
-            the pole-angle rotation between elaz2lmn's geolocated frame
-            and coords.radec_to_lmn's ICRS frame — the known bound
-            documented in the Phase 2 test (that rotation is Phase 4's to
-            fix, with CDELT).
+            Since issue #26 the drawing itself no longer round-trips
+            through here — to_svg() places markers at source_lmn's l,m
+            directly (the same coordinates the grid polygons are drawn
+            in) and to_fits() grids with icrs_lmn_from_elaz — so this
+            stays as the el/az expression of the same placement, for
+            callers and tests that want a direction rather than screen
+            coordinates.
         '''
         l, m, n = self.source_lmn(source)
         return coords.lmn_to_elaz(l, m, n)
@@ -492,8 +518,14 @@ class FoV(object):
 
         # Make a grid on the plane, at the width of the narrowest pixel
         # f = scipy.interpolate.interp2d(self.el_r, self.az_r, self.pixels, fill_value=-1)
-        l = np.sin(self.az_r) * np.cos(self.el_r)  # noqa: E741
-        m = -np.cos(self.az_r) * np.cos(self.el_r)
+        #
+        # Issue #26: the grid is decomposed in ICRS about the phase
+        # centre (icrs_lmn_from_elaz), the frame RADESYS=ICRS claims —
+        # not in the geolocated decomposition of elaz2lmn, which rotated
+        # every world coordinate by the pole angle (~0.13 deg). The
+        # sampling grid below is the same l,m space the header maps, so
+        # pixel -> world is exact for every pixel.
+        l, m, _n = self.icrs_lmn_from_elaz(self.el_r, self.az_r)  # noqa: E741
 
         points = (l, m)
         values = self.pixels
@@ -514,10 +546,27 @@ class FoV(object):
         hdr["ORIGIN"] = ("DiSkO ",)
         hdr.comments["ORIGIN"] = "L-2 Regularizing imager written by Tim Molteno"
 
-        hdr["CRPIX1"] = width // 2 + 1.0
-        hdr["CDELT1"] = -self.fov.degrees() / width # note: RA increases East
-        hdr["CRPIX2"] = height // 2 + 1.0
-        hdr["CDELT2"] = self.fov.degrees() / height
+        # Issue #24: derive the linear part from the actual sin-space
+        # sampling instead of assuming it is linear in angle. The grid
+        # above is uniform in the direction cosine l (one step dl per
+        # pixel), and for RA---SIN the plane coordinate x (in degrees)
+        # is exactly l = radians(x), so one grid step spans
+        # degrees(dl) of plane coordinate. The reference pixel is the
+        # l = m = 0 point of the sampling grid, halfway between the two
+        # centre samples of an even-width image (width//2 + 1.0 was half
+        # a pixel off). CDELT1 is positive because l grows with the
+        # column index (l positive toward east, so RA increases with
+        # column — this also matches the SVG, which draws l to the
+        # right); with the old angle-based CDELT the plane coordinate
+        # reached fov/2 degrees at the edges — a direction cosine of
+        # radians(fov/2), i.e. 1.35 on the 155 deg field, outside the
+        # projection — and astropy returned NaN there (tart.hdf: NaN in
+        # every outermost row/column).
+        dl = x[1] - x[0]
+        hdr["CRPIX1"] = (width + 1) / 2.0
+        hdr["CDELT1"] = float(np.degrees(dl))
+        hdr["CRPIX2"] = (height + 1) / 2.0
+        hdr["CDELT2"] = float(np.degrees(dl))
 
         # Issue #14: the non-MS paths pass no world coordinate system in
         # `info`, so CRPIX/CDELT alone left an invalid WCS. Derive the rest

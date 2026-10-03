@@ -147,8 +147,11 @@ def elaz_to_radec(el, az, lon, lat, height=0.0, obstime=None):
     '''
         ICRS (ra_deg, dec_deg) of a direction given as el/az (radians) at
         this site and time. Azimuth is clockwise from north, matching
-        :func:`disko.sphere.elaz2hp`. (Scalar; use radec_to_lmn for
-        whole grids.)
+        :func:`disko.sphere.elaz2hp`.
+
+        Vectorised: el/az may be arrays (whole pixel grids or grid
+        corners, issue #26), in which case two arrays come back; scalar
+        input still returns two floats.
     '''
     import astropy.units as u
     from astropy.coordinates import SkyCoord
@@ -156,9 +159,15 @@ def elaz_to_radec(el, az, lon, lat, height=0.0, obstime=None):
     frame = _altaz_frame(lon, lat, height=height, obstime=obstime)
     with offline_iers():
         sky = SkyCoord(
-            alt=float(el) / DEG * u.deg, az=float(az) / DEG * u.deg, frame=frame
+            alt=np.asarray(el, dtype=float) / DEG * u.deg,
+            az=np.asarray(az, dtype=float) / DEG * u.deg,
+            frame=frame,
         ).transform_to("icrs")
-    return float(sky.ra.deg), float(sky.dec.deg)
+    ra = np.asarray(sky.ra.deg, dtype=float)
+    dec = np.asarray(sky.dec.deg, dtype=float)
+    if ra.ndim == 0:
+        return float(ra), float(dec)
+    return ra, dec
 
 
 def radec_to_elaz(ra, dec, lon, lat, height=0.0, obstime=None):

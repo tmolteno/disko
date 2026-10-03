@@ -14,9 +14,7 @@ import svgwrite
 
 from ..resolution import Resolution
 from .fov import (
-    ElAz,
     FoV,
-    HpAngle,
     PlotCoords,
     elaz2hp,
     elaz2lmn,
@@ -245,9 +243,24 @@ class HealpixFoV(FoV):
                 stroke_width=2, stroke_linejoin="round", stroke_opacity=1.0
             )
 
+        # Issue #26: draw the grid in the image frame — ICRS direction
+        # cosines about the phase centre, exactly what to_fits() writes
+        # and what the source markers below are placed with — instead of
+        # the geolocated decomposition, so grid, marker and FITS WCS can
+        # no longer disagree by the pole angle (~0.13 deg). One
+        # vectorised transform for every corner of every pixel, up
+        # front; the physical elevations still drive the horizon cut.
+        all_corners = np.array(
+            [self.corners(idx) for idx in self.pixel_indices]
+        ).reshape((-1, 3))
+        theta_c, phi_c = hp.vec2ang(all_corners, lonlat=False)
+        l_c, m_c, _n_c = self.icrs_lmn_from_elaz(
+            np.pi / 2 - theta_c, -phi_c
+        )
+        l_c = l_c.reshape((self.npix, 4))
+        m_c = m_c.reshape((self.npix, 4))
+
         for i in range(self.npix):
-            idx = self.pixel_indices[i]
-            corners = self.corners(idx)  # x,y,z points on boundary
             value = self.pixels[i]
 
             max_lat = -1e99
@@ -255,21 +268,16 @@ class HealpixFoV(FoV):
             x_mean = 0.0
             y_mean = 0.0
 
-            cnr_lat, cnr_lon = hp.vec2ang(corners, lonlat=False)
-
             poly = []
-            for p, phi, theta in zip(corners, cnr_lon, cnr_lat):
-                # logger.info("p = {} lat={}, lon={}".format(p, lat, lon))
-                lat = np.pi / 2 - theta
+            for k in range(4):
+                # Physical elevation of the corner: the horizon cut.
+                lat = np.pi / 2 - theta_c[4 * i + k]
 
                 max_lat = max(max_lat, lat)
                 min_lat = min(min_lat, lat)
 
-                # if theta > np.pi / 2:
-                # logger.info("colatitude {} > PI_OVER_2 ll={}".format(theta, p))
-
-                hpang = HpAngle(theta, np.pi + phi)
-                (x, y) = hpang.proj()
+                x = float(l_c[i, k])
+                y = float(m_c[i, k])
 
                 poly.append((pc.from_x(x), pc.from_y(y)))
 
@@ -448,19 +456,20 @@ class HealpixFoV(FoV):
             )
             for s in src_list:
                 # Sources may be given in elaz or in celestial coordinates.
-                # Both are placed through this sphere's phase centre
-                # (issue #7, issue #10 Phase 2): source_draw_elaz() is the
-                # source's l,m about the phase centre mapped into the
-                # grid's own geolocated drawing frame, so a phase-steered
-                # MS overplots on its counterparts instead of as if the
-                # grid were zenith-centred. source_elaz() still supplies
-                # the geolocated elevation (the horizon cut) and the
-                # ellipse attitude.
+                # Placement is issue #7 (phase-centre aware, Phase 2) plus
+                # issue #26 (one frame): the marker is the source's ICRS
+                # l,m about this sphere's phase centre — the SAME
+                # coordinates the grid polygons above are drawn in — so it
+                # lands on the pixel that holds the source instead of a
+                # pole-angle (previously also a half-turn) away.
+                # source_elaz() still supplies the physical elevation
+                # (the horizon cut) and the ellipse attitude.
                 el_r, az_r = self.source_elaz(s)
                 if el_r > np.radians(10.0):
-                    draw_el, draw_az = self.source_draw_elaz(s)
-                    elaz = ElAz(draw_el, draw_az)
-                    (x, y) = pc.from_elaz(elaz)
+                    l_s, m_s, _n_s = self.source_lmn(s)
+                    x = float(l_s)
+                    y = float(m_s)
+                    (x, y) = pc.from_x(x), pc.from_y(y)
 
                     radial_size = angular_size * np.sin(el_r)
 
@@ -490,11 +499,14 @@ class HealpixFoV(FoV):
 
         if src_list is not None:
             for s in src_list:
-                # Phase-centre aware placement (issue #7, issue #10 Phase
-                # 2): markers land where the source's l,m about this
-                # sphere's phase centre fall on the grid, not at their
-                # raw el/az.
-                el_r, az_r = self.source_draw_elaz(s)
+                # The healpy renderer draws the grid physically: every
+                # pixel sits at its own geolocated el/az under the
+                # graticule, so the marker must be the source's
+                # physical el/az too, to land on the pixel that holds
+                # it (issue #26: grid and marker in ONE frame — here
+                # the geolocated one; the SVG/FITS image path uses the
+                # ICRS image frame instead).
+                el_r, az_r = self.source_elaz(s)
                 self.plot_x(plt, el_r, az_r)
 
 
@@ -631,7 +643,7 @@ class HealpixSubFoV(HealpixFoV):
 
         if src_list is not None:
             for s in src_list:
-                # Phase-centre aware placement (issue #7, issue #10 Phase
-                # 2), as in HealpixFoV.plot.
-                el_r, az_r = self.source_draw_elaz(s)
+                # Physical el/az placement on the physical healpy map,
+                # as in HealpixFoV.plot (issue #26).
+                el_r, az_r = self.source_elaz(s)
                 self.plot_x(plt, el_r, az_r)
