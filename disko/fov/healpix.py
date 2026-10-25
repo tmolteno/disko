@@ -546,6 +546,14 @@ class HealpixSubFoV(HealpixFoV):
                 nside *= 2
 
         self.nside = nside
+        # The FoV is built either from --nside or from --res, and res_arcmin
+        # is only passed for the latter. Always record the actual pixel
+        # resolution: to_hdf writes [self.res_arcmin], and a bare [None] is an
+        # object-dtype dataset, which h5py rejects with "Object dtype has no
+        # native HDF5 equivalent" (issue #12: every --nside --HDF run died
+        # there, which is what the README example does).
+        if res_arcmin is None:
+            res_arcmin = hp.nside2resol(nside, arcmin=True)
         self.res_arcmin = res_arcmin
         self.theta = theta
         self.phi = phi

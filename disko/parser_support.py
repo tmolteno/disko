@@ -3,11 +3,15 @@
 #
 
 import argparse
+import logging
+
 import numpy as np
 
 from .resolution import Resolution
 from .fov.healpix import create_fov
 from .fov.mesh import AdaptiveMeshFoV
+
+logger = logging.getLogger("disko")
 
 
 def sphere_args_parser():
@@ -26,8 +30,13 @@ def sphere_args_parser():
                          help="Highest allowed res of the sky. E.g. 1.3deg, 12\", 11', 8uas, 6mas.")
 
     par_sph = argparse.ArgumentParser(add_help=False)
-    par_sph.add_argument('--healpix', action="store_true",
-                         help="Use HealPix tiling")
+    # default=SUPPRESS keeps ArgumentDefaultsHelpFormatter from printing a
+    # misleading "(default: False)": healpix *is* the default sky (issue #12),
+    # it just isn't an argparse default, because --mesh opts out of it.
+    par_sph.add_argument('--healpix', action="store_true", default=argparse.SUPPRESS,
+                         help="Use HealPix tiling. This is the default when "
+                              "--mesh is not given, so the flag is only needed "
+                              "to be explicit about it.")
     par_sph.add_argument('--nside', type=int, default=None,
                          help="Healpix nside parameter for display purposes only.")
 
@@ -37,6 +46,17 @@ def sphere_args_parser():
 def sphere_from_args(args):
     fov = Resolution.from_string(args.fov)
     res = Resolution.from_string(args.res)
+
+    # Issue #12: a bare "disko --ms x.ms" should image the field of view, not
+    # stop with "Either --mesh or --healpix must be specified". With neither
+    # given, use the healpix tiling (what every example recommends).
+    # --healpix is default=SUPPRESS, so read it defensively and then always
+    # normalise it onto the namespace (callers may inspect it afterwards).
+    use_healpix = bool(getattr(args, "healpix", False))
+    if not args.mesh and not use_healpix:
+        logger.info("No --mesh/--healpix given: defaulting to the healpix tiling")
+        use_healpix = True
+    args.healpix = use_healpix
 
     sphere = None
     if args.mesh:

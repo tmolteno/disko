@@ -76,7 +76,15 @@ def disko_from_ms(
     return ret
 
 
-def main():
+def build_parser(argv=None):
+    """Build the ``disko`` command line parser.
+
+    Split out of :func:`main` so tests can parse a command line without
+    running an image (issue #12).
+    """
+    if argv is None:
+        argv = sys.argv[1:]
+
     sphere_parsers = sphere_args_parser()
 
     parser = argparse.ArgumentParser(
@@ -132,6 +140,14 @@ def main():
     algo_group.add_argument(
         "--tikhonov", action="store_true", help="Use L2 regularization."
     )
+    algo_group.add_argument(
+        "--no-regularization",
+        action="store_true",
+        help="Solve the visibilities directly, with no regularization at all. "
+        "This is now opt-in: with no algorithm flag disko images with Tikhonov "
+        "regularization instead of silently falling through to the "
+        "unregularized solve (issue #12).",
+    )
 
     parser.add_argument(
         "--matrix-free", action="store_true", help="Use matrix-free regularization."
@@ -145,7 +161,11 @@ def main():
 
     parser.add_argument("--dir", required=False, default=".", help="Output directory.")
     parser.add_argument(
-        "--alpha", type=float, default=None, help="Regularization parameter."
+        "--alpha",
+        type=float,
+        default=0.02,
+        help="Regularization parameter (issue #12 picked 0.02: it is what "
+        "produces good TART images).",
     )
     parser.add_argument(
         "--l1-ratio",
@@ -160,7 +180,7 @@ def main():
     # Source overplotting lives in disko_draw now; give the old command
     # a clear pointer instead of argparse's bare "unrecognized
     # arguments".
-    if "--show-sources" in sys.argv:
+    if "--show-sources" in argv:
         parser.error(
             "--show-sources has moved to disko_draw (issue #25): render the "
             "field of view to HDF first (disko --HDF fov.h5 ...), then "
@@ -202,7 +222,47 @@ def main():
         "--version", action="store_true", help="Display the current version"
     )
 
-    ARGS = parser.parse_args()
+    return parser
+
+
+def parse_args(argv=None):
+    """Parse ``disko``'s command line and apply the defaults issue #12 asked
+    for, so that a bare invocation images with sensible settings instead of
+    erroring out (no sky tiling) or silently solving unregularized:
+
+    * no ``--mesh``/``--healpix`` -> healpix (see
+      :func:`disko.parser_support.sphere_from_args`);
+    * no algorithm flag -> ``--tikhonov`` with ``--alpha 0.02``;
+    * ``--lsqr``/``--lsmr``/``--fista`` imply ``--matrix-free``;
+    * the old unregularized ``solve_vis`` path is reachable only by asking
+      for it explicitly with ``--no-regularization``.
+    """
+    ARGS = build_parser(argv).parse_args(argv)
+
+    # --version is exempt: main() prints it and exits before any data is
+    # needed, so "disko --version" must keep working with no --ms/--file.
+    if not (ARGS.ms or ARGS.file) and not ARGS.version:
+        build_parser(argv).error("Either --file or --ms must be specified.")
+
+    regularized = (
+        ARGS.lasso or ARGS.matrix_free or ARGS.tikhonov
+        or ARGS.lsqr or ARGS.lsmr or ARGS.fista
+    )
+    if not regularized and not ARGS.no_regularization:
+        logger.info(
+            "No algorithm given: defaulting to --tikhonov (alpha=%s)", ARGS.alpha
+        )
+        ARGS.tikhonov = True
+
+    if (ARGS.lsqr or ARGS.lsmr or ARGS.fista) and not ARGS.matrix_free:
+        logger.info("--lsqr/--lsmr/--fista imply --matrix-free")
+        ARGS.matrix_free = True
+
+    return ARGS
+
+
+def main():
+    ARGS = parse_args()
 
     if ARGS.debug:
         level = logging.DEBUG
@@ -318,7 +378,9 @@ def main():
         height = json_info["height"]
 
     else:
-        parser.error("Either --file or --ms must be specified.")
+        # Unreachable: parse_args() refuses a command line that has neither
+        # --file nor --ms (unless --version, which exits above).
+        raise AssertionError("parse_args() should have required --file or --ms")
 
     # For MS input this hands the FIELD PHASE_DIR (read by casa_read_ms) to
     # the sphere as its phase centre (issue #10, Phase 1); for TART .h5
@@ -392,6 +454,10 @@ def main():
                 sphere.pixels = sphere.pixels / sphere.pixel_areas
 
     else:
+        # Only reachable via --no-regularization: parse_args() guarantees one
+        # of the regularized paths is selected when no algorithm is given, so
+        # an unregularized image is now an explicit choice (issue #12).
+        logger.info("No regularization: solving the visibilities directly")
         _sky = disko.solve_vis(disko.vis_arr, sphere)  # noqa: F841
 
     if ARGS.HDF:

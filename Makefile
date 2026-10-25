@@ -31,11 +31,11 @@ svd:
 
 bayes:
 	#rm -f *.npz
-	uv run disko_bayes --healpix --fov 155 --res 30arcmin --ms test_data/test.ms  --mu --var --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15
-#	${TIME} uv run disko --fov 155 --ms ../tart2ms/test.ms --SVG --arcmin=120  --title 'tart' --tikhonov --alpha=0.01
+	uv run disko_bayes --healpix --fov 155deg --res 30arcmin --ms test_data/test.ms  --mu --var --PNG --SVG --arcmin=90  --dir test_out --title 'bayes_tart' --sigma-v=0.15
+#	${TIME} uv run disko --fov 155deg --ms ../tart2ms/test.ms --SVG --res 120arcmin  --title 'tart' --tikhonov --alpha=0.01
 
 ngc1194:
-	uv run disko --fov 0.3 --ms ../tart2ms/docker/NGC1194.split.ms --SVG --arcmin 0.3 --tikhonov --nvis 3000
+	uv run disko --fov 0.3deg --ms ../tart2ms/docker/NGC1194.split.ms --SVG --res 0.3arcmin --tikhonov --nvis 3000
 
 adaptive:
 	rm -f round*.vtk
@@ -118,7 +118,7 @@ mf_preview:
 	paraview --data=callback_..vtk
 
 profile:
-	uv run python -m cProfile -o disko.prof ./bin/disko --fov 0.05 --ms ~/astro/cyg2052.ms --FITS --SVG --arcmin=0.02 --alpha=-0.0695 --nvis 1000 --fista --matrix-free --title 'mf_cyg' --niter 10
+	uv run python -m cProfile -o disko.prof ./bin/disko --fov 0.05deg --ms ~/astro/cyg2052.ms --FITS --SVG --res 0.02arcmin --alpha=-0.0695 --nvis 1000 --fista --matrix-free --title 'mf_cyg' --niter 10
 	uv run python prof.py
 
 sequential:
