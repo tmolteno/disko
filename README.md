@@ -10,15 +10,30 @@ DiSkO can perform sparsity reduction by regularization and controls the volume o
 
 ## Howto
 
+`disko` picks sensible defaults (issue #12): with no `--mesh`/`--healpix` it
+images on a healpix grid, and with no algorithm flag it uses Tikhonov
+regularization with `--alpha 0.02`. So the shortest command that images a
+measurement set is
+
+    disko --ms test_data/test.ms --nside 32 --HDF fov.h5
+
 Write the field of view to HDF, then draw it with `disko_draw` (which
 also does the source overplotting, `--show-sources`):
 
-    disko --ms test_data/test.ms --tikhonov --nside 32 --HDF fov.h5
     disko_draw fov.h5 --show-sources --SVG draw.svg --PNG draw.png
+
+Spelled out in full, that first command's defaults are
+
+    disko --ms test_data/test.ms --healpix --tikhonov --alpha 0.02 --nside 32 --HDF fov.h5
 
 To load a data from a measurement set 
 
-    disko --ms test_data/test.ms --tikhonov --nside 32 --PDF
+    disko --ms test_data/test.ms --nside 32 --PDF
+
+Other solvers: `--lasso` (L1), `--matrix-free` with one of `--lsqr`, `--lsmr`
+or `--fista`, or `--no-regularization` to solve the visibilities directly
+(that unregularized solve is what you used to get by default, which is why
+the images were poor).
 
 ## VLA imaging with DiSkO
 
@@ -26,7 +41,7 @@ Download the VLA 5GHZ continuum survey measurement set. AG733_A061209.xp1 from t
 
 Calibrate and then split the measurement set, following the CASA tutorial [https://casaguides.nrao.edu/index.php/VLA_5_GHz_continuum_survey_of_Seyfert_galaxies]
 
-    disko --fov 0.01 --ms NGC1194.split.ms --SVG --arcmin 0.0025 --tikhonov
+    disko --fov 0.01deg --ms NGC1194.split.ms --SVG --res 0.15arcsec --tikhonov
 ## More challenging
 
 This tutorial should generate a file with lots of diffuse radiation. 
