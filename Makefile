@@ -9,7 +9,10 @@ test:
 
 
 install:
-	sudo apt install python3-casacore python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-dask
+	# python3-casacore is no longer in this list: disko/ms_helper.py opens
+	# measurement sets through casacure now (issue #23), which uv installs
+	# as a wheel. python-casacore still arrives via dask-ms 0.2.x.
+	sudo apt install python3-numpy python3-matplotlib python3-healpy python3-astropy python3-h5py python3-scipy python3-svgwrite python3-dask
 
 draw:
 	uv run disko_draw tart.hdf --show-sources \

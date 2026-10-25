@@ -23,6 +23,11 @@ dependencies = [
     "toolz>=0.11.2",
     "imageio>=0.6.0b1",
     "dask-ms>=0.2.25,<0.3.0",
+    # Issue #23: disko/ms_helper.py opens measurement sets itself, so declare
+    # the table library directly instead of relying on dask-ms to install
+    # python-casacore (which dask-ms 0.3 drops in favour of arcae). casacure
+    # is the Rust replacement, and has no compiled python-casacore dependency.
+    "casacure>=3.8",
     "angle-parser>=0.2.0",
 ]
 

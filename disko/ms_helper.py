@@ -11,12 +11,36 @@ import logging
 
 import numpy as np
 from astropy.coordinates import EarthLocation
-from casacore.tables import table
+# Issue #23: casacore's Rust replacement (tmolteno/casacure) instead of
+# python-casacore, which dask-ms will stop pulling in at 0.3. The subset of
+# the table API disko uses is identical, except for query() — see
+# _taql_select below.
+from casacure.tables import table
 
 from .rime import rayleigh_criterion, resolution_min_baseline
 from .coords import PhaseCenter
 
 logger = logging.getLogger("disko")
+
+
+def _taql_select(ms, where, columns, sortby=None):
+    """Select a subset of rows and columns of ``ms``.
+
+    python-casacore spells this ``ms.query(where, sortlist=sortby,
+    columns=columns)``, and builds the TaQL command
+
+        select {columns} from $1 where {where} orderby {sortby}
+
+    from those three arguments. casacure's ``table.query()`` takes only a
+    selection expression (no ``sortlist``/``columns`` keywords), so build the
+    same command here and run it with ``table.taql()``, which takes the ``$1``
+    table reference exactly as python-casacore's ``taql()`` does. Result is
+    the same reference table either way (issue #23).
+    """
+    cmd = f"select {columns} from $1 where {where}"
+    if sortby:
+        cmd += f" orderby {sortby}"
+    return ms.taql(cmd)
 
 
 def phase_center_from_hdr(hdr, field_info=None):
@@ -63,8 +87,14 @@ def _good_indices(uvw, flags, frequency, res_deg):
 
 
 def get_array_location(ms_file: str):
-    ms = table(ms_file)
-    ant = table(ms.getkeyword("ANTENNA"))
+    # Same open options as casa_read_ms, and readonly=True is load-bearing:
+    # casacure's table() advertises readonly=True as its default but only
+    # honours it when the argument is actually passed — with the no-kwarg
+    # form it opens the table writable and bumps a counter byte (offset 296)
+    # in the MS's table.lock, so every run dirtied the tracked test fixture.
+    # python-casacore leaves that file alone either way (issue #23).
+    ms = table(ms_file, ack=False, readonly=True, lockoptions="auto")
+    ant = table(ms.getkeyword("ANTENNA"), ack=False, readonly=True)
     ant_p = ant.getcol("POSITION")
     ms.unlock()
     ms.close()
@@ -99,21 +129,21 @@ def casa_read_ms(
     channel = np.array(channel)
     logger.info(f"Reading channel {channel}")
     logger.debug(f"colnames{ms.colnames()}")
-    logger.debug(f"keywordnames{ms.keywordnames()}")
-    logger.debug(f"fields{ms.fieldnames()}")
+    logger.debug(f"keywords{list(ms.getkeywords())}")
 
-    ant = table(ms.getkeyword("ANTENNA"), ack=False)
+    ant = table(ms.getkeyword("ANTENNA"), ack=False, readonly=True)
     ant_p = ant.getcol("POSITION")
     logger.debug("Antenna Positions {}".format(ant_p.shape))
 
     # Now use TAQL to select only good data from the correct field
-    subt = ms.query(
-        f"FIELD_ID=={field_id}",
-        sortlist="ARRAY_ID",
+    subt = _taql_select(
+        ms,
+        where=f"FIELD_ID=={field_id}",
         columns=f"TIME, {ms_column}, UVW, ANTENNA1, ANTENNA2, FLAG",
+        sortby="ARRAY_ID",
     )
 
-    fields = table(subt.getkeyword("FIELD"), ack=False)
+    fields = table(subt.getkeyword("FIELD"), ack=False, readonly=True)
     # field columns ['DELAY_DIR', 'PHASE_DIR', 'REFERENCE_DIR', 'CODE', 'FLAG_ROW', 'NAME', 'NUM_POLY', 'SOURCE_ID', 'TIME']
     phase_dir = fields.getcol("PHASE_DIR")[field_id][0]
     name = fields.getcol("NAME")[field_id]
@@ -150,18 +180,24 @@ def casa_read_ms(
     logger.debug(f"raw_vis {raw_vis.shape}")
 
     try:
-        subt_ws = ms.query(
-            f"FIELD_ID=={field_id}", sortlist="ARRAY_ID", columns="WEIGHT_SPECTRUM"
+        subt_ws = _taql_select(
+            ms,
+            where=f"FIELD_ID=={field_id}",
+            columns="WEIGHT_SPECTRUM",
+            sortby="ARRAY_ID",
         )
         weight_spectrum = subt_ws.getcol("WEIGHT_SPECTRUM")[:, :, pol][:, channel]
-    except RuntimeError as e:
+    except (RuntimeError, KeyError) as e:
+        # Not every MS carries WEIGHT_SPECTRUM. python-casacore reports the
+        # missing column as RuntimeError, casacure as KeyError ("no such
+        # column"), so accept both and fall back to unity weights.
         logger.debug(f"{e}")
         weight_spectrum = np.ones_like(raw_vis)
 
     flags = flags[:, :, pol][:, channel]
 
     # Create datasets representing each row of the spw table
-    spw = table(ms.getkeyword("SPECTRAL_WINDOW"), ack=False)
+    spw = table(ms.getkeyword("SPECTRAL_WINDOW"), ack=False, readonly=True)
     logger.debug(spw.colnames())
 
     frequencies = spw.getcol("CHAN_FREQ")[0]
@@ -169,7 +205,9 @@ def casa_read_ms(
     frequency = frequencies[channel]
     logger.debug(f"Frequencies = {frequencies.shape}")
     logger.debug(f"Frequency = {frequency}")
-    logger.debug(f"NUM_CHAN = {np.array(spw.NUM_CHAN[0])}")
+    # casacure tables expose columns through getcol() only (no attribute
+    # access), so NUM_CHAN is read the same way as CHAN_FREQ above.
+    logger.debug(f"NUM_CHAN = {np.array(spw.getcol('NUM_CHAN')[0])}")
 
     #
     #   Now calculate which indices we should use to get the required number of
@@ -316,15 +354,16 @@ def good_visibility_count(
     ms = table(ms_file, ack=False, readonly=True, lockoptions="auto")
     try:
         channel = np.array(channel)
-        subt = ms.query(
-            f"FIELD_ID=={field_id}",
-            sortlist="ARRAY_ID",
+        subt = _taql_select(
+            ms,
+            where=f"FIELD_ID=={field_id}",
             columns=f"TIME, {ms_column}, UVW, FLAG",
+            sortby="ARRAY_ID",
         )
         try:
             flags = subt.getcol("FLAG")[:, :, pol][:, channel]
             uvw = subt.getcol("UVW")
-            spw = table(ms.getkeyword("SPECTRAL_WINDOW"), ack=False)
+            spw = table(ms.getkeyword("SPECTRAL_WINDOW"), ack=False, readonly=True)
             try:
                 frequencies = spw.getcol("CHAN_FREQ")[0]
                 frequency = frequencies[channel]
