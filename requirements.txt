@@ -16,3 +16,4 @@ dmsh>=0.2.19
 optimesh>=0.9.2
 imageio>=2.4.1
 tart2ms>=0.6.0b1
+casacure>=3.8
