@@ -1,0 +1,32 @@
+# Dependabot configuration.
+#
+# Security updates run without this file (they are enabled in the repo
+# settings), but version updates need it. The previous config was removed in
+# the poetry -> uv migration, which left Dependabot opening PRs that only
+# touched poetry.lock — four of them (#18, #19, #20, #21) sat conflicting and
+# red forever. Point it at the uv ecosystem so the PRs regenerate uv.lock.
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    # Group minor/patch bumps into a single PR; majors get their own so
+    # breaking changes stay reviewable one at a time.
+    groups:
+      python-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
