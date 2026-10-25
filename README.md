@@ -58,6 +58,15 @@ Then in CASA
     
 This should generate a suitable measurement set to image.
 
+## Releasing
+
+Releases are cut with `uv run invoke release`: exhaustive tests on every
+supported Python, a version bump, publication to PyPI through CI, and then the
+downstream tools image and tart_cargo releases in the same chain. See
+[RELEASE.md](RELEASE.md) for the process, and the matching documents in
+[tools](https://github.com/tart-telescope/tools/blob/main/RELEASE.md) and
+[tart_cargo](https://github.com/tart-telescope/tart_cargo/blob/main/RELEASE.md).
+
 ## TODO
 
 * Add a --full-sphere option which fixes the sphere in celestial coordinates, and then points the phase center of an observation correctly. Requires a beam pattern to be specified (or at least a hemispherical beam). A beam is a sky vector mask. I.e., should fall to zero 'outside' the beam.
