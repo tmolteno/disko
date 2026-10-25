@@ -44,6 +44,11 @@ mesh = [
 dev = [
     "flake8>=7.1.2",
     "pytest>=8",
+    # Release automation (tasks.py): invoke is the task runner, plumbum the
+    # shell-command plumbing `invoke release` uses for the version bump, the
+    # tag push and the chain into the tools and tart_cargo repos.
+    "invoke>=3.0",
+    "plumbum>=2.0",
 ]
 
 [tool.pytest.ini_options]
