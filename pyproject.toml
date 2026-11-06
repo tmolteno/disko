@@ -22,11 +22,17 @@ dependencies = [
     "pylops>=2.0",
     "toolz>=0.11.2",
     "imageio>=0.6.0b1",
-    "dask-ms>=0.2.25,<0.3.0",
+    # dask-ms-2 is tmolteno's casacure-backed fork of dask-ms 0.2.x
+    # (github.com/tmolteno/dask-ms; same `daskms` import package, published
+    # under its own name because PyPI rejects direct-URL dependencies). From
+    # 0.2.34 casacure is its table backend unconditionally, so installing it
+    # brings casacure and never python-casacore -- unlike upstream dask-ms
+    # 0.2.x, whose hard dependency this used to pull in (upstream 0.3 moves
+    # to arcae). dask[array], which disko uses directly, comes from here too.
+    "dask-ms-2>=0.2.34,<0.3.0",
     # Issue #23: disko/ms_helper.py opens measurement sets itself, so declare
-    # the table library directly instead of relying on dask-ms to install
-    # python-casacore (which dask-ms 0.3 drops in favour of arcae). casacure
-    # is the Rust replacement, and has no compiled python-casacore dependency.
+    # the table library directly rather than only via dask-ms. casacure is
+    # the pure-Rust casacore replacement; no compiled python-casacore.
     "casacure>=3.8",
     "angle-parser>=0.2.0",
 ]
