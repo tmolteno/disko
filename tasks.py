@@ -201,7 +201,11 @@ def _assert_clean_for_publish() -> None:
     """
     allowed = {PYPROJECT, CHANGES}
     unexpected, untracked = [], []
-    for line in _git("status", "--porcelain").splitlines():
+    # NOT _git(): its .strip() removes the leading status column of the FIRST
+    # porcelain line (e.g. " M CHANGES.md" -> "M CHANGES.md"), which made the
+    # first modified file parse as a bogus path and fail the allowlist.
+    status = local["git"]["status", "--porcelain"]().rstrip("\n")
+    for line in status.splitlines():
         if not line.strip():
             continue
         path = line[3:].split(" -> ")[-1].strip().strip('"')
