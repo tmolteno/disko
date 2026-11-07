@@ -32,8 +32,9 @@ Release automation for disko: invoke tasks driven by plumbum commands.
                    tart_cargo package.
 
 Stages 4 and 5 need a tasks.py in their own repos (both ship one). Repo
-locations default to ~/tart-telescope/{tools,tart_cargo} and can be
-overridden with DISKO_TOOLS_REPO / DISKO_TART_CARGO_REPO.
+locations default to the sibling checkouts ../tools and ../tart_cargo (the
+~/github workspace layout) and can be overridden with DISKO_TOOLS_REPO /
+DISKO_TART_CARGO_REPO for other layouts (e.g. ~/tart-telescope/*).
 
 Nothing pushes without a confirmation prompt unless --yes is given, and
 --dry-run prints the full plan without touching anything.
@@ -63,8 +64,11 @@ TEST_MS = ROOT / "test_data" / "test.ms"
 # Same interpreters .github/workflows/testing.yaml builds against.
 PYTHON_MATRIX = ("3.11", "3.12", "3.13")
 
-TOOLS_REPO = Path(os.environ.get("DISKO_TOOLS_REPO", Path.home() / "tart-telescope" / "tools"))
-CARGO_REPO = Path(os.environ.get("DISKO_TART_CARGO_REPO", Path.home() / "tart-telescope" / "tart_cargo"))
+# Siblings of this checkout by default (this workspace keeps the tools and
+# tart_cargo checkouts beside disko, at ~/github/{tools,tart_cargo}); the
+# DISKO_* variables override for other layouts.
+TOOLS_REPO = Path(os.environ.get("DISKO_TOOLS_REPO", ROOT.parent / "tools"))
+CARGO_REPO = Path(os.environ.get("DISKO_TART_CARGO_REPO", ROOT.parent / "tart_cargo"))
 
 UV = local["uv"]
 GIT = local["git"]

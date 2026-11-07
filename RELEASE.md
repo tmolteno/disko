@@ -17,9 +17,9 @@ $ uv run invoke release --level minor --yes
 2. bump       pyproject version + CHANGES.md `## Unreleased` → `## <ver> (<date>)`
 3. publish    commit + tag v<version> + push → .github/workflows/package.yaml
               builds and publishes to PyPI → wait for that run to go green
-4. tools      invoke -r ~/tart-telescope/tools release --disko-version=<version>
+4. tools      invoke -r ../tools release --disko-version=<version>
               (exact pin, image tests, tag → GHCR, wait for the image)
-5. tart_cargo invoke -r ~/tart-telescope/tart_cargo release --tools-tag=<new tag>
+5. tart_cargo invoke -r ../tart_cargo release --tools-tag=<new tag>
               (poll GHCR, bump the base image, tests, tag → PyPI)
 ```
 
@@ -28,8 +28,8 @@ from PyPI, and tart_cargo's cab image version must exist before it is
 referenced. Each stage waits for the previous one's artifact to actually
 appear, which is why the chain takes a while (see [Timing](#timing)).
 
-- tools release details: `../tart-telescope/tools/RELEASE.md`
-- tart_cargo release details: `../tart-telescope/tart_cargo/RELEASE.md`
+- tools release details: `../tools/RELEASE.md`
+- tart_cargo release details: `../tart_cargo/RELEASE.md`
 
 ## Prerequisites
 
@@ -40,7 +40,7 @@ appear, which is why the chain takes a while (see [Timing](#timing)).
 | `gh` CLI, authenticated | `publish` waits for the package.yaml run; without it pass `--no-wait` |
 | `PYPI_API_TOKEN` secret in the disko repo | package.yaml's publish step (already configured) |
 | `invoke` + `plumbum` on your interpreter | the two downstream task files import them (installed globally today) |
-| downstream checkouts | default `~/tart-telescope/{tools,tart_cargo}`; override with `DISKO_TOOLS_REPO` / `DISKO_TART_CARGO_REPO` |
+| downstream checkouts | default the siblings `../tools` and `../tart_cargo` (this workspace's layout); override with `DISKO_TOOLS_REPO` / `DISKO_TART_CARGO_REPO` |
 | `docker` (optional) | tools' tests build the image; its release can be run with `--skip-tests` by whoever cannot |
 
 ## The tasks
