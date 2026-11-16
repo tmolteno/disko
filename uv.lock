@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11, <3.14"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -478,16 +478,16 @@ wheels = [
 
 [[package]]
 name = "flake8"
-version = "7.4.1"
+version = "7.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mccabe" },
     { name = "pycodestyle" },
     { name = "pyflakes" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c2/94/85870fc02dfe4ab0885c440e7e41f6a986b10e43eca6717e90f8ce1215cc/flake8-7.4.1.tar.gz", hash = "sha256:84ea5afcaf344487b0ea5baaebb8100f4cfaebc01f755998f75876664029f587", size = 47897, upload-time = "2026-09-23T12:21:59.283Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9a/da/b0d00f8c4c676212284edd3cc3d371588ce0e36a349373c3a01e188b5639/flake8-7.5.0.tar.gz", hash = "sha256:0dab7566341aca0d80aa29b5812bdadf256caa6a63e6068e49ac2649918236a4", size = 47811, upload-time = "2026-10-28T20:17:22.128Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b5/d4/8e58a7221419bf8cb194f362ab26abf504c983135975e4c785fac0852886/flake8-7.4.1-py2.py3-none-any.whl", hash = "sha256:78480274a6d7289d9cb8eafeda241fac57d4ea687d26e32dfdca37b72cdeddad", size = 57449, upload-time = "2026-09-23T12:21:58.085Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/57/a3adc5f380f50ef3d01014cb9d3b8c17b25de9b89def20d559def4fc3c4e/flake8-7.5.0-py2.py3-none-any.whl", hash = "sha256:637ea1a443a78ed6ee461725cdf71ca93bc5cde0abf25436dbebdc3880b4e078", size = 57487, upload-time = "2026-10-28T20:17:21.061Z" },
 ]
 
 [[package]]
@@ -1179,11 +1179,11 @@ wheels = [
 
 [[package]]
 name = "pyflakes"
-version = "4.0.3"
+version = "4.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2c/1b/3ba8bd62723cfe1b651c4e4b89b33767fce7a08bb800491cf1d3dd3a7716/pyflakes-4.0.3.tar.gz", hash = "sha256:94762a3a5a343a79b28754f96c554bce057a592a4896907d73f0369fe824e053", size = 67126, upload-time = "2026-10-07T18:57:25.327Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/43/f4566b992ab97abd18426aeba516a83c7a833230614a2c3f4d3e9d8ff0f0/pyflakes-4.1.0.tar.gz", hash = "sha256:592beb57058eb82eb190fb7514f2081c555c51000b029ff71286a681e6cf2f83", size = 67243, upload-time = "2026-10-28T20:10:02.469Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/b0/554d720d71083ccd24ba2f376c048544c073570e7bb18b34d769cef77f66/pyflakes-4.0.3-py2.py3-none-any.whl", hash = "sha256:330ba92b8c1db2eb0b8f4068f6c58674e2649a99e334769aa50e3e9c5b11c23a", size = 66250, upload-time = "2026-10-07T18:57:24.403Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/52/98c9a0e4718abe887121279457bc7140115df22d714b7183880eb61e359f/pyflakes-4.1.0-py2.py3-none-any.whl", hash = "sha256:b2e05e6bac8e49b67be2a6ffa63422c60f7193fc72e8180255907b41ec997dc1", size = 66258, upload-time = "2026-10-28T20:10:01.109Z" },
 ]
 
 [[package]]
@@ -1197,15 +1197,15 @@ wheels = [
 
 [[package]]
 name = "pylops"
-version = "2.8.0"
+version = "2.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6b/38/b39f3db9af5bf349046a1f1fe96426c789c2912d533bc167a6281a40fc0c/pylops-2.8.0.tar.gz", hash = "sha256:7fb6a3e4c57f14059131aded722ae9c331c12f26075d7e7e98e4ec3915e1262c", size = 50490902, upload-time = "2026-07-25T20:11:30.91Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/75/e8/685c6d3fed166ff5b24c71c68d2ab70f95567e55961791f8f574d49ab939/pylops-2.9.0.tar.gz", hash = "sha256:8cf028b6db3b9e2520d02ec75b7187346f2fd6788dc5079a9baba51d4b8a8f76", size = 50460204, upload-time = "2026-11-12T20:52:24.759Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/74/59/c68343f86ebe90b26a02796c447179ed6e4bbb108c04422299e234d81ad7/pylops-2.8.0-py3-none-any.whl", hash = "sha256:5f2dff378e4dadd91d1424b6fc527fa96e893fc43e58fea0817ed9f3246a51cf", size = 369854, upload-time = "2026-07-25T20:11:28.068Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/2a/2aae0e24d218e7042abd3147c72455e1bd29fac2e202b020f54d7400525c/pylops-2.9.0-py3-none-any.whl", hash = "sha256:22e9ae3e21544f22eb88dc2bd8f1f67ab7a77c397151944f057f8f94efc76a11", size = 396015, upload-time = "2026-11-12T20:52:22.455Z" },
 ]
 
 [[package]]
@@ -1219,7 +1219,7 @@ wheels = [
 
 [[package]]
 name = "pytest"
-version = "9.1.1"
+version = "9.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
@@ -1228,9 +1228,9 @@ dependencies = [
     { name = "pluggy" },
     { name = "pygments" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e4/47/b9efed96c114afcfa3c9d3fe98a76a1d14c74a9e266d397cf6eb64be5e01/pytest-9.1.1.tar.gz", hash = "sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313", size = 1636369, upload-time = "2026-06-19T10:58:32.857Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/79/42/bb4641652e58dedeac2ec51abc1f8cae4fee4ec63899a0999016229a0f2a/pytest-9.2.0.tar.gz", hash = "sha256:97c4f3b1f3c7414aa36465e09b8220f1d03627993bd51b1282e193753c80557b", size = 1797555, upload-time = "2026-10-27T21:30:20.728Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/24/25/1de2678b631f5a49215c6c96fff41ba892b0a34df68d6d80292b1b48aa7f/pytest-9.1.1-py3-none-any.whl", hash = "sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c", size = 386536, upload-time = "2026-06-19T10:58:31.347Z" },
+    { url = "https://files.pythonhosted.org/packages/51/39/1f5d8c8877a0fa327db959c19341d4be61660de1ab6b7391f9eb805bcd67/pytest-9.2.0-py3-none-any.whl", hash = "sha256:07acdcf88ec174f907dc01af70bf52d49b014bbab03faeeade31c96b18c2e588", size = 411776, upload-time = "2026-10-27T21:30:19.131Z" },
 ]
 
 [[package]]
@@ -1486,7 +1486,7 @@ wheels = [
 
 [[package]]
 name = "tart2ms"
-version = "0.9.6"
+version = "0.9.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "astropy" },
@@ -1504,9 +1504,9 @@ dependencies = [
     { name = "tart-catalogue-client" },
     { name = "tart-tools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/26/d8/6315ec4cf2b92ba8f4838a0ed7be77747b163607801a906c4ee0ecf916b9/tart2ms-0.9.6.tar.gz", hash = "sha256:74f668174dffb1ec93765a47891cfcb0690a23539648cebb9b108809b4a874df", size = 6523525, upload-time = "2026-11-06T20:45:10.879Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6c/07/7708af55e485c56f02789779e78d7cc764c8801989a727c5517c2c0ae844/tart2ms-0.9.8.tar.gz", hash = "sha256:ea379455f40dd8693ded8211224be7ed05924f457aa7327965baf726f3b3fbcc", size = 6523668, upload-time = "2026-11-09T19:40:43.154Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/fb/8e34465e5e01a865bd83c6fbc66e79aae2b54e705f5a434595b8d4a89502/tart2ms-0.9.6-py3-none-any.whl", hash = "sha256:84993cdc25ee2d08550b809e52c29063d0f9796957602617bdeacb29365d769e", size = 6529468, upload-time = "2026-11-06T20:45:09.115Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/7e/9fa01777cde980113c3f1da7bcfcfe64bc864bfa0cc46b6c1dde3a142e7d/tart2ms-0.9.8-py3-none-any.whl", hash = "sha256:22209e77d31c9e220ce8b3b4abd9facf5e831329c2c8f0629f092d44e73b155a", size = 6529465, upload-time = "2026-11-09T19:40:41.322Z" },
 ]
 
 [[package]]
