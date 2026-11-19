@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Fix **tart-telescope/tools#5**: `DiSkOOperator` called
+  `super().__init__()` before `self.shape` existed, and pylops ≥ 2.9 reads
+  `len(self.shape)` inside `LinearOperator.__init__` — so every operator
+  construction raised `AttributeError: 'DiSkOOperator' object has no
+  attribute 'shape'` under the pylops 2.9.0 the shipped tools image
+  installs (disko 1.5.0 × pylops 2.9.0 broke every spotless/disko run in
+  `tools:v1.3.3`). The base init now runs after `self.shape`/`self.explicit`
+  are set, with `dtype=REAL_DATATYPE` passed explicitly (pylops 2.8 accepts
+  it too). Full suite green on pylops **2.8.0** (the lock) and **2.9.0**
+  (the image): 147 passed on each.
 - The release chain's tools stage now runs `invoke -r ../tart_cargo
   tools-release`: the tools image release and the tart_cargo release are
   both controlled by tart_cargo's single invoke script, and the tools stage

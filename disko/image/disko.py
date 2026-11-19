@@ -92,7 +92,8 @@ class DiSkOOperator(pylops.LinearOperator):
     """
 
     def __init__(self, u_arr, v_arr, w_arr, data, frequencies, sphere):
-        super().__init__()
+        # NOTE: super().__init__() runs only once self.shape exists — see
+        # below; pylops >= 2.9 reads it inside LinearOperator.__init__.
         self.N = sphere.npix  # Number of pixels
         self.u_arr = u_arr
         self.v_arr = v_arr
@@ -124,6 +125,12 @@ class DiSkOOperator(pylops.LinearOperator):
 
         self.shape = (self.M, self.N)
         self.explicit = False  # Can't be directly inverted
+        # Base init last: pylops >= 2.9 computes ndim = len(self.shape) in
+        # LinearOperator.__init__, so calling it before shape existed raised
+        # AttributeError on every DiSkOOperator under pylops 2.9 (the shipped
+        # tools image — tart-telescope/tools#5). dtype is passed explicitly
+        # so the base cannot default it away; pylops 2.8 accepts it too.
+        super().__init__(dtype=REAL_DATATYPE)
 
         # Cache for precomputed harmonic blocks (keyed by block index).
         # Since UVW and frequency don't change between iterations, the
