@@ -17,8 +17,8 @@ $ uv run invoke release --level minor --yes
 2. bump       pyproject version + CHANGES.md `## Unreleased` → `## <ver> (<date>)`
 3. publish    commit + tag v<version> + push → .github/workflows/package.yaml
               builds and publishes to PyPI → wait for that run to go green
-4. tools      invoke -r ../tools release --disko-version=<version>
-              (exact pin, image tests, tag → GHCR, wait for the image)
+4. tools      invoke -r ../tart_cargo tools-release --disko-version=<version>
+              (exact pin, LOCAL image build + stimela gates, tag → GHCR, wait for the image)
 5. tart_cargo invoke -r ../tart_cargo release --tools-tag=<new tag>
               (poll GHCR, bump the base image, tests, tag → PyPI)
 ```
@@ -28,7 +28,8 @@ from PyPI, and tart_cargo's cab image version must exist before it is
 referenced. Each stage waits for the previous one's artifact to actually
 appear, which is why the chain takes a while (see [Timing](#timing)).
 
-- tools release details: `../tools/RELEASE.md`
+- tools release details: `../tart_cargo/RELEASE.md` (one script controls
+  both releases; `../tools/RELEASE.md` covers the image repo itself)
 - tart_cargo release details: `../tart_cargo/RELEASE.md`
 
 ## Prerequisites
@@ -39,9 +40,9 @@ appear, which is why the chain takes a while (see [Timing](#timing)).
 | push rights to `tmolteno/disko`, `tart-telescope/tools`, `tart-telescope/tart_cargo` | the chain tags and pushes in all three |
 | `gh` CLI, authenticated | `publish` waits for the package.yaml run; without it pass `--no-wait` |
 | `PYPI_API_TOKEN` secret in the disko repo | package.yaml's publish step (already configured) |
-| `invoke` + `plumbum` on your interpreter | the two downstream task files import them (installed globally today) |
+| `invoke` + `plumbum` on your interpreter | the downstream task file (tart_cargo's) imports them (installed today in its venv) |
 | downstream checkouts | default the siblings `../tools` and `../tart_cargo` (this workspace's layout); override with `DISKO_TOOLS_REPO` / `DISKO_TART_CARGO_REPO` |
-| `docker` (optional) | tools' tests build the image; its release can be run with `--skip-tests` by whoever cannot |
+| `docker` | stage 4 builds the tools image **locally** and gates on it (its `--skip-tests` still builds — the build is what proves the pins resolve) |
 
 ## The tasks
 
@@ -141,8 +142,10 @@ $ gh run list --workflow package.yaml --watch        # wait for PyPI
 - `test`: ~1–3 min normally, longer the first time on a new interpreter
   (uv downloads 3.12/3.13).
 - `publish` wait: up to 30 min (usually ~1 min).
-- **tools**: image build + `make test-all`, then up to 60 min for GHCR — the
-  amd64 leg runs on `ubuntu-latest` but arm64 runs on a self-hosted runner.
+- **tools**: local image build + the stimela gates (recipe dry-runs, cab
+  commands inside the local image, offline smoke), then up to 60 min for
+  GHCR — the amd64 leg runs on `ubuntu-latest` but arm64 runs on a
+  self-hosted runner.
 - **tart_cargo**: recipe dry-runs (seconds) + publish wait.
 
 ## After the release

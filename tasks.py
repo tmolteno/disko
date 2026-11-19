@@ -25,16 +25,21 @@ Release automation for disko: invoke tasks driven by plumbum commands.
                    twine. The task then waits for that workflow run to go
                    green, because the next stage's image installs disko
                    from PyPI and would otherwise race the publish.
-    4. tools      `invoke -r <tools repo> release` — tags the tools image,
-                   which builds and pushes ghcr.io/tart-telescope/tools.
+    4. tools      `invoke -r <tart_cargo repo> tools-release` — builds the
+                   tools image locally, tests it with that script's stimela
+                   gates, tags it, which builds and pushes
+                   ghcr.io/tart-telescope/tools.
     5. tart_cargo `invoke -r <tart_cargo repo> release` — points the
                    stimulus base image at that new tag and publishes the
                    tart_cargo package.
 
-Stages 4 and 5 need a tasks.py in their own repos (both ship one). Repo
-locations default to the sibling checkouts ../tools and ../tart_cargo (the
-~/github workspace layout) and can be overridden with DISKO_TOOLS_REPO /
-DISKO_TART_CARGO_REPO for other layouts (e.g. ~/tart-telescope/*).
+Stages 4 and 5 both run from tart_cargo's tasks.py — that script controls
+both releases (stage 4 moved there when the tools release gained the local
+build + stimela gates); stage 4 still operates on the ../tools checkout
+(its Dockerfile and git tags). Repo locations default to the sibling
+checkouts ../tools and ../tart_cargo (the ~/github workspace layout) and
+can be overridden with DISKO_TOOLS_REPO / DISKO_TART_CARGO_REPO for other
+layouts (e.g. ~/tart-telescope/*).
 
 Nothing pushes without a confirmation prompt unless --yes is given, and
 --dry-run prints the full plan without touching anything.
@@ -401,11 +406,11 @@ def _wait_for_publish(tag: str, timeout_s: int = 1800, poll_s: int = 20) -> None
     raise Exit(f"timed out after {timeout_s}s waiting for the publish run on {tag}")
 
 
-def _chain(repo: Path, args: list[str], label: str) -> None:
+def _chain(repo: Path, args: list[str], label: str, task: str = "release") -> None:
     if not (repo / "tasks.py").exists():
-        raise Exit(f"{repo} has no tasks.py — cannot run `invoke release` for {label}")
+        raise Exit(f"{repo} has no tasks.py — cannot run `invoke {task}` for {label}")
     _banner(f"chain: {label} ({repo})")
-    _run(local["invoke"]["-r", str(repo), "release", *args])
+    _run(local["invoke"]["-r", str(repo), task, *args])
 
 
 @task(
@@ -426,7 +431,7 @@ def release(c, level="patch", yes=False, wait=True, dry_run=False):
         print(f"  1. test        exhaustive: lock check, lint gate, pytest on {', '.join(PYTHON_MATRIX)}, CLI smoke, uv build")
         print(f"  2. bump        {version} -> {planned} (+ CHANGES.md section)")
         print(f"  3. publish     commit + tag v{planned} + push -> package.yaml -> PyPI, wait for green")
-        print(f"  4. tools       invoke -r {TOOLS_REPO} release --disko-version={planned}")
+        print(f"  4. tools       invoke -r {CARGO_REPO} tools-release --disko-version={planned}")
         print(f"  5. tart_cargo  invoke -r {CARGO_REPO} release --tools-tag=<new tools tag>")
         print(_yellow("  dry run: nothing executed"))
         return
@@ -442,8 +447,9 @@ def release(c, level="patch", yes=False, wait=True, dry_run=False):
     publish(c, yes=yes, wait=wait)
 
     # tools installs disko from PyPI, so its stage runs only after the
-    # publish above went green (unless --no-wait was requested).
-    _chain(TOOLS_REPO, [f"--level={level}", "--yes", f"--disko-version={planned}"], "tools")
+    # publish above went green (unless --no-wait was requested). Both the
+    # tools and tart_cargo releases run from tart_cargo's tasks.py.
+    _chain(CARGO_REPO, [f"--level={level}", "--yes", f"--disko-version={planned}"], "tools", task="tools-release")
     tools_tag = _git("describe", "--tags", "--abbrev=0", cwd=TOOLS_REPO)
     _chain(CARGO_REPO, [f"--level={level}", "--yes", f"--tools-tag={tools_tag}"], "tart_cargo")
 
