@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+## 1.5.1 (2026-11-19)
 - Fix **tart-telescope/tools#5**: `DiSkOOperator` called
   `super().__init__()` before `self.shape` existed, and pylops ≥ 2.9 reads
   `len(self.shape)` inside `LinearOperator.__init__` — so every operator
