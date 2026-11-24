@@ -200,8 +200,15 @@ class DiSkOOperator(pylops.LinearOperator):
         return np.exp(phase) * self.sphere.pixel_areas[np.newaxis, :]
 
     def _block_size(self):
-        """Number of visibility rows per block, targeting ~200 MB per block."""
-        return max(256, int(200 * 1024 * 1024 / (16 * max(1, self.N))))
+        """Number of visibility rows per block, targeting ~200 MB per block.
+
+        That is the size of the block's complex128 harmonic array, and
+        building one keeps two of them alive, so the transient is about twice
+        the target. The result is only floored at one row: a larger floor
+        overrides the target once N is big enough, and 256 rows made a block
+        1.47 GB at nside 256 (N = 358,912).
+        """
+        return max(1, int(200 * 1024 * 1024 / (16 * max(1, self.N))))
 
     def _get_block(self, block_idx, p2j, u_blk, v_blk, w_blk):
         """Return (real, imag) float32 arrays for a harmonic block.
@@ -259,12 +266,17 @@ class DiSkOOperator(pylops.LinearOperator):
         x = ( T_real' T_imag') (v_real
                                 v_imag)
 
-        Matrix-free: uses cached float64 harmonic blocks.
+        Matrix-free: uses the cached float32 harmonic blocks.
+
+        The products are done in float32, like the blocks: paired with a
+        float64 vector, NumPy converts the whole block to float64 first, a
+        copy of the block per product per call. The block results are
+        accumulated in float64, so the result is float64 as before.
         """
         assert v.shape == (self.M,)
         n_u = self.u_arr.shape[0]
-        v_real = np.asarray(v[:n_u], dtype=np.float64).ravel()
-        v_imag = np.asarray(v[n_u:], dtype=np.float64).ravel()
+        v_real = np.asarray(v[:n_u], dtype=np.float32).ravel()
+        v_imag = np.asarray(v[n_u:], dtype=np.float32).ravel()
 
         ret = np.zeros(self.N, dtype=np.float64)
         block_size = self._block_size()

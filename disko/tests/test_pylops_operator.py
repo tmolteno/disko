@@ -6,7 +6,9 @@
 #
 
 import logging
+import tracemalloc
 import unittest
+from types import SimpleNamespace
 
 import astropy.constants as const
 import numpy as np
@@ -165,3 +167,102 @@ class TestPylopsOperator(unittest.TestCase):
 
         self.assertEqual(vis1.shape, vis2.shape)
         self.assertTrue(np.allclose(vis1, vis2))
+
+    def _small_operator(self, n_ant=8):
+        """An operator on a small synthetic telescope, beside the explicit
+        matrix ([Re; Im]) it stands for."""
+        ant_pos = np.random.uniform(-2.0, 2.0, (n_ant, 3))
+        tel = DiSkO.from_ant_pos(ant_pos, frequency=1.5e9)
+        data = tel.vis_to_data(np.zeros(tel.n_v, dtype=np.complex128))
+        sphere = HealpixSubFoV(
+            nside=8, theta=0.0, phi=0.0, radius_rad=np.radians(40)
+        )
+        Op = disko.DiSkOOperator(
+            tel.u_arr, tel.v_arr, tel.w_arr, data, [tel.frequency], sphere
+        )
+        return Op, tel.make_gamma(sphere)
+
+    def _assert_as_close_as_float32(self, got, want):
+        # The harmonics are stored as float32, so the products agree with the
+        # float64 matrix to about 1e-6 of their largest value, not element by
+        # element where cancellation leaves something near zero.
+        self.assertEqual(got.shape, want.shape)
+        self.assertLessEqual(np.max(np.abs(got - want)), 1e-5 * np.max(np.abs(want)))
+
+    def test_products_match_the_explicit_matrix(self):
+        r"""
+        A @ x and A.T @ v equal the explicit matrix products, in one block or
+        many, with the block cache on or off. The adjoint stays float64.
+        """
+        Op, gamma = self._small_operator()
+        x = np.random.normal(0, 1, Op.N)
+        v = np.random.normal(0, 1, Op.M)
+        self.assertGreater(Op.M, 10)  # so the smaller block sizes below split it
+
+        for block_size in (Op._block_size(), 5, 1):
+            Op._block_size = lambda rows=block_size: rows
+            for use_cache in (True, False):
+                Op._use_cache = use_cache
+                Op._block_cache = {} if use_cache else None
+
+                self._assert_as_close_as_float32(Op @ x, gamma @ x)
+                adjoint = Op.rmatvec(v)
+                self.assertEqual(adjoint.dtype, np.float64)
+                self._assert_as_close_as_float32(adjoint, gamma.T @ v)
+
+    def test_rmatvec_copies_no_blocks(self):
+        r"""
+        The adjoint multiplies the float32 blocks in float32. Paired with a
+        float64 vector, NumPy converts each block to float64 first: a copy of
+        the whole block per product per call, which is where most of the
+        adjoint's time went.
+        """
+        rng = np.random.default_rng(3)
+        n_rows = 170
+        tel = DiSkO(
+            rng.uniform(-2.0, 2.0, n_rows),
+            rng.uniform(-2.0, 2.0, n_rows),
+            rng.uniform(-2.0, 2.0, n_rows),
+            1.5e9,
+        )
+        data = tel.vis_to_data(np.zeros(n_rows, dtype=np.complex128))
+        sphere = HealpixFoV(nside=16)  # 3072 pixels
+        Op = disko.DiSkOOperator(
+            tel.u_arr, tel.v_arr, tel.w_arr, data, [tel.frequency], sphere
+        )
+        v = rng.normal(0, 1, Op.M)
+        Op.rmatvec(v)  # build and cache the block
+
+        was_tracing = tracemalloc.is_tracing()
+        if not was_tracing:
+            tracemalloc.start()
+        tracemalloc.reset_peak()
+        try:
+            Op.rmatvec(v)
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            if not was_tracing:
+                tracemalloc.stop()
+
+        rows = min(Op._block_size(), n_rows)
+        float64_block = Op.N * rows * 8
+        self.assertLess(peak, float64_block / 8)
+
+    def test_block_size_meets_its_memory_target(self):
+        r"""
+        One block's complex128 harmonics stay within the ~200 MB target at
+        any pixel count. A floor of 256 rows used to override the target above
+        about 51,200 pixels: at nside 256 (N = 358,912) that made a block
+        1.47 GB per array.
+        """
+        tel = DiSkO.from_ant_pos(np.random.uniform(-2.0, 2.0, (4, 3)), frequency=1.5e9)
+        data = tel.vis_to_data(np.zeros(tel.n_v, dtype=np.complex128))
+        for npix, rows in ((48, 273066), (5056, 2592), (89856, 145), (358912, 36)):
+            # Only npix and the length of l are read at construction, so the
+            # big skies need no real sphere.
+            sphere = SimpleNamespace(npix=npix, l=np.zeros(npix))
+            Op = disko.DiSkOOperator(
+                tel.u_arr, tel.v_arr, tel.w_arr, data, [tel.frequency], sphere
+            )
+            self.assertEqual(Op._block_size(), rows)
+            self.assertLessEqual(Op._block_size() * npix * 16, 200 * 1024 * 1024)
