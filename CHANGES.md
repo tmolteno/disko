@@ -1,6 +1,8 @@
 # Changes
 
 ## Unreleased
+
+## 1.5.2 (2026-11-25)
 - `DiSkOOperator._rmatvec()` multiplies the cached float32 harmonic blocks in float32. It converted the data vector to float64, so NumPy converted every block to float64 first — a copy of the whole block per product per call, which was most of the adjoint's time. The result is still float64 (the block products are accumulated into one) and moves by at most 3e-7 of its largest value, with the peak pixel unchanged, on the test data. One cached adjoint with a 4.2 MB block allocates 64 KB instead of 4.25 MB (asserted in `test_pylops_operator.py`); measured on real baselines it is 8-10x faster at nside 32-64 and 29x at nside 128 (2000 visibilities x 89,856 pixels: 4.12 s to 0.14 s). `_matvec()` still pairs the blocks with a float64 sky and makes the same conversion.
 - `DiSkOOperator._block_size()` is floored at one row instead of 256. The floor overrode the ~200 MB target above about 51,200 pixels: at nside 256 (N = 358,912) a block was 256 x 358,912, a 2.9 GB transient while it is built. It is now 36 rows (0.4 GB), and one cold back-projection of 2000 visibilities onto that sphere peaked at 0.95 GB instead of 5.27 GB and took 40 s instead of 91 s on a 16 GB machine — the smaller blocks keep the temporaries out of the range where it starts reclaiming memory, so expect the memory figure to carry over and the time one not to. The cache cap is unchanged: the float32 cache for that sphere and those visibilities would be 5.7 GB, so it stays disabled and every call still rebuilds the blocks. `test_pylops_operator.py` now checks `_block_size()` against the target from 48 to 358,912 pixels, and both products against the explicit matrix over several block sizes with the cache on and off.
 
