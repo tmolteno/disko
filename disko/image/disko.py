@@ -939,8 +939,3 @@ class DiSkO(object):
         sphere = HealpixFoV(nside)
         self.solve_vis(self.vis_arr, sphere)
         sphere.plot(plt, src_list)
-
-    def beam(self, plt, nside):
-        sphere = HealpixFoV(nside)
-        self.solve_vis(np.ones_like(self.vis_arr), nside)
-        sphere.plot(plt, src_list=None)

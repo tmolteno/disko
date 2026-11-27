@@ -456,14 +456,15 @@ The rest of spotless's behaviour is copied.
 Two traps.
 
 \begin{itemize}
-\item \emph{The name is taken.} In disko \texttt{beam} had meant the
+\item \emph{The name was taken.} In disko \texttt{beam} had meant the
   synthesis beam: \texttt{disko\_svd --beam} (``Generate a gridless beam'')
-  and \texttt{DiSkO.beam()} image the array's response to a source. spotless
+  was to image the array's response to a source, and never worked. spotless
   0.10.0 moved that meaning to \texttt{--psf} and gave \texttt{--beam} to the
-  antenna pattern. disko gives \texttt{--beam} its new meaning on
-  \texttt{disko} and \texttt{disko\_bayes}; on \texttt{disko\_svd} it still
-  means the synthesis beam, as it does on spotless's \texttt{gridless}, and
-  should move to the \texttt{--psf} that \texttt{disko\_svd} already has.
+  antenna pattern. disko does the same. \texttt{--beam} is the antenna
+  pattern on \texttt{disko} and \texttt{disko\_bayes}, and on
+  \texttt{disko\_svd} it is a usage error that says so;
+  \texttt{disko\_svd --psf} images the synthesised beam, the response to a
+  unit source at the zenith, which it had not done for some releases.
 \item \emph{The option cannot go into the shared parser.}
   \texttt{sphere\_args\_parser()} is a parent of spotless's parser, and
   spotless declares its own \texttt{--beam}; argparse rejects a duplicate
@@ -643,6 +644,8 @@ the telescope hears least.
   and through the dot test; Proposition~\ref{prop:beam}; the solvers at
   zero-gain pixels; the caches; both command lines; and an image through
   \texttt{disko --ms test\_data/test.ms --beam tart --HDF}.
+  \texttt{disko/tests/test\_svd\_cli.py} covers \texttt{disko\_svd}'s
+  \texttt{--psf} and its \texttt{--beam} error.
 \item \textbf{Dependency.} \texttt{tart-beam>=0.2.0}, as spotless requires:
   numpy and scipy, with healpy optional. It is a dependency rather than an
   optional extra because the release task, \texttt{invoke test}, runs
@@ -918,9 +921,10 @@ it implements
     constant across iterations;
   \item \texttt{\_rmatvec(v)}: the exact adjoint
     $\svec = \Re(H)^{\!\top}\vvec_{\mathrm{re}}+
-    \Im(H)^{\!\top}\vvec_{\mathrm{im}}$, the so-called dirty image (the
-    gridless beam of \texttt{disko\_svd --beam}: the array's synthesis beam,
-    not the primary beam of Section~\ref{sec:beam}).
+    \Im(H)^{\!\top}\vvec_{\mathrm{im}}$, the so-called dirty image (of unit
+    visibilities it is the synthesised beam, which \texttt{disko\_svd --psf}
+    images: the array's response, not the primary beam of
+    Section~\ref{sec:beam}).
 \end{itemize}
 
 Both are linear in the data and agree with the dense $\Gammam$

@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import argparse
 import json
 import logging
+import sys
 from copy import deepcopy
 
 import numpy as np
@@ -64,6 +65,15 @@ def fun_plot(to, data, title):
 
 ARGS = None
 
+L1_RATIO = 0.02
+"""The l1 ratio of the lasso sweep: the disko command line's default."""
+
+BEAM_MOVED = (
+    "--beam was a flag that tried to draw the synthesised beam, and crashed. "
+    "The synthesised beam is --psf. An antenna beam pattern is --beam on disko "
+    "and disko_bayes."
+)
+
 
 def main():
     global ARGS
@@ -75,12 +85,11 @@ def main():
 
     parser.add_argument('--nside', type=int, default=4, help="Healpix nside parameter for display purposes only.")
 
-    parser.add_argument('--beam', action="store_true", help="Generate a gridless beam.")
-
     parser.add_argument('--elevation', type=float, default=20.0, help="Elevation limit for displaying sources (degrees)")
     parser.add_argument('--display', action="store_true", help="Display Image to the user")
     parser.add_argument('--harmonics', action="store_true", help="Display the harmonics")
-    parser.add_argument('--psf', action="store_true", help="Display the sum of all harmonics")
+    parser.add_argument('--psf', action="store_true",
+                        help="Image the synthesised beam: the response to a unit source at the zenith.")
 
     parser.add_argument('--PNG', action="store_true", help="Generate a PNG format image")
     parser.add_argument('--PDF', action="store_true", help="Generate a PDF format image")
@@ -90,6 +99,10 @@ def main():
     parser.add_argument('--mask', default="batman.png", help="Use the mask file.")
 
     source_json = None
+
+    # Said here, before argparse reports an unknown option: where --beam went.
+    if any(a == "--beam" or a.startswith("--beam=") for a in sys.argv[1:]):
+        parser.error(BEAM_MOVED)
 
     ARGS = parser.parse_args()
 
@@ -189,23 +202,25 @@ def main():
             # fun_plot(harmonic, "natural_restored_fringe_{}".format(h))
 
     if ARGS.psf:
-        # Make a point sky
-        sky = np.zeros((to.n_s, 1))
-        sky[to.n_s-100] = 1.0
-        sky = sky.reshape([-1,1])
+        # The synthesised beam: what this array makes of a unit point source at
+        # the zenith, the phase centre. Such a source gives unit visibility on
+        # every baseline. Three looks at it: the minimum-norm image, a Tikhonov
+        # one, and the dirty image. (This was --beam, which never worked.)
+        # The SVD solvers take the visibilities stacked real over imaginary,
+        # flat; the dirty image takes them complex, one per baseline.
+        unit = np.ones_like(grid.vis_arr)
+        real_vis = vis_to_real(unit)
 
-        vis = to.gamma @ sky
-
-        sky = to.image_visibilities(vis, sphere)
+        to.image_visibilities(real_vis, sphere)
         sphere.plot(plt, src_list)
         handle_image(ARGS, "psf_natural" + ARGS.title, time_repr, src_list)
 
         alpha = 0.1
-        sky = to.image_tikhonov(vis, sphere, alpha)
+        to.image_tikhonov(real_vis, sphere, alpha)
         sphere.plot(plt, src_list)
         handle_image(ARGS, "psf_tikhonov_{:04.2f}".format(alpha) + ARGS.title, time_repr, src_list)
 
-        pixels = grid.image_visibilities(vis, sphere)
+        grid.image_visibilities(unit, sphere)
         sphere.plot(plt, src_list)
         handle_image(ARGS, "psf_gridless" + ARGS.title, time_repr, src_list)
 
@@ -223,14 +238,10 @@ def main():
             sky = to.image_tikhonov(real_vis, sphere, float(i))
             sphere.plot(plt, src_list)
             handle_image(ARGS, "tikhonov_{:04.2f}".format(i) + ARGS.title, time_repr, src_list)
-            pixels = grid.image_lasso(grid.vis_arr, sphere, float(i/5), scale=True)
+            pixels = grid.image_lasso(grid.vis_arr, sphere, float(i/5), L1_RATIO, scale=True)
             sphere.plot(plt, src_list)
             handle_image(ARGS, "lasso_{:04.2f}".format(i) + ARGS.title, time_repr, src_list)
 
         pixels = grid.image_visibilities(grid.vis_arr, sphere)
         sphere.plot(plt, src_list)
         handle_image(ARGS, "gridless" + ARGS.title, time_repr, src_list)
-
-    if ARGS.beam:
-        grid.beam(plt, nside)
-        handle_image(ARGS, "dirty", "beam", src_list)
