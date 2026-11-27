@@ -645,8 +645,9 @@ the telescope hears least.
   \texttt{disko --ms test\_data/test.ms --beam tart --HDF}.
 \item \textbf{Dependency.} \texttt{tart-beam>=0.2.0}, as spotless requires:
   numpy and scipy, with healpy optional. It is a dependency rather than an
-  optional extra because CI and the release task run \texttt{uv sync --dev}
-  with no extras, which would have left the beam tests unrun.
+  optional extra because the release task, \texttt{invoke test}, runs
+  \texttt{uv sync --dev} with no extras (as the unit-test workflow does), so
+  an extra would have left the beam tests unrun.
 \end{itemize}
 
 \section{The SVD of the telescope operator}
