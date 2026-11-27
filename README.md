@@ -43,26 +43,81 @@ image is of the sky before the beam:
 
     disko --ms test_data/test.ms --nside 32 --beam tart --HDF fov.h5
 
+Nothing else changes: draw the field of view with `disko_draw` as above. The
+beam is part of the operator, so every solver (`--tikhonov`, `--lasso`,
+`--matrix-free`, `--no-regularization`) images through it. `disko_bayes`
+takes the same option, on every turn of `--sequential` too:
+
+    disko_bayes --ms test_data/test.ms --nside 32 --beam tart --mu --var --PNG
+
 `--beam` takes the same values as `spotless` and `tartball`, which read them
 from [tart-beam](https://github.com/tart-telescope/beams):
 
 | Value | Meaning |
 |-------|---------|
-| `tart` | The built-in TART beam: roughly uniform above 10° elevation, falling to zero at the horizon |
-| A JSON file | A beam saved by `tart_beam.Beam.to_json()`, or a list of `{el, az, gain}` samples in degrees, which is fitted when loaded |
+| `tart` (or `default`) | The built-in TART beam: roughly uniform above 10° elevation, falling to zero at the horizon |
+| A JSON file with `coeffs` | A beam saved by `tart_beam.Beam.to_json()` |
+| A JSON list of `el`, `az`, `gain` | Samples in degrees, fitted with a spherical-harmonic pattern when they are loaded |
 
 A bare `--beam` means `tart`.
 
-- Both `disko` and `disko_bayes` take it. The beam is part of the operator, so
-  every solver images through it.
-- The field of view written with `--HDF` records the beam, and `disko` writes
-  a `*_beam_*` image of the pattern.
-- Pixels the beam gives no gain are exactly null, so nothing is imaged behind
-  the antenna. On a full sphere a planar array cannot otherwise tell the sky
-  from its reflection below the ground.
-- The gain has no floor, and nothing is divided by it. Where the beam varies
-  within a resolution element (the lowest 10° of a TART field) the de-beamed
-  fluxes depend on the regularizer; read them with that in mind.
+A beam of your own is a list of the gain at measured or simulated directions,
+with enough of them to cover the pattern (a grid, as in
+[tart-beam's example](https://github.com/tart-telescope/beams/blob/main/examples/sample_beam.json)):
+
+    [
+      {"el": 90.0, "az": 0.0,  "gain": 1.0},
+      {"el": 45.0, "az": 30.0, "gain": 0.42},
+      ...
+    ]
+
+    disko --ms test_data/test.ms --nside 32 --beam my_beam.json --HDF fov.h5
+
+Such a list is fitted every time it is loaded. To fit it once, save the
+result and give that instead:
+
+    from tart_beam import fit_from_json
+    fit_from_json("my_beam.json", degree=8, q=2).to_json("fitted_beam.json")
+
+A list is taken to be zenith-pointed: a sample at elevation `el` sits at
+`w = sin(el)`, and samples below the horizon are dropped. Behind the antenna
+the gain is zero.
+
+What you get:
+
+- The field of view written with `--HDF` records the beam, one gain per pixel,
+  in a `beam` dataset.
+- With `--PNG`, `--PDF`, `--SVG` or `--FITS`, `disko` also writes a
+  `*_beam_*` image of the pattern over the field of view.
+- Pixels the beam gives no gain are exactly null, so nothing is imaged
+  behind the antenna. On a full sphere a planar array cannot otherwise tell
+  the sky from its reflection below the ground.
+
+From Python, `FoV.set_beam()` puts the beam on a field of view, and every
+operator built from it (`DiSkO.make_gamma()`, `DiSkOOperator`,
+`TelescopeOperator`) carries it:
+
+    from disko import HealpixFoV, TelescopeOperator, load_beam
+
+    sphere = HealpixFoV(32)
+    sphere.set_beam(load_beam("tart"))     # or an array of one gain per pixel
+    to = TelescopeOperator(tel, sphere)    # the operator scaled by the beam
+
+where `tel` is the `DiSkO` for the observation.
+
+Things to know:
+
+- The gain is clipped at zero and has no floor, and nothing is divided by
+  it. Where the beam varies within a resolution element (the lowest 10° of a
+  TART field) the de-beamed fluxes depend on the regularizer; read them with
+  that in mind.
+- `--no-regularization` standardizes its image, so there the pixels outside
+  the beam hold a constant instead of zero. In `disko_bayes` they hold the
+  prior mean (`--mu`) and the prior variance (`--var`).
+- On the adaptive mesh (`--mesh --adaptive`) the beam is sampled again after
+  each refinement.
+- `disko_svd --beam` is an error. Its old `--beam` flag is now `--psf`, which
+  images the synthesised beam.
 
 ## VLA imaging with DiSkO
 
