@@ -8,17 +8,15 @@ Without one, a direction and its mirror image below the horizon have
 identical harmonics, and the Tikhonov image splits a source with its mirror.
 With the base TART beam the mirror pixels are exactly null.
 
-disko does not carry a beam yet. The beam is folded in through the pixel
-areas, A_j -> b_j A_j, which is exactly Gamma diag(b): every path that builds
-harmonics multiplies the phase term by the pixel area.
+The beam is set on a copy of the sphere with FoV.set_beam(): disko then
+weights each harmonic by b_j A_j, which is exactly Gamma diag(b).
 
 The beam is the profile that tart_beam.base_tart_beam() is fitted to: uniform
 above 10 degrees elevation, a cosine half-cycle down to zero at the horizon
 in w = sin(el), zero behind the antenna. It is written out here so the script
-needs only disko. With tart-beam installed, the fitted pattern itself is
-    b = beam.evaluate(elaz_to_vec(np.degrees(sphere.el_r),
-                                  np.degrees(sphere.az_r)))
-and differs from the profile by about 2 per cent.
+is exact and needs no fitted pattern. The built-in pattern itself,
+    sphere.set_beam(disko.load_beam("tart"))
+is a least-squares fit to it and differs by about 2 per cent.
 
 Usage:
     python doc/beam_model.py            # writes doc/beam_model.png
@@ -70,8 +68,7 @@ NSIDE = 16
 
 
 def disko():
-    # A fresh DiSkO per operator: get_harmonics() caches by (npix, n_vis), so
-    # one DiSkO would hand a second sphere the first one's harmonics.
+    """The TART array, as a DiSkO telescope."""
     ant = np.hstack((ANTENNAS, np.zeros((len(ANTENNAS), 1))))
     return DiSkO.from_ant_pos(ant, frequency=FREQUENCY)
 
@@ -90,10 +87,10 @@ def base_tart_beam(el_r, transition_deg=TRANSITION_DEG):
     return gain
 
 
-def through(sphere, beam):
-    """A copy of the sphere with the beam folded into its pixel areas."""
+def with_beam(sphere, beam):
+    """A copy of the sphere carrying a beam: one gain per pixel."""
     ret = sphere.copy()
-    ret.pixel_areas = sphere.pixel_areas * beam
+    ret.set_beam(beam)
     return ret
 
 
@@ -139,7 +136,7 @@ def main():
     sky[j] = 1.0 / sphere.pixel_areas[j]  # one unit of flux in pixel j
     above = sphere.el_r > 0
 
-    plain, beamed = TelescopeOperator(disko(), sphere), TelescopeOperator(disko(), through(sphere, beam))
+    plain, beamed = TelescopeOperator(disko(), sphere), TelescopeOperator(disko(), with_beam(sphere, beam))
     gamma, gamma_b = np.asarray(plain.gamma), np.asarray(beamed.gamma)
     assert np.allclose(gamma_b, gamma * beam[np.newaxis, :]), "A_j -> b_j A_j is not Gamma diag(b)"
     assert np.allclose(gamma[:, j], gamma[:, mirror]), "the planar array's mirror columns differ"

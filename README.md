@@ -35,6 +35,35 @@ or `--fista`, or `--no-regularization` to solve the visibilities directly
 (that unregularized solve is what you used to get by default, which is why
 the images were poor).
 
+### Beam patterns
+
+By default every antenna is taken to respond equally over the whole sky.
+`--beam` gives the telescope operator a primary beam instead, so that the
+image is of the sky before the beam:
+
+    disko --ms test_data/test.ms --nside 32 --beam tart --HDF fov.h5
+
+`--beam` takes the same values as `spotless` and `tartball`, which read them
+from [tart-beam](https://github.com/tart-telescope/beams):
+
+| Value | Meaning |
+|-------|---------|
+| `tart` | The built-in TART beam: roughly uniform above 10° elevation, falling to zero at the horizon |
+| A JSON file | A beam saved by `tart_beam.Beam.to_json()`, or a list of `{el, az, gain}` samples in degrees, which is fitted when loaded |
+
+A bare `--beam` means `tart`.
+
+- Both `disko` and `disko_bayes` take it. The beam is part of the operator, so
+  every solver images through it.
+- The field of view written with `--HDF` records the beam, and `disko` writes
+  a `*_beam_*` image of the pattern.
+- Pixels the beam gives no gain are exactly null, so nothing is imaged behind
+  the antenna. On a full sphere a planar array cannot otherwise tell the sky
+  from its reflection below the ground.
+- The gain has no floor, and nothing is divided by it. Where the beam varies
+  within a resolution element (the lowest 10° of a TART field) the de-beamed
+  fluxes depend on the regularizer; read them with that in mind.
+
 ## VLA imaging with DiSkO
 
 Download the VLA 5GHZ continuum survey measurement set. AG733_A061209.xp1 from the NRAO site.
@@ -69,5 +98,5 @@ downstream tools image and tart_cargo releases in the same chain. See
 
 ## TODO
 
-* Add a --full-sphere option which fixes the sphere in celestial coordinates, and then points the phase center of an observation correctly. Requires a beam pattern to be specified (or at least a hemispherical beam). A beam is a sky vector mask. I.e., should fall to zero 'outside' the beam.
+* Add a --full-sphere option which fixes the sphere in celestial coordinates, and then points the phase center of an observation correctly. Requires a beam pattern to be specified (or at least a hemispherical beam) -- `--beam` now provides one. A beam is a sky vector mask. I.e., should fall to zero 'outside' the beam.
 * Deal with flagging, output residuals in a way that can be used to flag in the measurement set. This means some casa expression that changes the MS.

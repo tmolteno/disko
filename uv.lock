@@ -411,6 +411,7 @@ dependencies = [
     { name = "scipy" },
     { name = "svgwrite" },
     { name = "tart" },
+    { name = "tart-beam" },
     { name = "tart-tools" },
     { name = "toolz" },
 ]
@@ -450,6 +451,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.7.3" },
     { name = "svgwrite", specifier = ">=1.4.3" },
     { name = "tart", specifier = ">=1.4.0" },
+    { name = "tart-beam", specifier = ">=0.2.0" },
     { name = "tart-tools", specifier = ">=1.4.0" },
     { name = "tart2ms", marker = "extra == 'ms'", specifier = ">=0.9.0" },
     { name = "toolz", specifier = ">=0.11.2" },
@@ -1451,6 +1453,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/0b/27/1757003f0394e2ca8baa21e7d7499b5efc517a19206afb0bae3b4384432d/tart-1.4.6.tar.gz", hash = "sha256:2327ff73ecf1e1ab17a0e352fc4d7746f168234a08d0cf372ca15fb5331cf6d6", size = 1047920, upload-time = "2026-08-06T23:15:26.055Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b2/0f/dc9dc6d9094d8801eb41b2187205ad763b20ece6b3e222a6d4ff521b2a23/tart-1.4.6-py3-none-any.whl", hash = "sha256:263325264bbb0463a79bd878a188c7dcc9072dd362c86c9afb34003bb4f4eccc", size = 1081839, upload-time = "2026-08-06T23:15:24.125Z" },
+]
+
+[[package]]
+name = "tart-beam"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c3/de/2c8ce06fdd6ef9cac0c7613b25cbd200cff44d1d3a3266c7ee83c024ebc4/tart_beam-0.2.0.tar.gz", hash = "sha256:fba1796cc202e39d0043ee3cd868a14d065e791da0f8e5b8ecddba1ae891de2e", size = 274484, upload-time = "2026-07-10T01:45:38.687Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/52/45/c2b31ab26f897c699dcde4f65a972214fe003d8151f8e6dddabae408fd7d/tart_beam-0.2.0-py3-none-any.whl", hash = "sha256:7bbe61230aa5a80cc54ff42a3b903ded056fcb57167cc85dc788f41e89d4246d", size = 32652, upload-time = "2026-07-10T01:45:37.369Z" },
 ]
 
 [[package]]

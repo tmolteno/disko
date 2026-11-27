@@ -7,6 +7,7 @@
 #
 # Tim Molteno 2017-2019 tim@elec.ac.nz
 #
+import hashlib
 import logging
 import time
 
@@ -81,6 +82,38 @@ def jomega(freq):
 def get_harmonic(p2j, l, m, n_minus_1, u, v, w, pixel_areas):  # noqa: E741 (l is a direction cosine)
     harmonic = np.exp(p2j * (u * l + v * m + w * n_minus_1)) * pixel_areas
     return harmonic
+
+
+def column_weights(sphere):
+    """
+    The weight of each pixel in the harmonics: its area, times the primary
+    beam when the sphere carries one (FoV.set_beam).
+
+    With a beam the harmonics are H diag(b), those of the beam-free telescope
+    for the apparent sky b*s, so every operator built from them is
+    Gamma diag(b).
+    """
+    areas = np.asarray(sphere.pixel_areas)
+    beam = getattr(sphere, "beam", None)
+    if beam is None:
+        return areas
+    beam = np.asarray(beam)
+    if beam.shape != areas.shape:
+        raise RuntimeError(
+            f"The beam has {beam.shape[0]} gains for {areas.shape[0]} pixels. "
+            "Set it again if the pixels changed (AdaptiveMeshFoV.refine())."
+        )
+    return areas * beam
+
+
+def column_weights_key(sphere):
+    """A digest of the column weights, for cache keys.
+
+    Two spheres with as many pixels but other weights (another beam, or other
+    pixel areas) must not share cached harmonics or an SVD.
+    """
+    weights = np.ascontiguousarray(column_weights(sphere), dtype=np.float64)
+    return hashlib.sha256(weights.tobytes()).hexdigest()[:12]
 
 
 class DiSkOOperator(pylops.LinearOperator):
@@ -171,7 +204,7 @@ class DiSkOOperator(pylops.LinearOperator):
             self.sphere.n[j],
         )  # The column index (one l,m,n element per pixel)
 
-        z = get_harmonic(p2j, l, m, n - 1, u, v, w, self.sphere.pixel_areas[j])
+        z = get_harmonic(p2j, l, m, n - 1, u, v, w, column_weights(self.sphere)[j])
         # z = np.exp(-p2j * (u * l + v * m + w * (n - 1))) * self.sphere.pixel_areas[j]
         if i < n_vis:
             return np.real(z)
@@ -197,7 +230,7 @@ class DiSkOOperator(pylops.LinearOperator):
             + np.outer(v_blk, self.sphere.m)
             + np.outer(w_blk, self.sphere.n_minus_1)
         )
-        return np.exp(phase) * self.sphere.pixel_areas[np.newaxis, :]
+        return np.exp(phase) * column_weights(self.sphere)[np.newaxis, :]
 
     def _block_size(self):
         """Number of visibility rows per block, targeting ~200 MB per block.
@@ -365,8 +398,14 @@ class DiSkO(object):
 
         Returns a 2D complex array of shape (n_vis, n_pix).
         Uses vectorized broadcasting for performance.
+
+        Cached by the number of pixels and of visibilities and by the column
+        weights: a sphere with as many pixels but another beam or other pixel
+        areas has its own harmonics.
         """
-        cache_key = f"{in_sphere.npix}_{self.u_arr.shape[0]}"
+        cache_key = (
+            f"{in_sphere.npix}_{self.u_arr.shape[0]}_{column_weights_key(in_sphere)}"
+        )
         if cache_key in self.harmonics:
             harmonic_list = self.harmonics[cache_key]
             assert harmonic_list.shape[1] == in_sphere.npix
@@ -375,13 +414,14 @@ class DiSkO(object):
         p2j = jomega(self.frequency)
 
         # Vectorized: compute the phase term for all (u,v,w) × (l,m,n-1) at once.
-        # H[i,j] = exp(p2j * (u_i*l_j + v_i*m_j + w_i*(n_j-1))) * area_j
+        # H[i,j] = exp(p2j * (u_i*l_j + v_i*m_j + w_i*(n_j-1))) * area_j, times
+        # the beam b_j when the sphere carries one.
         phase = p2j * (
             np.outer(self.u_arr, in_sphere.l)
             + np.outer(self.v_arr, in_sphere.m)
             + np.outer(self.w_arr, in_sphere.n_minus_1)
         )
-        gamma = np.exp(phase) * in_sphere.pixel_areas[np.newaxis, :]
+        gamma = np.exp(phase) * column_weights(in_sphere)[np.newaxis, :]
         logger.debug("Vectorized Gamma Shape: {}".format(gamma.shape))
 
         self.harmonics[cache_key] = gamma
@@ -805,12 +845,16 @@ class DiSkO(object):
             dv = self.v_arr
             dw = self.w_arr
 
+            # A beam weights the pixels here as it does in get_harmonics().
+            beam = getattr(sphere, "beam", None)
             for u, v, w in zip(du, dv, dw):
-                harmonic = da.from_array(
+                harmonic = (
                     np.exp(p2j * (u * dl + v * dm + w * n_arr_minus_1))
-                    / np.sqrt(sphere.npix),
-                    chunks=(n_s,),
+                    / np.sqrt(sphere.npix)
                 )
+                if beam is not None:
+                    harmonic = harmonic * beam
+                harmonic = da.from_array(harmonic, chunks=(n_s,))
                 harmonic = client.persist(harmonic)
                 harmonic_list.append(harmonic)
 

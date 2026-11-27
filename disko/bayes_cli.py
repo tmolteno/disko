@@ -21,6 +21,7 @@ from tart_tools import api_imaging
 
 from .cli import disko_from_ms
 from .image.disko import DiSkO, vis_to_real
+from .beam import add_beam_argument, beam_from_args
 from .ms_helper import (
     get_array_location,
     good_visibility_count,
@@ -551,6 +552,10 @@ def handle_bayes(ARGS):
 
     sphere = sphere_from_args(ARGS)
 
+    # Loaded before the data: a beam that cannot be loaded is a mistake on the
+    # command line, and need not wait for the telescope.
+    beam_from_args(ARGS, sphere, on_error=build_parser().error)
+
     if ARGS.sequential:
         if not ARGS.ms:
             raise RuntimeError("--sequential requires a measurement set (--ms)")
@@ -876,6 +881,10 @@ def build_parser():
         help="Rank truncation factor: singular values below max(s)/max_cond "
         "are treated as null space (invisible to the telescope).",
     )
+
+    # On this parser, not on sphere_args_parser(): spotless uses that one as a
+    # parent parser and declares its own --beam.
+    add_beam_argument(parser)
 
     parser.add_argument(
         "--null-prior",

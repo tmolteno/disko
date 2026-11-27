@@ -86,8 +86,7 @@ associated \emph{natural basis}.
 
 This article explains how this works, following the actual implementation:
 Section~\ref{sec:model} develops the discrete measurement equation;
-Section~\ref{sec:beam} adds the primary beam to it, as a sky vector (a
-proposed extension, specified but not yet implemented);
+Section~\ref{sec:beam} adds the primary beam to it, as a sky vector;
 Section~\ref{sec:svd} describes the SVD-based \texttt{TelescopeOperator} and its
 four subspaces; Section~\ref{sec:natural} introduces imaging in the natural
 basis; Section~\ref{sec:reg} covers regularized and sparse imaging;
@@ -179,17 +178,16 @@ rank-deficient: the telescope simply cannot measure most of the sky.
 
 The operator of Section~\ref{sec:model} assumes that every antenna responds
 equally in every direction: a harmonic carries the phase of a pixel and its
-area, and nothing else. Real elements do not. This section specifies how a
-primary beam is to be added to the package. It is a design rather than a
-description of the code, since none of it is implemented yet. It belongs
-here because the beam turns out to be a change of operator, not a new
-algorithm: everything that follows applies to the changed operator
-unchanged. The beam is a second sky vector $\bvec\in\R^{\Ns}$, one gain per
-pixel, and it enters the measurement equation as a Hadamard product with the
-sky. The subsections give the equation and what the beam does to the
-operator, the patterns supplied by \texttt{tart-beam} and how they are loaded
-from the command line, the limits of what the beam buys, and the
-implementation notes.
+area, and nothing else. Real elements do not. This section describes the
+primary beam: the \texttt{--beam} option of \texttt{disko} and
+\texttt{disko\_bayes}, and \texttt{FoV.set\_beam()} behind it. The beam is a
+second sky vector $\bvec\in\R^{\Ns}$, one gain per pixel, and it enters the
+measurement equation as a Hadamard product with the sky. It is a change of
+operator, not a new algorithm: everything that follows applies to the
+changed operator unchanged. The subsections give the equation and what the
+beam does to the operator, the patterns supplied by \texttt{tart-beam} and
+how they are loaded from the command line, the limits of what the beam buys,
+and the implementation.
 
 \subsection{The measurement equation with a beam}
 \label{sec:beameq}
@@ -222,7 +220,10 @@ measurement equation \eqref{eq:measurement} becomes
 \end{equation}
 with $\odot$ the Hadamard (element-wise) product. Equivalently the beam is a
 weight on the pixel areas, $A_j\mapsto b_jA_j$: in \eqref{eq:rime} it
-multiplies the same factor that the pixel area does. Three things follow
+multiplies the same factor that the pixel area does. That is how the package
+implements it: \texttt{column\_weights()} in \texttt{disko/image/disko.py}
+returns the pixel areas, times the beam when the sphere carries one, and
+every path that builds harmonics multiplies by it. Three things follow
 from \eqref{eq:beam} directly.
 
 \begin{itemize}
@@ -351,7 +352,9 @@ patterns of dish arrays would enter the same way, as closed forms or as
 samples evaluated at the pixels.
 
 The sky vector is the pattern evaluated at the directions of the pixels,
-$b_j=\beta(\hat{\boldsymbol{n}}_j)$. Three details matter.
+$b_j=\beta(\hat{\boldsymbol{n}}_j)$; \texttt{FoV.set\_beam()} stores it on
+the field of view, next to \texttt{pixel\_areas}, as \texttt{sphere.beam}.
+Three details matter.
 
 \begin{itemize}
 \item \emph{Frame.} \texttt{tart\_beam} measures azimuth from its $x$ axis
@@ -361,7 +364,7 @@ $b_j=\beta(\hat{\boldsymbol{n}}_j)$. Three details matter.
   \texttt{elaz2lmn} gives
   $(l,m,n)=(\sin\mathrm{az}\cos\mathrm{el},\cos\mathrm{az}\cos\mathrm{el},
   \sin\mathrm{el})$: the two frames differ by a right angle about the zenith,
-  $(x,y,z)=(m,l,n)$. The pattern is to be evaluated through
+  $(x,y,z)=(m,l,n)$. \texttt{FoV.set\_beam()} evaluates the pattern through
   \texttt{elaz\_to\_vec(np.degrees(el\_r), np.degrees(az\_r))} on the field
   of view's own \texttt{el\_r} and \texttt{az\_r}, which is the call tartball
   and spotless make, and not on disko's $(l,m,n)$. The difference shows only
@@ -386,8 +389,8 @@ $b_j=\beta(\hat{\boldsymbol{n}}_j)$. Three details matter.
 
 spotless \cite{spotless}, from version 0.10.0, fits its sources through an
 antenna pattern given on the command line, and reads the beam files that
-tartball \cite{tartball} reads. disko should take the same option, so that
-the three tools read a beam alike:
+tartball \cite{tartball} reads. disko takes the same option, so that the
+three tools read a beam alike:
 
 \begin{quote}
 \texttt{--beam [BEAM]} --- Antenna beam pattern: `tart' for the built-in
@@ -400,8 +403,9 @@ The option takes an optional value, and \texttt{--beam} on its own means
 \texttt{disko --ms test\_data/test.ms --nside 32 --beam tart --HDF fov.h5},
 imaging the field through the built-in TART beam.
 Table~\ref{tab:beamvalues} lists what the value is loaded as. The code is
-spotless's \texttt{load\_beam()}, and belongs in disko, from where spotless
-could import it instead of carrying a copy.
+\texttt{disko.beam.load\_beam()} (\texttt{from disko import load\_beam}),
+spotless's loader without its lookup table, so spotless could import it from
+disko instead of carrying a copy.
 
 \begin{table}[t]
   \centering
@@ -425,7 +429,7 @@ could import it instead of carrying a copy.
   \end{tabular}
 \end{table}
 
-The rest of spotless's behaviour is worth copying too.
+The rest of spotless's behaviour is copied.
 
 \begin{itemize}
 \item \emph{Load before the data.} A beam that cannot be loaded is a mistake
@@ -433,35 +437,41 @@ The rest of spotless's behaviour is worth copying too.
   status 2), naming the argument, before the measurement set is opened.
 \item \emph{Keep the pattern with the field of view.} The pattern is sampled
   once and stored on the sphere, next to \texttt{pixel\_areas}, as a
-  \texttt{beam} attribute that is all ones when no beam is given. Every
-  operator built from the sphere then carries it: \texttt{disko},
+  \texttt{beam} attribute: \texttt{None} when no beam is given, in which case
+  the harmonics are built from the pixel areas alone and nothing changes.
+  Every operator built from the sphere then carries it: \texttt{disko},
   \texttt{disko\_bayes} and each turn of \texttt{--sequential}, for which
   the field of view is fixed in the horizon frame and the vector is the same
   every turn.
 \item \emph{Record provenance.} spotless writes the pattern into its model
   file under \texttt{beam} and, with \texttt{--PNG} or \texttt{--PDF}, a
   \texttt{beam} image of the pattern over the field of view. disko's
-  equivalent is the field-of-view file: \texttt{to\_hdf()} would write
+  equivalent is the field-of-view file: \texttt{to\_hdf()} writes
   \texttt{beam} as an optional dataset, under the convention that the
   \texttt{phase\_center} key already follows (older readers ignore it), and
-  \texttt{disko\_draw} could then draw it.
+  \texttt{fov.from\_hdf()} restores it. With an image format requested,
+  \texttt{disko} also writes a \texttt{beam} image, as spotless does.
 \end{itemize}
 
-Two traps lie on this path.
+Two traps.
 
 \begin{itemize}
-\item \emph{The name is taken.} In disko \texttt{beam} means the synthesis
-  beam: \texttt{disko\_svd --beam} (``Generate a gridless beam'') and
-  \texttt{DiSkO.beam()} image the array's response to a source. spotless
+\item \emph{The name is taken.} In disko \texttt{beam} had meant the
+  synthesis beam: \texttt{disko\_svd --beam} (``Generate a gridless beam'')
+  and \texttt{DiSkO.beam()} image the array's response to a source. spotless
   0.10.0 moved that meaning to \texttt{--psf} and gave \texttt{--beam} to the
-  antenna pattern; \texttt{disko\_svd}, which already has a \texttt{--psf},
-  should do the same.
+  antenna pattern. disko gives \texttt{--beam} its new meaning on
+  \texttt{disko} and \texttt{disko\_bayes}; on \texttt{disko\_svd} it still
+  means the synthesis beam, as it does on spotless's \texttt{gridless}, and
+  should move to the \texttt{--psf} that \texttt{disko\_svd} already has.
 \item \emph{The option cannot go into the shared parser.}
   \texttt{sphere\_args\_parser()} is a parent of spotless's parser, and
   spotless declares its own \texttt{--beam}; argparse rejects a duplicate
-  option string. The option belongs in the parsers of \texttt{cli.py} and
-  \texttt{bayes\_cli.py}, with the sampling as an explicit step after
-  \texttt{sphere\_from\_args()}, not inside it.
+  option string. \texttt{--beam} is declared by
+  \texttt{add\_beam\_argument()} on the parsers of \texttt{cli.py} and
+  \texttt{bayes\_cli.py}, and the beam is loaded and sampled by
+  \texttt{beam\_from\_args()} after \texttt{sphere\_from\_args()}, not inside
+  it.
 \end{itemize}
 
 \subsection{What the beam does and does not buy}
@@ -583,51 +593,60 @@ only for a flat beam, and elsewhere it multiplies the error of the image at
 pixel $j$ by $1/b_j$---noise, sidelobes and prior mean alike---exactly where
 the telescope hears least.
 
-\subsection{Implementation notes}
+\subsection{Implementation}
 \label{sec:beamimpl}
 
 \begin{itemize}
 \item \textbf{One factor, three places.} Every path that builds harmonics
-  multiplies the phase term by the pixel area: \texttt{DiSkO.get\_harmonics()}
-  (the dense matrix), \texttt{DiSkOOperator.\_compute\_harmonics\_block()}
-  (the matrix-free blocks) and \texttt{DiSkOOperator.A()} (one element). In
-  each the weight becomes $b_jA_j$. Nothing is added to the cost of an
-  application, and the float32 block cache stays the same size. Reading the
-  beam as \texttt{getattr(sphere, "beam", None)} leaves the numerics
-  untouched when none is set, and keeps the bare \texttt{SimpleNamespace}
-  spheres of \texttt{test\_pylops\_operator.py} working. The dask branch of
-  \texttt{DiSkO.image\_tikhonov(usedask=True)} builds harmonics of its own,
-  weighted by $1/\sqrt{N_s}$ instead of the pixel areas (and without the
-  frequency); it needs the same factor.
-\item \textbf{Caches must know the beam.} \texttt{get\_harmonics()} caches by
-  $(N_s,N_v)$ alone, so a second field of view with as many pixels, with
-  another beam or other pixel areas, is handed the first one's harmonics;
-  \texttt{TelescopeOperator} stores its SVD as
-  \texttt{svd\_Ns\_Nv\_maxcond.npz}. Both keys need a digest of the beam.
-  There is no shortcut from the SVD of $\Gammam$ to that of $\Gammab$, since
-  the singular vectors change, so the SVD is computed again, once.
-\item \textbf{A log line that divides by zero.} \texttt{dask\_svd()} logs
-  $\max(s)/\min(s)$ before truncating. A zero column makes an exactly zero
-  singular value likely, and under the \texttt{np.seterr(all="raise")} of
-  \texttt{test\_telescope\_operator.py} that line then raises.
+  multiplies the phase term by what \texttt{column\_weights()} returns:
+  \texttt{DiSkO.get\_harmonics()} (the dense matrix),
+  \texttt{DiSkOOperator.\_compute\_harmonics\_block()} (the matrix-free
+  blocks) and \texttt{DiSkOOperator.A()} (one element). For a sphere without
+  a beam the function returns the pixel areas themselves, so the numerics
+  are unchanged to the bit, and a beam of ones reproduces the beam-free
+  operator exactly; \texttt{test\_beam.py} asserts both. Nothing is added to
+  the cost of an application, and the float32 block cache stays the same
+  size. A sphere object with no \texttt{beam} attribute still works, as the
+  bare \texttt{SimpleNamespace} spheres of \texttt{test\_pylops\_operator.py}
+  do. The dask branch of \texttt{DiSkO.image\_tikhonov(usedask=True)} builds
+  harmonics of its own, weighted by $1/\sqrt{N_s}$ instead of the pixel areas
+  (and without the frequency), and multiplies by the beam as well.
+\item \textbf{Caches know the beam.} \texttt{get\_harmonics()} used to cache
+  by $(N_s,N_v)$ alone, so a second field of view with as many pixels, with
+  another beam or other pixel areas, was handed the first one's harmonics; it
+  now keys on a digest of the column weights. \texttt{TelescopeOperator}
+  stores its SVD as \texttt{svd\_Ns\_Nv\_maxcond.npz}, or as
+  \texttt{svd\_Ns\_Nv\_maxcond\_beam-digest.npz} when there is a beam, so
+  caches written before keep their names. There is no shortcut from the SVD
+  of $\Gammam$ to that of $\Gammab$, since the singular vectors change, so
+  the SVD is computed again, once.
+\item \textbf{A log line that divided by zero.} \texttt{normal\_svd()} and
+  \texttt{dask\_svd()} log $\max(s)/\min(s)$ before truncating. A zero column
+  makes an exactly zero singular value likely, so \texttt{condition\_number()}
+  returns $\infty$ for that instead of dividing; the division would have been
+  an exception under the \texttt{np.seterr(all="raise")} of
+  \texttt{test\_telescope\_operator.py}.
 \item \textbf{Output.} A pixel of zero gain comes out at zero from the
   regularized solvers, but at the prior mean in a \texttt{--mu} image and at
-  the prior variance in a \texttt{--var} image. The writers should mask such
-  pixels; \texttt{HealpixFoV.to\_svg()} already skips those on or below the
-  horizon.
-\item \textbf{Tests to add.} The row norm checked by \texttt{test\_harmonics}
-  becomes $\sum_jb_j^{2}A_j^{2}$; \texttt{DiSkOOperator} against the explicit
-  $\Gammam\operatorname{diag}(\bvec)$ and through the dot test, with the
-  block cache on and off; zero columns behind the horizon;
-  Proposition~\ref{prop:beam} on the test telescope; a changed beam under an
-  unchanged $(N_s,N_v)$; and a beam end to end through \texttt{disko} and
-  \texttt{disko\_bayes}, on a measurement set made with
-  \texttt{tartball --beam}, which multiplies the pattern into the sky pixels
-  before disko's operator sees them, as \eqref{eq:beam} does.
+  the prior variance in a \texttt{--var} image, and the
+  \texttt{--no-regularization} image is standardized by default, so there
+  such pixels hold the scaled minimum. The writers do not mask them yet;
+  \texttt{HealpixFoV.to\_svg()} already skips those on or below the horizon.
+\item \textbf{The adaptive mesh.} \texttt{AdaptiveMeshFoV.refine()}
+  replaces the pixels, so the \texttt{disko} command line samples the beam
+  again after each round. An operator built from a sphere whose beam no
+  longer has one gain per pixel is refused with a \texttt{RuntimeError}
+  rather than weighting the wrong pixels.
+\item \textbf{Tests.} \texttt{disko/tests/test\_beam.py} covers the loader;
+  the sampling (frame, clipping, a mesh that changes); the files; the three
+  harmonics paths against the explicit $\Gammam\operatorname{diag}(\bvec)$
+  and through the dot test; Proposition~\ref{prop:beam}; the solvers at
+  zero-gain pixels; the caches; both command lines; and an image through
+  \texttt{disko --ms test\_data/test.ms --beam tart --HDF}.
 \item \textbf{Dependency.} \texttt{tart-beam>=0.2.0}, as spotless requires:
-  numpy and scipy, with healpy optional. It is needed only to load a
-  pattern, so it fits an optional extra, like \texttt{[mesh]}, with a clear
-  message when \texttt{--beam} is given without it.
+  numpy and scipy, with healpy optional. It is a dependency rather than an
+  optional extra because CI and the release task run \texttt{uv sync --dev}
+  with no extras, which would have left the beam tests unrun.
 \end{itemize}
 
 \section{The SVD of the telescope operator}

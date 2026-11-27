@@ -58,4 +58,9 @@ def from_hdf(filename):
             if ret.phase_center.geolocation is None:
                 ret.phase_center.geolocation = geolocation
 
+        # Optional: the primary beam that FoV.set_beam() sampled on this field
+        # of view. Files written without one load with no beam, as before.
+        if 'beam' in h5f:
+            ret.beam = h5f['beam'][:]
+
     return ret

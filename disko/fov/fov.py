@@ -231,6 +231,9 @@ class FoV(object):
         self.pixmin = None
         self.pixmax = None
         self.pixel_areas = None
+        # The primary beam as a sky vector, one gain per pixel (set_beam()).
+        # None until one is given; the harmonics then use the pixel areas alone.
+        self.beam = None
         self.fov = None
         # The celestial pointing (coords.PhaseCenter) is first-class data:
         # None until set_info() is given one (e.g. from an MS PHASE_DIR), in
@@ -443,6 +446,11 @@ class FoV(object):
         conf_dset = h5f.create_dataset('information', (1,), dtype=dt)
         conf_dset[0] = json.dumps(info_json)
 
+        # Optional, like the phase centre: only written when a beam was set.
+        # Readers that do not know the dataset ignore it.
+        if self.beam is not None:
+            h5f.create_dataset('beam', data=self.beam)
+
     def to_hdf(self, filename):
         raise Exception("to_hdf() not implemented for this sphere")
 
@@ -471,6 +479,50 @@ class FoV(object):
         logger.info(
             f"Pixels Set {self.pixels.shape}, Image stats: {json.dumps(stats, sort_keys=True)}")
         return stats
+
+    def set_beam(self, beam):
+        '''
+            Give this field of view a primary beam: the gain of the antennas in
+            the direction of each pixel, as a sky vector.
+
+            beam is a tart_beam.Beam (anything with evaluate(s_hat)), which is
+            evaluated at the pixel directions through tart_beam's own
+            elaz_to_vec: tart_beam and disko take azimuth from different axes,
+            (x, y, z) = (m, l, n), which only shows in a pattern that is not
+            symmetric about the zenith. Or it is an array of one gain per pixel.
+
+            The harmonics then weight pixel j by b_j A_j. Every operator built
+            from the sphere (DiSkO.make_gamma, DiSkOOperator, TelescopeOperator)
+            is that of the beam-scaled telescope, v = Gamma diag(b) s, so the
+            sky is solved for as it is before the beam, and a pixel of zero gain
+            is exactly null.
+
+            Gains are clipped at zero: a fitted pattern may dip just below it
+            above the horizon, and a negative gain would reverse a pixel's sign.
+            There is no floor on the gain; nothing divides by it.
+
+            Set the beam again if the pixels change (AdaptiveMeshFoV.refine()).
+
+            Returns the beam vector.
+        '''
+        if hasattr(beam, "evaluate"):
+            from tart_beam import elaz_to_vec
+
+            beam = beam.evaluate(
+                elaz_to_vec(np.degrees(self.el_r), np.degrees(self.az_r))
+            )
+        beam = np.clip(np.asarray(beam, dtype=float).ravel(), 0.0, None)
+        if beam.shape[0] != self.npix:
+            raise ValueError(
+                f"A beam needs one gain per pixel: got {beam.shape[0]} for "
+                f"{self.npix} pixels. Set it again if the pixels changed."
+            )
+        self.beam = beam
+        logger.info(
+            f"Primary beam set: {np.count_nonzero(beam == 0)} of {self.npix} "
+            "pixels have no gain"
+        )
+        return beam
 
     def phase_center_radec(self):
         '''

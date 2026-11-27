@@ -14,6 +14,9 @@ dependencies = [
     "healpy>=1.15.0,<2.0.0",
     "tart>=1.4.0",
     "tart-tools>=1.4.0",
+    # --beam loads antenna patterns with tart-beam (github.com/tart-telescope/
+    # beams), the files spotless and tartball read. numpy and scipy only.
+    "tart-beam>=0.2.0",
     "h5py>=3.7",
     "scipy>=1.7.3",
     "astropy>=5.2",

@@ -19,6 +19,7 @@ import scipy
 
 from ..multivariate_gaussian import MultivariateGaussian
 from ..util import log_array
+from .disko import column_weights_key
 
 logger = logging.getLogger("disko.telescope_operator")  # keeps its pre-move name: the CLIs format log records with %(name)s
 # logger.setLevel(logging.INFO)
@@ -65,12 +66,22 @@ def tf_svd(x, tol=SVD_TOL):
 MAX_COND = 10000.0
 
 
+def condition_number(s):
+    """max(s) / min(s), for the log.
+
+    inf when a singular value is exactly zero. A zero column makes that
+    likely, and a beam gives one to every pixel behind the horizon.
+    """
+    s_min = np.amin(s)
+    return np.amax(s) / s_min if s_min > 0 else np.inf
+
+
 def normal_svd(x, tol=SVD_TOL, max_cond=MAX_COND):
     n_v = x.shape[0]
     n_s = x.shape[1]
 
     [U, s, Vh] = scipy.linalg.svd(np.array(x), full_matrices=True)
-    logger.info("Cond(A) = {}".format(s[0] / s[-1]))
+    logger.info("Cond(A) = {}".format(condition_number(s)))
 
     tol = s[0] / max_cond
     try:
@@ -124,7 +135,7 @@ def dask_svd(x, tol=SVD_TOL, max_cond=MAX_COND):
     rank = np.sum(s > tol, dtype=int)
 
     logger.info("tol = {}".format(tol))
-    logger.info("Cond(A) = {}".format(s_0 / np.amin(s)))
+    logger.info("Cond(A) = {}".format(condition_number(s)))
 
     s[s < tol] = 0  # All low values set to 0
 
@@ -233,7 +244,13 @@ class TelescopeOperator:
 
         self._P_r = None
 
+        # The SVD is that of this operator: a sphere with a beam has another
+        # one, so the cache file is named after the column weights as well.
         fname = "svd_{}_{}_{}.npz".format(self.n_s, self.n_v, max_cond)
+        if getattr(sphere, "beam", None) is not None:
+            fname = "svd_{}_{}_{}_beam-{}.npz".format(
+                self.n_s, self.n_v, max_cond, column_weights_key(sphere)
+            )
         cache = Path(fname)
 
         if use_cache and cache.is_file():
@@ -270,12 +287,14 @@ class TelescopeOperator:
 
             if use_cache:
                 logger.info("Writing to cache: {}".format(fname))
+                # Plain arrays: the factors may be dask arrays, and NumPy
+                # warns that np.savez_compressed on one may stop working.
                 np.savez_compressed(
                     fname,
-                    U=self.U,
-                    Vh=self.Vh,
-                    s=self.s,
-                    sigma=self.sigma,
+                    U=np.asarray(self.U),
+                    Vh=np.asarray(self.Vh),
+                    s=np.asarray(self.s),
+                    sigma=np.asarray(self.sigma),
                     rank=self.rank,
                 )
                 logger.info("Cache file {} saved".format(fname))

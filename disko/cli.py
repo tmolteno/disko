@@ -18,6 +18,7 @@ from importlib.metadata import version
 from tart.imaging import elaz
 
 from .image.disko import DiSkO
+from .beam import add_beam_argument, beam_from_args
 from .draw_sky import output_path, save_images
 from .parser_support import sphere_from_args, sphere_args_parser
 
@@ -215,6 +216,10 @@ def build_parser(argv=None):
     parser.add_argument("--cv", action="store_true", help="Use Cross Validation")
     parser.add_argument("--dask", action="store_true", help="Use dask")
 
+    # On this parser, not on sphere_args_parser(): spotless uses that one as a
+    # parent parser and declares its own --beam.
+    add_beam_argument(parser)
+
     parser.add_argument(
         "--debug", action="store_true", help="Display debugging information"
     )
@@ -300,6 +305,10 @@ def main():
         sys.exit(0)
 
     sphere = sphere_from_args(ARGS)
+
+    # Loaded before the data: a beam that cannot be loaded is a mistake on the
+    # command line, and need not wait for the telescope.
+    beam = beam_from_args(ARGS, sphere, on_error=build_parser().error)
 
     if ARGS.file:
         logger.info("Getting Data from HDF5 file: {}".format(ARGS.file))
@@ -444,6 +453,9 @@ def main():
                 sphere.write_mesh(f"{ARGS.title}_round_{i}.vtk")
 
                 sphere.refine()
+                # The pixels have changed, so the beam is sampled again.
+                if beam is not None:
+                    sphere.set_beam(beam)
                 sky = disko.image_tikhonov(
                     disko.vis_arr,
                     sphere,
@@ -486,4 +498,20 @@ def main():
             png=ARGS.PNG,
             pdf=ARGS.PDF,
             display=ARGS.display,
+        )
+
+    if beam is not None and (ARGS.FITS or ARGS.SVG or ARGS.PNG or ARGS.PDF):
+        # The pattern over the field of view, as spotless's beam image. On a
+        # copy: set_visible_pixels() replaces the image.
+        beam_fov = sphere.copy()
+        beam_fov.set_visible_pixels(beam_fov.beam, scale=False)
+        save_images(
+            beam_fov,
+            ARGS.dir,
+            "{}_{}_beam".format(ARGS.title, time_repr),
+            info=disko.info,
+            fits=ARGS.FITS,
+            svg=ARGS.SVG,
+            png=ARGS.PNG,
+            pdf=ARGS.PDF,
         )

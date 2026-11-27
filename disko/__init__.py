@@ -11,6 +11,7 @@ import logging  # noqa: F401
 # unchanged, only where they are imported from moved.
 from .cli import disko_from_ms  # noqa: F401
 from .draw_sky import mask_to_sky  # noqa: F401
+from .beam import add_beam_argument, beam_from_args, load_beam  # noqa: F401
 from .fov.fov import SquareFoV  # noqa: F401
 from .fov.healpix import HealpixFoV, HealpixSubFoV  # noqa: F401
 from .fov.mesh import AdaptiveMeshFoV, area  # noqa: F401
