@@ -10,6 +10,7 @@
 
 \newtheorem{definition}{Definition}
 \newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
 
 \title{Operator-Based Imaging with the DiSkO Python Package\\
 \large Gridless Radio Synthesis Imaging using a Discrete Sky Operator}
@@ -25,6 +26,8 @@
 \newcommand{\Gammam}{\boldsymbol{\Gamma}}
 \newcommand{\svec}{\boldsymbol{s}}
 \newcommand{\vvec}{\boldsymbol{v}}
+\newcommand{\bvec}{\boldsymbol{b}}
+\newcommand{\Gammab}{\Gammam B}
 
 \begin{document}
 
@@ -83,6 +86,8 @@ associated \emph{natural basis}.
 
 This article explains how this works, following the actual implementation:
 Section~\ref{sec:model} develops the discrete measurement equation;
+Section~\ref{sec:beam} adds the primary beam to it, as a sky vector (a
+proposed extension, specified but not yet implemented);
 Section~\ref{sec:svd} describes the SVD-based \texttt{TelescopeOperator} and its
 four subspaces; Section~\ref{sec:natural} introduces imaging in the natural
 basis; Section~\ref{sec:reg} covers regularized and sparse imaging;
@@ -157,6 +162,7 @@ complex visibility contributes two real rows, so visibilities arriving from a
 measurement set are converted with \texttt{vis\_to\_real()}.
 
 \begin{definition}[Telescope operator]
+  \label{def:operator}
   The \emph{telescope operator} is the matrix $\Gammam\in\R^{\Nv\times\Ns}$ of
   \eqref{eq:real}. A \emph{sky vector} is $\svec\in\R^{\Ns}$; a
   \emph{visibility vector} is $\vvec\in\R^{\Nv}$. The forward map is
@@ -167,6 +173,462 @@ For a full-sky Healpix field of view with $n_\mathrm{side}=32$,
 $\Ns=12\,n_\mathrm{side}^2=12\,288$ while a modest array produces only a few
 hundred complex baselines, so $\Ns\gg\Nv$ and the operator is very
 rank-deficient: the telescope simply cannot measure most of the sky.
+
+\section{The primary beam as a sky vector}
+\label{sec:beam}
+
+The operator of Section~\ref{sec:model} assumes that every antenna responds
+equally in every direction: a harmonic carries the phase of a pixel and its
+area, and nothing else. Real elements do not. This section specifies how a
+primary beam is to be added to the package. It is a design rather than a
+description of the code, since none of it is implemented yet. It belongs
+here because the beam turns out to be a change of operator, not a new
+algorithm: everything that follows applies to the changed operator
+unchanged. The beam is a second sky vector $\bvec\in\R^{\Ns}$, one gain per
+pixel, and it enters the measurement equation as a Hadamard product with the
+sky. The subsections give the equation and what the beam does to the
+operator, the patterns supplied by \texttt{tart-beam} and how they are loaded
+from the command line, the limits of what the beam buys, and the
+implementation notes.
+
+\subsection{The measurement equation with a beam}
+\label{sec:beameq}
+
+In the measurement equation each antenna $p$ contributes a direction-dependent
+response $K_p(\hat{\boldsymbol{n}})$, its Jones term for the feed, the ground
+plane and the primary beam \cite{hamaker1996,smirnov2011}. For the scalar sky
+of Section~\ref{sec:model} the visibility of the baseline between antennas
+$p$ and $q$ is
+\begin{equation}
+  \label{eq:rimebeam}
+  v_{pq} \;=\; \sum_{j=1}^{\Ns} K_p(\hat{\boldsymbol{n}}_j)\,
+    K_q(\hat{\boldsymbol{n}}_j)^{*}\,A_j\,
+    e^{\,j\omega(u_p l_j+v_p m_j+w_p(n_j-1))}\;s_j ,
+\end{equation}
+which is \eqref{eq:rime} with a factor that depends on the baseline and on
+the pixel. If the elements are identical and pointed the same way,
+$K_p=K_q=k$ and $K_pK_q^{*}=|k|^{2}$: one real, non-negative function of
+direction, the primary beam
+$b(\hat{\boldsymbol{n}})=|k(\hat{\boldsymbol{n}})|^{2}$.
+Sampled at the pixels of the field of view it is a sky vector
+(Definition~\ref{def:operator}), $b_j=b(\hat{\boldsymbol{n}}_j)$, and the
+measurement equation \eqref{eq:measurement} becomes
+\begin{equation}
+  \label{eq:beam}
+  \vvec \;=\; \Gammam\,(\bvec\odot\svec) \;+\; \boldsymbol{n}
+  \;=\; \Gammab\,\svec \;+\; \boldsymbol{n},
+  \qquad \Gammab=\Gammam B,\quad
+  B=\operatorname{diag}(\bvec),
+\end{equation}
+with $\odot$ the Hadamard (element-wise) product. Equivalently the beam is a
+weight on the pixel areas, $A_j\mapsto b_jA_j$: in \eqref{eq:rime} it
+multiplies the same factor that the pixel area does. Three things follow
+from \eqref{eq:beam} directly.
+
+\begin{itemize}
+\item \emph{The telescope measures the apparent sky
+  $\tilde{\svec}=\bvec\odot\svec$ with the beam-free operator.} Data taken
+  through a beam and imaged without one give an image of $\tilde{\svec}$: a
+  correct image of a different sky, not a corrupted image of $\svec$.
+\item \emph{No algorithm changes.} The SVD, the natural basis, the
+  regularized solves, the matrix-free operator and the Bayesian updates of
+  the following sections all take $\Gammam$ as they find it; with a beam they
+  find $\Gammab$.
+\item \emph{One sky vector is exact for identical elements.} When the
+  elements differ, so does the factor in \eqref{eq:rimebeam}, and the beam is
+  a matrix, $E_{ij}=K_{p(i)}(\hat{\boldsymbol{n}}_j)K_{q(i)}(\hat{\boldsymbol{n}}_j)^{*}$,
+  that enters as a Hadamard product of two matrices, $H\odot E$. The sky
+  vector is the rank-one case $E_{ij}=b_j$; its error is of the order of the
+  differences between the elements' responses, not of the beam itself. (The
+  \texttt{EmpiricalAntenna} pattern of the \texttt{tart} package is measured
+  per antenna.)
+\end{itemize}
+
+\subsection{Consequences for the operator}
+\label{sec:beamop}
+
+Let $S=\{j:b_j\neq0\}$ be the support of the beam, $\Gammam_{:,S}$ the
+columns of $\Gammam$ on it, and $\mathcal{R}(B)$ and $\mathcal{N}(B)$ the
+subspaces of sky vectors supported on $S$ and outside it.
+
+\begin{proposition}[Beam-scaled operator]
+\label{prop:beam}
+For every beam $\bvec$,
+\begin{enumerate}
+\item $\mathcal{N}(\Gammab)
+      =\mathcal{N}(B)\oplus B^{-1}\big(\mathcal{N}(\Gammam)\cap\mathcal{R}(B)\big)$,
+      an orthogonal direct sum;
+\item $\operatorname{rank}(\Gammab)=\operatorname{rank}(\Gammam_{:,S})$, whence
+      $\operatorname{rank}(\Gammam)-(\Ns-|S|)
+      \le\operatorname{rank}(\Gammab)\le\operatorname{rank}(\Gammam)$, with
+      equality on the right when no $b_j$ vanishes;
+\item $\mathcal{R}(\Gammab)=\mathcal{R}(\Gammam_{:,S})\subseteq\mathcal{R}(\Gammam)$
+      and $\mathcal{N}(B\Gammam^{\!\top})\supseteq\mathcal{N}(\Gammam^{\!\top})$;
+\item $(\Gammab)^{\!\top}=B\Gammam^{\!\top}$.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+A sky vector $s$ is in $\mathcal{N}(\Gammab)$ if and only if $Bs$ is in
+$\mathcal{N}(\Gammam)$. Split $s=s_0+s_1$ with $s_0$ zero on $S$ and $s_1$
+zero outside it. Then $Bs=Bs_1$ and $s_1=B^{-1}Bs_1$ with
+$Bs_1\in\mathcal{N}(\Gammam)\cap\mathcal{R}(B)$, which proves the first
+statement both ways. The columns of $\Gammab$ outside $S$ vanish and those
+on $S$ are $b_j$ times the columns of $\Gammam_{:,S}$, which gives the second
+statement and the first equality of the third; removing a column lowers the
+rank by at most one. The inclusions of the third follow from
+$\mathcal{R}(A)=\mathcal{N}(A^{\!\top})^{\perp}$, and the fourth is the
+transpose of a product.
+\end{proof}
+
+The proposition says what a beam can and cannot do to the operator.
+
+\begin{itemize}
+\item \emph{A zero gain makes an exact null pixel.} If $b_j=0$ the column
+  $j$ of $\Gammab$ is zero and $e_j\in\mathcal{N}(\Gammab)$, whatever the
+  array. Every minimum-norm solution---least squares,
+  \texttt{image\_natural}, Tikhonov---lies in
+  $\mathcal{R}(\Gammab^{\!\top})$, which is orthogonal to $e_j$, and so
+  returns exactly zero at that pixel; the L1 solve does too, since a
+  coefficient with no column costs penalty and buys no fit. In the Bayesian
+  inference of Section~\ref{sec:bayes} the pixel keeps its prior mean and
+  prior variance, by Proposition~\ref{prop:localize}: the exact null pixels
+  that the proposition says arise only by construction arise here by
+  construction.
+\item \emph{The beam only removes.} It cannot produce a visibility direction
+  that the beam-free array cannot, and while no gain vanishes it leaves the
+  rank untouched. It lowers the singular values (for $\bvec\le1$,
+  $\sigma_i(\Gammab)\le\sigma_i(\Gammam)$), so the truncation of
+  Section~\ref{sec:svd} may move modes that the beam has attenuated into the
+  null space.
+\item \emph{The adjoint image is the apparent sky.} By the fourth statement
+  the dirty image of Section~\ref{sec:matrixfree},
+  $\Gammab^{\!\top}\vvec=B\,\Gammam^{\!\top}\vvec$, is the beam times the
+  beam-free one.
+\item \emph{Information goes as the square of the gain.} The data carry
+  $\|\Sigma_v^{-1/2}\Gammab u\|^{2}$ units of information about a sky
+  direction $u$; for the direction of a single pixel this is
+  $b_j^{2}\,\|\Sigma_v^{-1/2}\Gammam e_j\|^{2}$. A pixel at half power
+  carries a quarter of the information it would carry at the beam centre, and
+  the posterior variance of Section~\ref{sec:bayes} reports it.
+\item \emph{Positivity carries over.} A power pattern is non-negative, and
+  for $\bvec\ge0$ the apparent sky and the true sky have the same signs, so
+  the non-negativity constraint of \texttt{image\_lasso}
+  (\texttt{positive=True}) means the same for both.
+\item \emph{A constant beam is a change of units.} If $B=b_0I$, the Tikhonov
+  problem with the beam,
+  $\min_{\svec}\|\vvec-b_0\Gammam\svec\|^{2}+\alpha^{2}\|\svec\|^{2}$, is the
+  beam-free problem in $\tilde{\svec}=b_0\svec$ with strength
+  $\alpha/b_0$, and its solution is the beam-free solution divided by $b_0$;
+  the same holds for the other solvers. This is the only case in which
+  dividing an image by the beam is exact.
+\end{itemize}
+
+\subsection{Beam patterns from \texttt{tart-beam}}
+\label{sec:beammodels}
+
+The \texttt{tart-beam} package (\texttt{tart\_beam}) \cite{tartbeam}
+represents the wide-angle patterns of TART elements as polynomials on the
+sphere. In a frame attached to the boresight $\hat{\boldsymbol{e}}_3$, with
+$(u,v,w)$ the direction cosines of $\hat{\boldsymbol{n}}$ and $w=\cos\theta$
+the cosine of the angle from the boresight, a \texttt{Beam} is
+\begin{equation}
+  \label{eq:tartbeam}
+  \beta(\hat{\boldsymbol{n}}) \;=\; w^{q}\sum_{\ell=0}^{N}\sum_{m=-\ell}^{\ell}
+    a_\ell^{m}\,Y_\ell^{m}(\theta,\phi)
+  \quad\text{for } w\ge0,
+  \qquad \beta(\hat{\boldsymbol{n}}) \;=\; 0
+  \quad\text{for } w<0 :
+\end{equation}
+a real spherical-harmonic series up to degree $N$, tapered by $w^{q}$ and cut
+off hard behind the element. The taper takes the pattern smoothly to zero at
+the element's horizon and the cut makes it vanish identically behind it, so
+the exact zeros of Proposition~\ref{prop:beam} are built in. The built-in
+pattern, \texttt{base\_tart\_beam()}, is a fit with $N=8$ and $q=1$ to a
+profile that is uniform above $10^{\circ}$ of elevation and falls to zero at
+the horizon as half a cycle of a cosine in $w=\sin(\mathrm{el})$. The
+patterns of dish arrays would enter the same way, as closed forms or as
+samples evaluated at the pixels.
+
+The sky vector is the pattern evaluated at the directions of the pixels,
+$b_j=\beta(\hat{\boldsymbol{n}}_j)$. Three details matter.
+
+\begin{itemize}
+\item \emph{Frame.} \texttt{tart\_beam} measures azimuth from its $x$ axis
+  towards $y$,
+  $\hat{\boldsymbol{n}}=(\cos\mathrm{el}\cos\mathrm{az},
+  \cos\mathrm{el}\sin\mathrm{az},\sin\mathrm{el})$, whereas disko's
+  \texttt{elaz2lmn} gives
+  $(l,m,n)=(\sin\mathrm{az}\cos\mathrm{el},\cos\mathrm{az}\cos\mathrm{el},
+  \sin\mathrm{el})$: the two frames differ by a right angle about the zenith,
+  $(x,y,z)=(m,l,n)$. The pattern is to be evaluated through
+  \texttt{elaz\_to\_vec(np.degrees(el\_r), np.degrees(az\_r))} on the field
+  of view's own \texttt{el\_r} and \texttt{az\_r}, which is the call tartball
+  and spotless make, and not on disko's $(l,m,n)$. The difference shows only
+  in a pattern that is not symmetric about the zenith.
+\item \emph{Sign.} A fitted pattern is a least-squares estimate: the built-in
+  one ripples by about $2\%$ where the profile is flat and dips below zero
+  just above the horizon ($-0.008$ at $1^{\circ}$ of elevation). A negative
+  $b_j$ would reverse the sign of pixel $j$ and break positivity, so the sky
+  vector is clipped, $\bvec\mapsto\max(\bvec,0)$. No floor is applied;
+  Section~\ref{sec:beamlimits} says why none is needed.
+\item \emph{Cost.} \texttt{Beam.evaluate()} rebuilds its harmonic basis on
+  every call: about $1.4$\,ms for one direction, but $0.24$\,s for all
+  12\,288 pixels of an $n_{\mathrm{side}}=32$ sphere in one call. spotless
+  looks the gain up from a table on a $1^{\circ}$ grid of elevation and
+  azimuth because its optimiser asks for one direction at a time. disko
+  needs the pattern once per pixel, so it calls \texttt{evaluate()}
+  directly.
+\end{itemize}
+
+\subsection{Loading a beam from the command line}
+\label{sec:beamcli}
+
+spotless \cite{spotless}, from version 0.10.0, fits its sources through an
+antenna pattern given on the command line, and reads the beam files that
+tartball \cite{tartball} reads. disko should take the same option, so that
+the three tools read a beam alike:
+
+\begin{quote}
+\texttt{--beam [BEAM]} --- Antenna beam pattern: `tart' for the built-in
+TART beam, or a JSON file holding a tart\_beam beam or \{el, az, gain\}
+samples to fit.
+\end{quote}
+
+The option takes an optional value, and \texttt{--beam} on its own means
+\texttt{tart}. With it, the README's shortest command becomes
+\texttt{disko --ms test\_data/test.ms --nside 32 --beam tart --HDF fov.h5},
+imaging the field through the built-in TART beam.
+Table~\ref{tab:beamvalues} lists what the value is loaded as. The code is
+spotless's \texttt{load\_beam()}, and belongs in disko, from where spotless
+could import it instead of carrying a copy.
+
+\begin{table}[t]
+  \centering
+  \caption{What \texttt{--beam} accepts, as spotless~0.10.0 reads it.}
+  \label{tab:beamvalues}
+  \begin{tabular}{@{}p{0.24\textwidth}p{0.69\textwidth}@{}}
+    \toprule
+    Value & Loaded as \\
+    \midrule
+    \texttt{tart}, \texttt{default} &
+    \texttt{base\_tart\_beam(degree=8, q=1)}, the built-in TART pattern. \\
+    A JSON object with a \texttt{coeffs} key &
+    A beam saved by \texttt{Beam.to\_json()} and read by
+    \texttt{Beam.from\_json()}: coefficients, degree, $q$ and boresight as
+    they were saved. tartball does not read this form. \\
+    A JSON list of \texttt{\{el, az, gain\}} &
+    Samples in degrees, zenith-pointed, fitted when loaded by
+    \texttt{fit\_from\_json(path, degree=8, q=2)}; samples below the horizon
+    are dropped by the fit. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The rest of spotless's behaviour is worth copying too.
+
+\begin{itemize}
+\item \emph{Load before the data.} A beam that cannot be loaded is a mistake
+  on the command line. It is reported by \texttt{parser.error()} (exit
+  status 2), naming the argument, before the measurement set is opened.
+\item \emph{Keep the pattern with the field of view.} The pattern is sampled
+  once and stored on the sphere, next to \texttt{pixel\_areas}, as a
+  \texttt{beam} attribute that is all ones when no beam is given. Every
+  operator built from the sphere then carries it: \texttt{disko},
+  \texttt{disko\_bayes} and each turn of \texttt{--sequential}, for which
+  the field of view is fixed in the horizon frame and the vector is the same
+  every turn.
+\item \emph{Record provenance.} spotless writes the pattern into its model
+  file under \texttt{beam} and, with \texttt{--PNG} or \texttt{--PDF}, a
+  \texttt{beam} image of the pattern over the field of view. disko's
+  equivalent is the field-of-view file: \texttt{to\_hdf()} would write
+  \texttt{beam} as an optional dataset, under the convention that the
+  \texttt{phase\_center} key already follows (older readers ignore it), and
+  \texttt{disko\_draw} could then draw it.
+\end{itemize}
+
+Two traps lie on this path.
+
+\begin{itemize}
+\item \emph{The name is taken.} In disko \texttt{beam} means the synthesis
+  beam: \texttt{disko\_svd --beam} (``Generate a gridless beam'') and
+  \texttt{DiSkO.beam()} image the array's response to a source. spotless
+  0.10.0 moved that meaning to \texttt{--psf} and gave \texttt{--beam} to the
+  antenna pattern; \texttt{disko\_svd}, which already has a \texttt{--psf},
+  should do the same.
+\item \emph{The option cannot go into the shared parser.}
+  \texttt{sphere\_args\_parser()} is a parent of spotless's parser, and
+  spotless declares its own \texttt{--beam}; argparse rejects a duplicate
+  option string. The option belongs in the parsers of \texttt{cli.py} and
+  \texttt{bayes\_cli.py}, with the sampling as an explicit step after
+  \texttt{sphere\_from\_args()}, not inside it.
+\end{itemize}
+
+\subsection{What the beam does and does not buy}
+\label{sec:beamlimits}
+
+\emph{A planar array cannot tell up from down without it.} If the antennas
+lie in a plane, every baseline has $w_i=0$ and the harmonics \eqref{eq:rime}
+depend on the pixel only through $(l_j,m_j)$. A direction and its mirror
+image in the plane of the array, $(l,m,n)\mapsto(l,m,-n)$, a point on the
+sky and its reflection below the ground, then have the same harmonic,
+\begin{equation}
+  \label{eq:mirror}
+  H_{ij}=H_{ij'} \qquad\text{when}\qquad (l_{j'},m_{j'})=(l_j,m_j),
+\end{equation}
+and $e_j-e_{j'}$ is a null direction of $\Gammam$ for every such pair. On a
+full-sphere field of view the beam-free operator is blind to the difference
+between the sky and its reflection, and its minimum-norm image splits every
+source with its mirror image below the horizon (Figure~\ref{fig:beam},
+left). A hemispherical beam resolves the ambiguity exactly: the mirror
+pixels have zero gain and zero columns, and nothing appears behind the
+horizon (Figure~\ref{fig:beam}, right). TART is a planar array. This is why
+the full-sky field of view planned in the package's README needs a beam
+pattern, and why any will do that vanishes behind the antenna. With the
+default field of view, a hemisphere, there are no mirror pixels and the
+ambiguity does not arise.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{beam_model.png}
+  \caption{The beam as a sky vector, on a full-sphere HEALPix field of view
+  ($n_{\mathrm{side}}=16$, 3072 pixels). Each panel shows the half of the
+  sphere nearest the source's azimuth, seen from the side, one square per
+  pixel; the colour scale of the images is symmetric in the pixel flux and
+  logarithmic beyond $0.02$. The circles mark a pixel at $20^{\circ}$ of
+  elevation and its mirror image $20^{\circ}$ below the horizon. A unit
+  point source in the upper pixel is observed by the TART array (the 24
+  antenna positions of \texttt{test\_data/test\_data.json}, a planar array
+  whose longest baseline is 2.6~m) at 1575.42~MHz through the base TART
+  beam, and imaged by Tikhonov regularization with $\alpha=0.003$. Left:
+  without a beam the harmonics of the two pixels are identical, and the
+  image splits the source with its mirror, with 0.17 of a unit of flux in
+  each; 0.39 of the flux of the image is above the horizon and 0.39 behind
+  it. Centre: the beam, uniform above $10^{\circ}$ of elevation, falling to
+  zero at the horizon, and exactly zero on the 1568 pixels behind it. Right:
+  the beam folded into the operator. The mirror pixel, and every pixel
+  behind the horizon, is exactly zero. (Reproduced by
+  \texttt{beam\_model.py} in this directory.)}
+  \label{fig:beam}
+\end{figure}
+
+\emph{Where the beam is flat, only the flux scale changes.} By the
+constant-beam identity of Section~\ref{sec:beamop}, a beam that is constant
+over the field turns the image of the apparent sky into an image of the true
+one, with the noise larger by the factor $1/b_0$; one that varies slowly
+over a resolution element does the same to good approximation. The base TART
+beam is flat above $10^{\circ}$ of elevation.
+
+\emph{A taper that is not resolved is decided by the prior.} In its lowest
+$10^{\circ}$ the base TART beam falls from one to zero across about two
+resolution elements of the TART array. There the data fix the apparent sky
+but not, pixel by pixel, the true one. The simplest statement of what the
+regularizer then does is for two pixels.
+
+\begin{lemma}[Two pixels in a taper]
+\label{lem:taper}
+Let two pixels $j$ and $k$ have the same beam-free harmonic,
+$\Gammam_{:,j}=\Gammam_{:,k}=h$, and gains $b_j,b_k>0$. A source of flux $F$
+in pixel $j$ gives $\vvec=b_jFh$. Among the sky vectors supported on the two
+pixels, the minimum-norm solution of $\Gammab\svec=\vvec$, which is also the
+Tikhonov solution as $\alpha\to0$, is
+\begin{equation}
+  \label{eq:taper}
+  \hat{s}_j=\frac{b_j^{2}F}{b_j^{2}+b_k^{2}},\qquad
+  \hat{s}_k=\frac{b_kb_jF}{b_j^{2}+b_k^{2}},
+\end{equation}
+and the posterior mean under a zero-mean isotropic prior has the same
+direction. The beam-free operator applied to the same data gives $b_jF/2$ on
+each pixel.
+\end{lemma}
+
+\begin{proof}
+The solutions supported on $\{j,k\}$ are the pairs with
+$b_js_j+b_ks_k=b_jF$. The one of least norm is the multiple of $(b_j,b_k)$
+that satisfies the constraint, and \eqref{eq:taper} is that multiple. For a
+prior $\sigma_0^{2}I$ on the two pixels, the likelihood adds to the
+posterior precision a multiple of $(b_j,b_k)^{\!\top}(b_j,b_k)$; inverting a
+rank-one update of the identity (Sherman--Morrison) gives a posterior mean
+that is a multiple of $(b_j,b_k)$.
+\end{proof}
+
+The larger component of \eqref{eq:taper} sits on the pixel with the larger
+gain, and the total flux is $b_jF(b_j+b_k)/(b_j^{2}+b_k^{2})$: below $F$ when
+$b_k>b_j$ and above it when $b_k<b_j$. In a taper, then, the minimum-norm
+image moves flux up the beam gradient. It under-reports a source in the lower
+part of the taper and over-reports one at its top, while the image made
+without the beam reports the apparent flux $b_jF$, shared between the two
+pixels. Neither is a de-beamed flux. The lemma is a model, since in a field
+every pixel has many neighbours and their harmonics nearly, not exactly,
+coincide, but numerical experiments with the TART array show its signature.
+De-beamed fluxes were right to within about $5\%$ above the taper; inside it
+they depended on the solver and on the array, from within $15\%$ of the flux
+with a positive L1 solve on one synthetic array to no correction at all on
+the TART positions. What the folded operator contributes in a taper is the
+correct bookkeeping of sensitivity: the null space, the singular values, the
+information and the posterior variance. Fluxes in an unresolved taper need a
+prior that says more about the sky than the minimum norm does, a parametric
+source model as spotless fits or a sparsity prior on point sources, and
+should be read together with the posterior variance.
+
+\emph{No floor is needed.} spotless does not take the gain below $1\%$ above
+the horizon (\texttt{MIN\_GAIN}): it fits each source's flux as what the data
+show, divided by the gain, and a pattern that goes to zero at the horizon
+would turn a noise spike there into a source of enormous flux. The operator
+form never divides by the beam. A pixel of small gain is a poorly measured
+one, which the rank truncation and the regularizer treat like any other; a
+pixel of zero gain is null. Dividing a beam-free image by the beam is the
+alternative that does need a floor. By the constant-beam identity it is exact
+only for a flat beam, and elsewhere it multiplies the error of the image at
+pixel $j$ by $1/b_j$---noise, sidelobes and prior mean alike---exactly where
+the telescope hears least.
+
+\subsection{Implementation notes}
+\label{sec:beamimpl}
+
+\begin{itemize}
+\item \textbf{One factor, three places.} Every path that builds harmonics
+  multiplies the phase term by the pixel area: \texttt{DiSkO.get\_harmonics()}
+  (the dense matrix), \texttt{DiSkOOperator.\_compute\_harmonics\_block()}
+  (the matrix-free blocks) and \texttt{DiSkOOperator.A()} (one element). In
+  each the weight becomes $b_jA_j$. Nothing is added to the cost of an
+  application, and the float32 block cache stays the same size. Reading the
+  beam as \texttt{getattr(sphere, "beam", None)} leaves the numerics
+  untouched when none is set, and keeps the bare \texttt{SimpleNamespace}
+  spheres of \texttt{test\_pylops\_operator.py} working. The dask branch of
+  \texttt{DiSkO.image\_tikhonov(usedask=True)} builds harmonics of its own,
+  weighted by $1/\sqrt{N_s}$ instead of the pixel areas (and without the
+  frequency); it needs the same factor.
+\item \textbf{Caches must know the beam.} \texttt{get\_harmonics()} caches by
+  $(N_s,N_v)$ alone, so a second field of view with as many pixels, with
+  another beam or other pixel areas, is handed the first one's harmonics;
+  \texttt{TelescopeOperator} stores its SVD as
+  \texttt{svd\_Ns\_Nv\_maxcond.npz}. Both keys need a digest of the beam.
+  There is no shortcut from the SVD of $\Gammam$ to that of $\Gammab$, since
+  the singular vectors change, so the SVD is computed again, once.
+\item \textbf{A log line that divides by zero.} \texttt{dask\_svd()} logs
+  $\max(s)/\min(s)$ before truncating. A zero column makes an exactly zero
+  singular value likely, and under the \texttt{np.seterr(all="raise")} of
+  \texttt{test\_telescope\_operator.py} that line then raises.
+\item \textbf{Output.} A pixel of zero gain comes out at zero from the
+  regularized solvers, but at the prior mean in a \texttt{--mu} image and at
+  the prior variance in a \texttt{--var} image. The writers should mask such
+  pixels; \texttt{HealpixFoV.to\_svg()} already skips those on or below the
+  horizon.
+\item \textbf{Tests to add.} The row norm checked by \texttt{test\_harmonics}
+  becomes $\sum_jb_j^{2}A_j^{2}$; \texttt{DiSkOOperator} against the explicit
+  $\Gammam\operatorname{diag}(\bvec)$ and through the dot test, with the
+  block cache on and off; zero columns behind the horizon;
+  Proposition~\ref{prop:beam} on the test telescope; a changed beam under an
+  unchanged $(N_s,N_v)$; and a beam end to end through \texttt{disko} and
+  \texttt{disko\_bayes}, on a measurement set made with
+  \texttt{tartball --beam}, which multiplies the pattern into the sky pixels
+  before disko's operator sees them, as \eqref{eq:beam} does.
+\item \textbf{Dependency.} \texttt{tart-beam>=0.2.0}, as spotless requires:
+  numpy and scipy, with healpy optional. It is needed only to load a
+  pattern, so it fits an optional extra, like \texttt{[mesh]}, with a clear
+  message when \texttt{--beam} is given without it.
+\end{itemize}
 
 \section{The SVD of the telescope operator}
 \label{sec:svd}
@@ -437,7 +899,8 @@ it implements
   \item \texttt{\_rmatvec(v)}: the exact adjoint
     $\svec = \Re(H)^{\!\top}\vvec_{\mathrm{re}}+
     \Im(H)^{\!\top}\vvec_{\mathrm{im}}$, the so-called dirty image (the
-    gridless primary beam).
+    gridless beam of \texttt{disko\_svd --beam}: the array's synthesis beam,
+    not the primary beam of Section~\ref{sec:beam}).
 \end{itemize}
 
 Both are linear in the data and agree with the dense $\Gammam$
@@ -670,7 +1133,8 @@ likelihoods for all covariance comparisons.
 
 All the machinery above is agnostic to the sky discretization; a field-of-view
 class need only provide \texttt{npix}, \texttt{l}, \texttt{m}, \texttt{n},
-\texttt{n\_minus\_1} and \texttt{pixel\_areas}. The package supplies:
+\texttt{n\_minus\_1} and \texttt{pixel\_areas} (and, for the beam of
+Section~\ref{sec:beam}, optionally \texttt{beam}). The package supplies:
 
 \begin{itemize}
   \item \texttt{HealpixFoV}: the full celestial sphere with a HEALPix
@@ -799,6 +1263,22 @@ T.~Molteno et al., DiSkO: Discrete Sky Operator synthesis imaging,
 \bibitem{tartball}
 T.~Molteno et al., tartball: simulation of TART radio telescope data,
 \url{https://github.com/tart-telescope/tartball}.
+
+\bibitem{spotless}
+T.~Molteno et al., spotless: grid-free deconvolution directly from
+visibilities,
+\url{https://github.com/tmolteno/spotless}.
+
+\bibitem{tartbeam}
+T.~Molteno et al., tart-beam: wide-angle polynomial beam patterns on the
+sphere for TART antennas,
+\url{https://github.com/tart-telescope/beams}.
+
+\bibitem{smirnov2011}
+O.~M. Smirnov.
+Revisiting the radio interferometer measurement equation. I. A full-sky Jones
+formalism.
+\emph{Astron.\ Astrophys.}, 527:A106, 2011.
 
 \end{thebibliography}
 
